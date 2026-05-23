@@ -7,6 +7,12 @@ const app = express();
 
 app.use(express.json());
 
+// import main routes
+const routes = require("./index");
+
+// use routes
+app.use(routes);
+
 
 app.get("/", (request,response) =>{
     response.send("Student Management API Running ... Powered by MHI");
