@@ -1,4 +1,4 @@
-const stidentModel = require("../models/studentModel");
+const stidentModel = require("./student.service");
 
 //create student
 exports.createStudent = async (req, res) => {
