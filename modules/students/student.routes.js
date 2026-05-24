@@ -1,11 +1,13 @@
 const express = require("express");
 const router = express.Router();
-const studentController = require("./student.controller");
+const controller = require("./student.controller");
+const auth = require("../../middleware/auth");
+const authorize = require("../../middleware/rbac");
 
-router.post("/", studentController.createStudent);
-router.get("/", studentController.getAllStudents);
-router.get("/:id", studentController.getStudentById);
-router.get("/:id", studentController.updateStudent);
-router.get("/:id", studentController.deleteStudent);
+router.post("/", auth, authorize("ADMIN", "HEAD_MASTER"), controller.createStudent);
+router.get("/", auth, controller.getAllStudents);
+router.get("/:id", auth, controller.getStudentById);
+router.patch("/:id", auth,authorize("ADMIN", "HEAD_MASTER"), controller.updateStudent);
+router.delete("/:id", auth, authorize("ADMIN"), controller.deleteStudent);
 
 module.exports = router;

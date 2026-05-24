@@ -20,3 +20,19 @@ server.js
 
 index.js
 1 internal routing
+
+
+Flow
+server.js
+   ↓
+app.js
+   ↓
+index.js
+   ↓
+module routes
+   ↓
+controller
+   ↓
+service
+   ↓
+database
