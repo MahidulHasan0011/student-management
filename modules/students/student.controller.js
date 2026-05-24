@@ -1,4 +1,5 @@
 const stidentModel = require("./student.service");
+const sendResponse = require("../../utils/response");
 
 //create student
 exports.createStudent = async (req, res) => {
