@@ -13,7 +13,7 @@ exports.createSession = async (req, res, next) => {
 // GET ALL
 exports.getAllSessions = async (req, res, next) => {
   try {
-    const data = await service.getAllSessions();
+    const data = await service.getAllSessions(req.query);
     return sendResponse(res, 200, "Sessions fetched", data);
   } catch (err) {
     next(err);
