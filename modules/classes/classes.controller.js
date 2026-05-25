@@ -33,7 +33,8 @@ const updateClass = async (req, res, next) => {
 };
 
 const deleteClass = async (req, res, next) => {
-    try {        const data = await service.deleteClass(req.params.id);
+    try {        
+        const data = await service.deleteClass(req.params.id);
         if(!data){
             return sendResponse(res, 404, "Class not found");
         }   
