@@ -18,6 +18,7 @@ const getSections = async () => {
     SELECT *
     FROM sections
     WHERE deleted_at IS NULL
+    ORDER BY created_at DESC
   `);
 
   return result.rows;

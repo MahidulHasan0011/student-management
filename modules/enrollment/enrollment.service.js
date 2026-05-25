@@ -31,6 +31,7 @@ const getEnrollments = async () => {
     SELECT *
     FROM student_enrollments
     WHERE deleted_at IS NULL
+    ORDER BY created_at DESC
   `);
 
   return result.rows;
@@ -40,12 +41,13 @@ const updateEnrollment = async (id, data) => {
     `
     UPDATE student_enrollments
     SET
-      student_id = $2,
-      class_id = $3,
-      section_id = $4,
-      academic_session_id = $5,
-      roll_number = $6
-    WHERE id = $1 AND deleted_at IS NULL
+      student_id = $1,
+      class_id = $2,
+      section_id = $3,
+      academic_session_id = $4,
+      roll_number = $5,
+      updated_at = NOW()
+    WHERE id = $6 AND deleted_at IS NULL
     RETURNING *
     `,
     [
