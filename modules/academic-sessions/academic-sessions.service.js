@@ -1,4 +1,5 @@
 const db = require("../../config/db");
+const { buildWhereClause } = require("../../utils/queryBuilder");
 
 //create academic session
 const createSession = async (data) => {
@@ -10,24 +11,6 @@ const createSession = async (data) => {
    const result = await db.query(query, values);
    return result.rows[0];  
 }
-// shared search/filter builder
-const buildWhereClause = (queryOptions, values, countRef) => {
-    let where = "WHERE deleted_at IS NULL";
-
-    if (queryOptions.search) {
-        where += ` AND name LIKE $${countRef.value}`;
-        values.push(`%${queryOptions.search}%`);
-        countRef.value++;
-    }
-
-    if (queryOptions.name) {
-        where += ` AND name = $${countRef.value}`;
-        values.push(queryOptions.name);
-        countRef.value++;
-    }
-
-    return where;
-};
 
 //get all academic sessions
 const getAllSessions = async (queryOptions) => {
@@ -37,12 +20,7 @@ const getAllSessions = async (queryOptions) => {
     const skip = (page - 1) * limit;
 
     // allowed sort fields
-    const allowedSortFields = [
-        "created_at",
-        "name",
-        "start_date",
-        "end_date"
-    ];
+    const allowedSortFields = ["created_at", "name", "start_date", "end_date"];
 
     //sorting
     const sortBy = allowedSortFields.includes(queryOptions.sortBy) ? queryOptions.sortBy : "created_at";
@@ -50,7 +28,13 @@ const getAllSessions = async (queryOptions) => {
 
     const values = [];
     const countRef = { value: 1 };
-    const whereClause = buildWhereClause(queryOptions, values, countRef);
+
+    const config = {
+        searchableColumns: ["name"],
+        filterableColumns: ["name"]
+    };
+
+    const whereClause = buildWhereClause(queryOptions, values, config, countRef);
 
     // main query
     const query = `SELECT * FROM academic_sessions
