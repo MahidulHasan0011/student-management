@@ -1,5 +1,7 @@
 const db = require("../../config/db");
 const { buildWhereClause } = require("../../utils/queryBuilder");
+const { buildPagination, buildPaginationMeta } = require("../../utils/pagination");
+const { buildOrder } = require("../../utils/order");
 
 //create academic session
 const createSession = async (data) => {
@@ -15,51 +17,59 @@ const createSession = async (data) => {
 //get all academic sessions
 const getAllSessions = async (queryOptions) => {
     //pagination
-    const page = parseInt(queryOptions.page) || 1;
-    const limit = parseInt(queryOptions.limit) || 10;
-    const skip = (page - 1) * limit;
-
-    // allowed sort fields
-    const allowedSortFields = ["created_at", "name", "start_date", "end_date"];
+    const { page, limit, offset } = buildPagination(queryOptions);
 
     //sorting
-    const sortBy = allowedSortFields.includes(queryOptions.sortBy) ? queryOptions.sortBy : "created_at";
-    const sortOrder = queryOptions.sortOrder?.toUpperCase() === "ASC" ? "ASC" : "DESC";
+    const {sortBy, sortOrder} = buildOrder(
+        queryOptions,
+        ["created_at", "name", "start_date", "end_date"]
+    );
 
     const values = [];
     const countRef = { value: 1 };
-
+    // config
     const config = {
         searchableColumns: ["name"],
         filterableColumns: ["name"]
     };
 
-    const whereClause = buildWhereClause(queryOptions, values, config, countRef);
+    const whereClause = buildWhereClause(
+        queryOptions, 
+        values, 
+        config, 
+        countRef
+    );
 
     // main query
-    const query = `SELECT * FROM academic_sessions
-                   ${whereClause}
-                   ORDER BY ${sortBy} ${sortOrder}
-                   LIMIT $${countRef.value} OFFSET $${countRef.value + 1}`;
+    const query = `
+         SELECT * FROM academic_sessions
+         ${whereClause}
+         ORDER BY ${sortBy} ${sortOrder}
+         LIMIT $${countRef.value} 
+         OFFSET $${countRef.value + 1}`;
 
-    values.push(limit, skip);
+    values.push(limit, offset);
     const result = await db.query(query, values);
 
-    // total count query (reuse where clause with matching values)
-    const totalQuery = `SELECT COUNT(*)
-                        FROM academic_sessions
-                        ${whereClause}`;
-    const totalResult = await db.query(totalQuery, values.slice(0, values.length - 2));
+    // total count
+    const totalQuery = `
+        SELECT COUNT(*)
+        FROM academic_sessions
+        ${whereClause}`;
+    const totalResult = await db.query(
+          totalQuery, 
+          values.slice(0, values.length - 2)
+        );
 
     return {
         data: result.rows,
-        pagination: {
-            total: parseInt(totalResult.rows[0].count),
-            page, limit,
-            totalPages: Math.ceil(
-                totalResult.rows[0].count / limit
+        pagination: 
+            buildPaginationMeta(
+                totalResult.rows[0].count,
+                  page, limit,
             ),
-        },
+            
+        
     };
 };
 //update academic session

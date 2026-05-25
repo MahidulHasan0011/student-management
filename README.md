@@ -36,3 +36,17 @@ controller
 service
    ↓
 database
+
+
+
+Semi-generic architecture
+
+ reusable utilities
+ reusable query builder
+ reusable pagination
+ reusable search/filter
+BUT
+ separate services per module
+
+
+ Shared query utils folder (Search,Filter,Pagination)
