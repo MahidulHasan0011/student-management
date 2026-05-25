@@ -54,7 +54,14 @@ const getAssignments = async (queryOptions) => {
       "academic_session_id"
     ]
   };
-
+const whereClause = buildWhereClause(
+    queryOptions,
+    values,
+    config,
+    countRef,
+    "sa"
+  
+)
 
 
 
