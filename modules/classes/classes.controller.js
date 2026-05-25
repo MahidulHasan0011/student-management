@@ -13,7 +13,7 @@ const createClass = async (req, res, next) => {
 
 const getClasses = async (req, res, next) => {
     try {
-        const data = await service.getAllClasses();
+        const data = await service.getAllClasses(req.query);
         return sendResponse(res, 200, "Classes fetched successfully", data);
     } catch (error) {
         next(error);

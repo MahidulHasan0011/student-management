@@ -66,10 +66,9 @@ const getAllSessions = async (queryOptions) => {
         pagination: 
             buildPaginationMeta(
                 totalResult.rows[0].count,
-                  page, limit,
-            ),
-            
-        
+                page,
+                limit,
+            ),  
     };
 };
 //update academic session
