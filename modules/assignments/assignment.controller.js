@@ -18,7 +18,7 @@ const assignSubject = async (req, res, next) => {
 
 const getAssignments = async (req, res, next) => {
   try {
-    const data = await service.getAssignments();
+    const data = await service.getAssignments(req.query);
 
     return sendResponse(
       res,

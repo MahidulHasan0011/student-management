@@ -1,4 +1,7 @@
 const db = require("../../config/db");
+const { buildWhereClause } = require("../../utils/queryBuilder");
+const {buildPagination, buildPaginationMeta} = require("../../utils/pagination");
+const { buildOrder } = require("../../utils/order");
 
 const assignSubject = async (data) => {
   const result = await db.query(
@@ -28,7 +31,33 @@ const assignSubject = async (data) => {
   return result.rows[0];
 };
 
-const getAssignments = async () => {
+const getAssignments = async (queryOptions) => {
+  //pagination
+  const { page, limit, offset } = buildPagination(queryOptions);
+    //sorting
+  const {sortBy, sortOrder} = buildOrder(queryOptions,["created_at", "name"]);
+  const values = [];
+  const countRef = { value: 1 };
+  const config = {
+    searchableColumns: [
+      "t.full_name",
+      "c.name",
+      "s.name",
+      "sub.name"
+    ],
+
+    filterableColumns: [
+      "teacher_id",
+      "class_id",
+      "section_id",
+      "subject_id",
+      "academic_session_id"
+    ]
+  };
+
+
+
+
   const result = await db.query(`
     SELECT *
     FROM subject_assignments
