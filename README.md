@@ -51,3 +51,7 @@ BUT
 
  Shared query utils folder (Search,Filter,Pagination)
  MULTIPLE SEARCH + FILTER
+
+ imple table sorting and relational query sorting (array, object mapping)
+
+ DUAL COUNT SYSTEM for pagination. 1 FAST COUNT (Speed Priority) simple query, 2 ACCURATE COUNT (Correct result) search/filter JOIN table

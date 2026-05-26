@@ -35,23 +35,33 @@ const getAssignments = async (queryOptions) => {
   //pagination
   const { page, limit, offset } = buildPagination(queryOptions);
     //sorting
-  const {sortBy, sortOrder} = buildOrder(queryOptions,["created_at", "name"]);
+  const {sortBy, sortOrder} = buildOrder(queryOptions,{
+    created_at: "sa.created_at", 
+    teacher_name: "u.full_name",
+    teacher_email: "u.email",
+    class_name: "c.name", 
+    section_name: "s.name", 
+    subject_name: "sub.name",
+    session_name: "ac.name"
+  });
   const values = [];
   const countRef = { value: 1 };
   const config = {
     searchableColumns: [
-      "t.full_name",
+      "u.full_name",
+      "u.email",
       "c.name",
       "s.name",
-      "sub.name"
+      "sub.name",
+      "ac.name"
     ],
 
     filterableColumns: [
-      "teacher_id",
-      "class_id",
-      "section_id",
-      "subject_id",
-      "academic_session_id"
+      "sa.teacher_id",
+      "sa.class_id",
+      "sa.section_id",
+      "sa.subject_id",
+      "sa.academic_session_id"
     ]
   };
 const whereClause = buildWhereClause(
@@ -60,18 +70,111 @@ const whereClause = buildWhereClause(
     config,
     countRef,
     "sa"
-  
 )
+ // MAIN DATA QUERY
+
+const query = `
+SELECT
+  sa.*,
+  u.full_name AS teacher_name,
+  u.email AS teacher_email,
+  c.name AS class_name,
+  s.name AS section_name,
+  sub.name AS subject_name,
+  ac.name AS session_name
+  
+FROM subject_assignments sa
+
+LEFT JOIN teachers t
+  ON sa.teacher_id = t.id
+
+LEFT JOIN users u
+  ON t.user_id = u.id
+
+LEFT JOIN classes c
+  ON sa.class_id = c.id
+
+LEFT JOIN sections s
+  ON sa.section_id = s.id
+
+LEFT JOIN subjects sub
+  ON sa.subject_id = sub.id
+
+LEFT JOIN academic_sessions ac
+  ON sa.academic_session_id = ac.id
+
+${whereClause}
+ORDER BY ${sortBy} ${sortOrder}
+LIMIT $${countRef.value}
+OFFSET $${countRef.value + 1}
+`;
+values.push(limit, offset); 
+
+const result = await db.query(query, values);
+
+// SMART DUAL COUNT SYSTEM
+  const isRelationalQuery =
+    queryOptions.search ||
+    queryOptions.teacher_id ||
+    queryOptions.class_id ||
+    queryOptions.section_id ||
+    queryOptions.subject_id ||
+    queryOptions.academic_session_id;
+
+  let totalQuery;
+
+// FAST COUNT (no joins)
+if (!isRelationalQuery) {
+    totalQuery = `
+      SELECT COUNT(sa.id)
+      FROM subject_assignments sa
+      WHERE sa.deleted_at IS NULL
+    `;
+  }
+
+// ACCURATE COUNT (with joins)  
+else{
+   totalQuery = `
+SELECT COUNT(DISTINCT sa.id)
+FROM subject_assignments sa
+
+LEFT JOIN teachers t
+  ON sa.teacher_id = t.id
+
+LEFT JOIN users u
+  ON t.user_id = u.id
+
+LEFT JOIN classes c
+  ON sa.class_id = c.id
+
+LEFT JOIN sections s
+  ON sa.section_id = s.id
+
+LEFT JOIN subjects sub
+  ON sa.subject_id = sub.id
+
+LEFT JOIN academic_sessions ac
+  ON sa.academic_session_id = ac.id
+${whereClause}
+`;
+}
+
+
+const totalResult = await db.query(
+    totalQuery,
+    values.slice(0, values.length - 2)
+);
 
 
 
-  const result = await db.query(`
-    SELECT *
-    FROM subject_assignments
-    WHERE deleted_at IS NULL
-  `);
-
-  return result.rows;
+  return {
+      data:result.rows,
+        pagination: buildPaginationMeta(
+            totalResult.rows[0].count,
+            page, 
+            limit
+        ),
+  } 
 };
 
 const updateAssignment = async (id, data) => {
@@ -113,7 +216,7 @@ const deleteAssignment = async (id) => {
     `,
     [id]
   );
-  return result.rows[0];
+  return  result.rows[0];
 };
 
 module.exports = {
