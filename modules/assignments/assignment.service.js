@@ -124,6 +124,7 @@ const result = await db.query(query, values);
   let totalQuery;
 
 // FAST COUNT (no joins)
+// IF query uses only sa.* → FAST COUNT
 if (!isRelationalQuery) {
     totalQuery = `
       SELECT COUNT(sa.id)
@@ -132,7 +133,8 @@ if (!isRelationalQuery) {
     `;
   }
 
-// ACCURATE COUNT (with joins)  
+// ACCURATE COUNT (with joins) 
+// IF query uses u/c/sub/ac tables → ACCURATE COUNT 
 else{
    totalQuery = `
 SELECT COUNT(DISTINCT sa.id)
