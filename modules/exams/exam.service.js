@@ -19,7 +19,10 @@ const createExam = async (data) => {
     return result.rows[0];
 };
 
-const getExams = async () => {
+const getExams = async (queryOptions) => {
+     //pagination
+    const { page, limit, offset } = buildPagination(queryOptions);
+
     const result = await db.query(`
     SELECT *
     FROM exams

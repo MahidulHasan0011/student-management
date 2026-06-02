@@ -18,7 +18,7 @@ const createExam = async (req, res, next) => {
 
 const getExams = async (req, res, next) => {
   try {
-    const data = await service.getExams();
+    const data = await service.getExams(req.query);
 
     return sendResponse(
       res,
