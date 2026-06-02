@@ -51,21 +51,60 @@ const getAllSessions = async (queryOptions) => {
     values.push(limit, offset);
     const result = await db.query(query, values);
 
-    // total count
-    const totalQuery = `
-        SELECT COUNT(*)
-        FROM academic_sessions
-        ${whereClause}`;
+  
+//    1
+
+ // FILTERED COUNT (ONLY ONE COUNT NEEDED HERE)
+   const totalQuery  =
+   `SELECT COUNT(*)
+    FROM academic_sessions
+     ${whereClause}`;
+
     const totalResult = await db.query(
-          totalQuery, 
-          values.slice(0, values.length - 2)
-        );
+        totalQuery, 
+        values.slice(0, values.length - 2)
+    ); 
+const filteredRecords = parseInt(
+    totalResult.rows[0].count
+);
+
+// 2
+// Global Count (WITHOUT ANY FILTERS, FOR PAGINATION PURPOSES)
+const globalCountResult = await db.query(`
+  SELECT COUNT(*)
+  FROM academic_sessions
+  WHERE deleted_at IS NULL
+`);
+
+const totalRecords = parseInt(globalCountResult.rows[0].count);
+
+
+// 3
+const hasFilters = Boolean(
+    queryOptions.search ||
+    queryOptions.name
+);
+
+
+  
 
     return {
+
         data: result.rows,
+
+        message: hasFilters
+      ? `Showing ${filteredRecords} matching sessions (${totalRecords} total)`
+      : `Showing all ${totalRecords} sessions`,
+
+        meta: {
+            totalRecords,
+            filteredRecords,
+            hasFilters,
+        },
+
         pagination: 
             buildPaginationMeta(
-                totalResult.rows[0].count,
+                filteredRecords,
                 page,
                 limit,
             ),  

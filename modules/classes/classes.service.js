@@ -44,7 +44,8 @@ const getAllClasses = async (queryOptions) => {
     values.push(limit, offset);
 
     const result = await db.query(query,values);
-    
+
+//   1
     // total count
     const totalQuery = `
     SELECT COUNT(*)
@@ -55,11 +56,40 @@ const getAllClasses = async (queryOptions) => {
         totalQuery, 
         values.splice(0, values.length - 2)
     );
+    const filteredRecords = parseInt(totalResult.rows[0].count);
+
+    // 2
+    // Global Count (WITHOUT ANY FILTERS, FOR PAGINATION PURPOSES)
+const globalCountResult = await db.query(`
+  SELECT COUNT(*)
+  FROM classes
+  WHERE deleted_at IS NULL
+`);
+
+const totalRecords = parseInt(globalCountResult.rows[0].count);
+
+// 3
+const hasFilters = Boolean(
+    queryOptions.search ||
+    queryOptions.name
+);
 
     return {
         data:result.rows,
+       
+        message: hasFilters
+      ? `Showing ${filteredRecords} matching classes (${totalRecords} total)`
+      : `Showing all ${totalRecords} classes`,
+
+      
+        meta: {
+            totalRecords,
+            filteredRecords,
+            hasFilters,
+        },
+
         pagination: buildPaginationMeta(
-            totalResult.rows[0].count,
+            filteredRecords,
             page, 
             limit
         ),

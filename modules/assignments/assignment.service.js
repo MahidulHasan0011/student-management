@@ -112,31 +112,22 @@ values.push(limit, offset);
 
 const result = await db.query(query, values);
 
-// SMART DUAL COUNT SYSTEM
-  const isRelationalQuery =
-    queryOptions.search ||
-    queryOptions.teacher_id ||
-    queryOptions.class_id ||
-    queryOptions.section_id ||
-    queryOptions.subject_id ||
-    queryOptions.academic_session_id;
+// GLOBAL TOTAL COUNT
+ const globalCountResult = await db.query(`
+    SELECT COUNT(id)
+    FROM subject_assignments
+    WHERE deleted_at IS NULL
+  `);
+ const totalRecords = parseInt(
+    globalCountResult.rows[0].count
+  );
 
-  let totalQuery;
+// FILTERED COUNT
+ let totalQuery;
 
-// FAST COUNT (no joins)
-// IF query uses only sa.* → FAST COUNT
-if (!isRelationalQuery) {
-    totalQuery = `
-      SELECT COUNT(sa.id)
-      FROM subject_assignments sa
-      WHERE sa.deleted_at IS NULL
-    `;
-  }
-
-// ACCURATE COUNT (with joins) 
-// IF query uses u/c/sub/ac tables → ACCURATE COUNT 
-else{
-   totalQuery = `
+// search exists -> relational count
+  if (queryOptions.search) {
+       totalQuery = `
 SELECT COUNT(DISTINCT sa.id)
 FROM subject_assignments sa
 
@@ -159,20 +150,54 @@ LEFT JOIN academic_sessions ac
   ON sa.academic_session_id = ac.id
 ${whereClause}
 `;
-}
+  } 
+    // no search -> fast count
+  else{
+   totalQuery = `
+      SELECT COUNT(sa.id)
+      FROM subject_assignments sa
+     ${whereClause}
+    `;
+  }
 
-
-const totalResult = await db.query(
+  const totalResult = await db.query(
     totalQuery,
     values.slice(0, values.length - 2)
-);
+  );
+  const filteredRecords = parseInt(
+    totalResult.rows[0].count
+  );
 
 
 
+
+  const hasFilters = Boolean(
+      queryOptions.search ||
+    queryOptions.teacher_id ||
+    queryOptions.class_id ||
+    queryOptions.section_id ||
+    queryOptions.subject_id ||
+    queryOptions.academic_session_id
+  );
+  
   return {
-      data:result.rows,
+
+        data:result.rows,
+        
+     message: hasFilters
+      ? `Showing ${filteredRecords} matching assignments (${totalRecords} total)`
+      : `Showing all ${totalRecords} assignments`,
+
+  
+
+      meta: {
+      totalRecords,
+      filteredRecords,
+      hasFilters,
+    },
+
         pagination: buildPaginationMeta(
-            totalResult.rows[0].count,
+            filteredRecords,
             page, 
             limit
         ),

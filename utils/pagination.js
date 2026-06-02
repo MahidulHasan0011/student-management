@@ -12,7 +12,7 @@ const buildPagination = (queryOptions) => {
 
 const buildPaginationMeta = (total, page, limit) => {
     return {
-        total: parseInt(total),
+        total: total,
         page,
         limit,
         totalPages: Math.ceil(total / limit),
