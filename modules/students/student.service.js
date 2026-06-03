@@ -22,18 +22,148 @@ const { buildOrder } = require("../../utils/order");
   }
   // Get all students
   const getAllStudents = async (queryOptions) => {
+// pagination
+    const { page, limit, offset } =
+        buildPagination(queryOptions);
+// sorting
+    const { sortBy, sortOrder } =
+        buildOrder(queryOptions, {
+            created_at: "st.created_at",
+            student_name: "st.full_name",
+            student_code: "st.student_code",
+            class_name: "c.name",
+            section_name: "s.name"
+        });
 
+  const values = [];
+    const countRef = { value: 1 };
 
+    const config = {
+        searchableColumns: [
+            "st.full_name",
+            "st.student_code",
+            "st.guardian_name",
+            "st.guardian_phone",
+            "c.name",
+            "s.name"
+        ],
 
+        filterableColumns: [
+            "st.gender",
+            "se.class_id",
+            "se.section_id",
+            "se.academic_session_id"
+        ]
+    };
 
+    const whereClause = buildWhereClause(
+        queryOptions,
+        values,
+        config,
+        countRef,
+        "st"
+    );
 
+  // MAIN QUERY
+    const query = `
+        SELECT
+            st.*,
 
+            se.roll_number,
 
-    const query = `SELECT * From students
-                  WHERE deleted_at IS NULL
-                  ORDER BY created_at DESC`;
-    const result = await db.query(query); 
-    return result.rows;
+            c.name AS class_name,
+            s.name AS section_name,
+            ac.name AS session_name
+
+        FROM students st
+
+        LEFT JOIN student_enrollments se
+            ON st.id = se.student_id
+
+        LEFT JOIN classes c
+            ON se.class_id = c.id
+
+        LEFT JOIN sections s
+            ON se.section_id = s.id
+
+        LEFT JOIN academic_sessions ac
+            ON se.academic_session_id = ac.id
+
+        ${whereClause}
+
+        ORDER BY ${sortBy} ${sortOrder}
+
+        LIMIT $${countRef.value}
+        OFFSET $${countRef.value + 1}
+    `;
+
+    values.push(limit, offset);
+
+    const result = await db.query(query, values);
+
+ // COUNT QUERY
+    const totalQuery = `
+        SELECT COUNT(DISTINCT st.id)
+
+        FROM students st
+
+        LEFT JOIN student_enrollments se
+            ON st.id = se.student_id
+
+        LEFT JOIN classes c
+            ON se.class_id = c.id
+
+        LEFT JOIN sections s
+            ON se.section_id = s.id
+
+        LEFT JOIN academic_sessions ac
+            ON se.academic_session_id = ac.id
+
+        ${whereClause}
+    `;
+
+    const totalResult = await db.query(
+        totalQuery,
+        values.slice(0, values.length - 2)
+    );
+
+    const filteredRecords =
+        parseInt(totalResult.rows[0].count);
+
+    const globalCountResult = await db.query(`
+        SELECT COUNT(*)
+        FROM students
+        WHERE deleted_at IS NULL
+    `);
+
+    const totalRecords =
+        parseInt(globalCountResult.rows[0].count);
+
+    const hasFilters = Boolean(
+        queryOptions.search ||
+        queryOptions.gender ||
+        queryOptions.class_id ||
+        queryOptions.section_id
+    );
+return {
+        data: result.rows,
+
+        message: hasFilters
+            ? `Showing ${filteredRecords} matching students (${totalRecords} total)`
+            : `Showing all ${totalRecords} students`,
+
+        meta: {
+            totalRecords,
+            filteredRecords,
+            hasFilters
+        },
+
+        pagination: buildPaginationMeta(
+            filteredRecords,
+            page,
+            limit
+        )
+    };
   }
   //GET BY ID
   const getStudentById = async(id) => {

@@ -12,7 +12,7 @@ const createSubject = async (req, res, next) => {
 
 const getSubjects = async (req, res, next) => {
     try {
-        const data = await service.getAllSubjects();
+        const data = await service.getAllSubjects( req.query);
         return sendResponse(res, 200, "Subjects fetched successfully", data);
     } catch (error) {
         next(error);
