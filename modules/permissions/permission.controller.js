@@ -18,7 +18,7 @@ const createPermission = async (req, res, next) => {
 
 const getPermissions = async (req, res, next) => {
   try {
-    const data = await service.getPermissions();
+    const data = await service.getPermissions( req.query );
 
     return sendResponse(
       res,

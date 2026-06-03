@@ -1,4 +1,7 @@
 const db = require("../../config/db");
+const { buildWhereClause } = require("../../utils/queryBuilder");
+const {buildPagination, buildPaginationMeta} = require("../../utils/pagination");
+const { buildOrder } = require("../../utils/order");
 
    const createStudent = async (data) => {
     const query = `
@@ -18,7 +21,14 @@ const db = require("../../config/db");
     return result.rows[0];
   }
   // Get all students
-  const getAllStudents = async() => {
+  const getAllStudents = async (queryOptions) => {
+
+
+
+
+
+
+
     const query = `SELECT * From students
                   WHERE deleted_at IS NULL
                   ORDER BY created_at DESC`;

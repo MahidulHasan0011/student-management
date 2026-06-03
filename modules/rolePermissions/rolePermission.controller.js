@@ -18,7 +18,7 @@ const assignRolePermission = async (req, res, next) => {
 
 const getRolePermissions = async (req, res, next) => {
   try {
-    const data = await service.getRolePermissions();
+    const data = await service.getRolePermissions(req.query);
 
     return sendResponse(
       res,

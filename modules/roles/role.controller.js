@@ -18,7 +18,7 @@ const createRole = async (req, res, next) => {
 
 const getRoles = async (req, res, next) => {
   try {
-    const data = await service.getRoles();
+    const data = await service.getRoles( req.query);
 
     return sendResponse(
       res,

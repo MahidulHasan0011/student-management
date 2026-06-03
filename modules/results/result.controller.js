@@ -18,7 +18,7 @@ const createResult = async (req, res, next) => {
 
 const getResults = async (req, res, next) => {
   try {
-    const data = await service.getResults();
+    const data = await service.getResults(req.query);
 
     return sendResponse(
       res,

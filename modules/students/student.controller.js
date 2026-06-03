@@ -15,7 +15,7 @@ const createStudent = async (req, res, next) => {
 //get all students
 const getAllStudents = async (req, res, next) => {
     try{
-        const students  = await studentService.getAllStudents();
+        const students  = await studentService.getAllStudents( req.query);
         return sendResponse(res, 200, "Students fetched", students);
     } catch (error) {
        next(error);

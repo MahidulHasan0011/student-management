@@ -12,7 +12,7 @@ const createSection = async (req, res, next) => {
 
 const getSections = async (req, res, next) => {
   try {
-    const data = await service.getSections();
+    const data = await service.getSections(req.query);
     return sendResponse(res, 200, "Sections fetched", data);
   } catch (err) {
     next(err);

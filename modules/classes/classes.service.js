@@ -54,7 +54,7 @@ const getAllClasses = async (queryOptions) => {
     
     const totalResult = await db.query(
         totalQuery, 
-        values.splice(0, values.length - 2)
+        values.slice(0, values.length - 2)
     );
     const filteredRecords = parseInt(totalResult.rows[0].count);
 
@@ -92,7 +92,7 @@ const hasFilters = Boolean(
             filteredRecords,
             page, 
             limit
-        ),
+        )
     };
 };
 const updateClass = async(id, data) => {

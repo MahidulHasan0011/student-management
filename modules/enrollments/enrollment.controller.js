@@ -18,7 +18,7 @@ const assignEnrollment = async (req, res, next) => {
 
 const getEnrollments = async (req, res, next) => {
   try {
-    const data = await service.getEnrollments();
+    const data = await service.getEnrollments( req.query );
 
     return sendResponse(
       res,
