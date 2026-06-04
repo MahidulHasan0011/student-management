@@ -18,7 +18,7 @@ const createUser = async (req, res, next) => {
 
 const getUsers = async (req, res, next) => {
   try {
-    const data = await service.getUsers();
+    const data = await service.getUsers(req.query);
 
     return sendResponse(
       res,

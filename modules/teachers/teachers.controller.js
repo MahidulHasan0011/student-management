@@ -13,7 +13,7 @@ const createTeacher = async (req, res, next) => {
 
 const getTeacher = async (req, res, next) => {
     try {
-        const data = await service.getAllTeacherst();
+        const data = await service.getAllTeacherst( req.query);
         return sendResponse(res, 200, "Teachers fetched successfully", data);
     } catch (error) {
         next(error);
