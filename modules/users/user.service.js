@@ -145,8 +145,7 @@ const getUsers = async (queryOptions) => {
             page,
             limit
         )
-
-  } 
+  }; 
 };
 const updateUser = async (id, data) => {
     const result = await db.query(
