@@ -1,31 +1,93 @@
 const db = require("../../config/db");
 const { buildWhereClause } = require("../../utils/queryBuilder");
-const {buildPagination, buildPaginationMeta} = require("../../utils/pagination");
+const { buildPagination, buildPaginationMeta } = require("../../utils/pagination");
 const { buildOrder } = require("../../utils/order");
 
-   const createStudent = async (data) => {
-    const query = `
-    INSERT INTO students (student_code, full_name, gender, date_of_birth, guardian_name, guardian_phone, address)
-    Values($1, $2, $3, $4, $5, $6, $7)
-    RETURNING *`;
-    const values = [
-      data.student_code,
-      data.full_name,
-      data.gender,
-      data.date_of_birth,
-      data.guardian_name,
-      data.guardian_phone,
-      data.address
-    ];
-    const result = await db.query(query, values);
-    return result.rows[0];
-  }
-  // Get all students
-  const getAllStudents = async (queryOptions) => {
-// pagination
+
+
+
+const createStudent = async (data) => {
+    const client = await db.connect();
+
+    // Teacher Request
+    //       ↓
+    // START TRANSACTION
+    //       ↓
+    // Create User (login)
+    //       ↓
+    // Create Student Profile
+    //       ↓
+    // COMMIT (SAVE ALL)
+    //       ↓
+    // Response success
+
+
+    try {
+        await client.query("BEGIN");
+
+        // 1. create user (login identity)
+        const userResult = await client.query(
+            `
+      INSERT INTO users
+      (full_name, email, password, role_id)
+      VALUES ($1,$2,$3,$4)
+      RETURNING id
+      `,
+            [
+                data.full_name,
+                data.email,
+                data.password, // already hashed
+                data.role_id // STUDENT role
+            ]
+        );
+
+        const user_id = userResult.rows[0].id;
+
+        // 2. create student profile
+        const studentResult = await client.query(
+            `
+      INSERT INTO students
+      (
+        user_id,
+        student_code,
+        gender,
+        date_of_birth,
+        guardian_name,
+        guardian_phone,
+        address
+      )
+      VALUES ($1,$2,$3,$4,$5,$6,$7)
+      RETURNING *
+      `,
+            [
+                user_id,
+                data.student_code,
+                data.gender,
+                data.date_of_birth,
+                data.guardian_name,
+                data.guardian_phone,
+                data.address
+            ]
+        );
+
+        await client.query("COMMIT");
+
+        return studentResult.rows[0];
+
+    } catch (error) {
+        await client.query("ROLLBACK");
+        throw error;
+    } finally {
+        client.release();
+    }
+};
+
+// Get all students
+const getAllStudents = async (queryOptions) => {
+    // pagination
     const { page, limit, offset } =
         buildPagination(queryOptions);
-// sorting
+    // sorting
     const { sortBy, sortOrder } =
         buildOrder(queryOptions, {
             created_at: "st.created_at",
@@ -35,7 +97,7 @@ const { buildOrder } = require("../../utils/order");
             section_name: "s.name"
         });
 
-  const values = [];
+    const values = [];
     const countRef = { value: 1 };
 
     const config = {
@@ -64,7 +126,7 @@ const { buildOrder } = require("../../utils/order");
         "st"
     );
 
-  // MAIN QUERY
+    // MAIN QUERY
     const query = `
         SELECT
             st.*,
@@ -101,7 +163,7 @@ const { buildOrder } = require("../../utils/order");
 
     const result = await db.query(query, values);
 
- // COUNT QUERY
+    // COUNT QUERY
     const totalQuery = `
         SELECT COUNT(DISTINCT st.id)
 
@@ -145,7 +207,7 @@ const { buildOrder } = require("../../utils/order");
         queryOptions.class_id ||
         queryOptions.section_id
     );
-return {
+    return {
         data: result.rows,
 
         message: hasFilters
@@ -164,45 +226,69 @@ return {
             limit
         )
     };
-  }
-  //GET BY ID
-  const getStudentById = async(id) => {
+}
+//GET BY ID
+const getStudentById = async (id) => {
     const query = `SELECT * FROM students
                    WHERE id = $1 AND deleted_at IS NULL`;
-    const result = await db.query(query,[id]);
-    return result.rows[0];               
-  } 
-  //update student
-  const updateStudent = async(id, data) => {
-    const query = `UPDATE students
-                   SET full_name = $1,
-                        gender = $2,
-                        guardian_name = $3,
-                        guardian_phone = $4,
-                        address = $5,
-                        updated_at = NOW()
-                    WHERE id = $6 AND deleted_at IS NULL
-                    RETURNING *`;
-    const values = [
-      data.full_name,
-      data.gender,
-      data.guardian_name,
-      data.guardian_phone,
-      data.address ,
-      id
-    ];
-    const result = await db.query(query, values);
+    const result = await db.query(query, [id]);
     return result.rows[0];
-  };
-  // delete student by id (soft delete)
-  const deleteStudent = async (id) => {
+}
+//update student
+const updateStudent = async (id, data) => {
+    const client = await db.connect();
+
+    try {
+        await client.query("BEGIN");
+        const student = await client.query(
+            `UPDATE students
+                   SET
+                   
+
+ full_name = COALESCE($1, full_name),
+            gender = COALESCE($2, gender),
+            guardian_name = COALESCE($3, guardian_name),
+            guardian_phone = COALESCE($4, guardian_phone),
+            address = COALESCE($5, address),
+            updated_at = NOW()
+        WHERE id = $6 AND deleted_at IS NULL
+        RETURNING *
+
+
+
+
+
+                    
+                    `,
+            [
+                data.full_name,
+                data.gender,
+                data.guardian_name,
+                data.guardian_phone,
+                data.address,
+                id
+            ]
+        );
+        await client.query("COMMIT");
+        return student.rows[0];
+
+    }
+    catch (error) {
+        await client.query("ROLLBACK");
+        throw error;
+    } finally {
+        client.release();
+    }
+};
+// delete student by id (soft delete)
+const deleteStudent = async (id) => {
     const query = `UPDATE students
                    SET deleted_at = NOW()
                    WHERE id = $1 
                    RETURNING *`;
     const result = await bd.query(query, [id]);
     return result.rows[0];
-  }
+}
 
 
 module.exports = { createStudent, getAllStudents, getStudentById, updateStudent, deleteStudent };
