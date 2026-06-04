@@ -241,25 +241,17 @@ const updateStudent = async (id, data) => {
     try {
         await client.query("BEGIN");
         const student = await client.query(
-            `UPDATE students
-                   SET
-                   
-
- full_name = COALESCE($1, full_name),
+            `
+            UPDATE students
+            SET
+            full_name = COALESCE($1, full_name),
             gender = COALESCE($2, gender),
             guardian_name = COALESCE($3, guardian_name),
             guardian_phone = COALESCE($4, guardian_phone),
             address = COALESCE($5, address),
             updated_at = NOW()
         WHERE id = $6 AND deleted_at IS NULL
-        RETURNING *
-
-
-
-
-
-                    
-                    `,
+        RETURNING *`,
             [
                 data.full_name,
                 data.gender,
