@@ -11,7 +11,7 @@ const createSession = async (data) => {
     return result.rows[0];
 };
 
-// GET ALL — query বানানো repository-র কাজ
+// GET ALL — query making repository-side
 const getAllSessions = async ({ whereClause, sortBy, sortOrder, values, limit, offset, countRef }) => {
     const mainQuery = `
         SELECT * FROM academic_sessions

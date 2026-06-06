@@ -1,34 +1,12 @@
 const db = require("../../config/db");
+const subjectAssignmentsRepository = require("./subject-assignments.repository");
 const { buildWhereClause } = require("../../utils/queryBuilder");
 const {buildPagination, buildPaginationMeta} = require("../../utils/pagination");
 const { buildOrder } = require("../../utils/order");
 
 const assignSubject = async (data) => {
-  const result = await db.query(
-    `
-    INSERT INTO subject_assignments
-    (
-      teacher_id,
-      class_id,
-      section_id,
-      subject_id,
-      academic_session_id,
-      assigned_by
-    )
-    VALUES ($1,$2,$3,$4,$5,$6)
-    RETURNING *
-    `,
-    [
-      data.teacher_id,
-      data.class_id,
-      data.section_id,
-      data.subject_id,
-      data.academic_session_id,
-      data.assigned_by,
-    ]
-  );
-
-  return result.rows[0];
+  const result = await subjectAssignmentsRepository.assignSubject(data);
+  return result;
 };
 
 const getAssignments = async (queryOptions) => {
@@ -71,133 +49,51 @@ const whereClause = buildWhereClause(
     countRef,
     "sa"
 )
- // MAIN DATA QUERY
-
-const query = `
-SELECT
-  sa.*,
-  u.full_name AS teacher_name,
-  u.email AS teacher_email,
-  c.name AS class_name,
-  s.name AS section_name,
-  sub.name AS subject_name,
-  ac.name AS session_name
-  
-FROM subject_assignments sa
-
-LEFT JOIN teachers t
-  ON sa.teacher_id = t.id
-
-LEFT JOIN users u
-  ON t.user_id = u.id
-
-LEFT JOIN classes c
-  ON sa.class_id = c.id
-
-LEFT JOIN sections s
-  ON sa.section_id = s.id
-
-LEFT JOIN subjects sub
-  ON sa.subject_id = sub.id
-
-LEFT JOIN academic_sessions ac
-  ON sa.academic_session_id = ac.id
-
-${whereClause}
-ORDER BY ${sortBy} ${sortOrder}
-LIMIT $${countRef.value}
-OFFSET $${countRef.value + 1}
-`;
-values.push(limit, offset); 
-
-const result = await db.query(query, values);
-
-// GLOBAL TOTAL COUNT
- const globalCountResult = await db.query(`
-    SELECT COUNT(id)
-    FROM subject_assignments
-    WHERE deleted_at IS NULL
-  `);
- const totalRecords = parseInt(
-    globalCountResult.rows[0].count
-  );
-
-// FILTERED COUNT
- let totalQuery;
-
-// search exists -> relational count
-  if (queryOptions.search) {
-       totalQuery = `
-SELECT COUNT(DISTINCT sa.id)
-FROM subject_assignments sa
-
-LEFT JOIN teachers t
-  ON sa.teacher_id = t.id
-
-LEFT JOIN users u
-  ON t.user_id = u.id
-
-LEFT JOIN classes c
-  ON sa.class_id = c.id
-
-LEFT JOIN sections s
-  ON sa.section_id = s.id
-
-LEFT JOIN subjects sub
-  ON sa.subject_id = sub.id
-
-LEFT JOIN academic_sessions ac
-  ON sa.academic_session_id = ac.id
-${whereClause}
-`;
-  } 
-    // no search -> fast count
-  else{
-   totalQuery = `
-      SELECT COUNT(sa.id)
-      FROM subject_assignments sa
-     ${whereClause}
-    `;
-  }
-
-  const totalResult = await db.query(
-    totalQuery,
-    values.slice(0, values.length - 2)
-  );
-  const filteredRecords = parseInt(
-    totalResult.rows[0].count
-  );
+const hasSearch = Boolean(queryOptions.search);
 
 
+ // Service receive parameter 
+    const [{ rows, filteredCount }, totalRecords] = await Promise.all([
+        subjectAssignmentsRepository.getAssignments({
+            whereClause,
+            sortBy,
+            sortOrder,
+            values,
+            limit,
+            offset,
+            countRef,
+            hasSearch  //  repository knows about count query
+        }),
+        subjectAssignmentsRepository.globalCount()
+    ]);
+
+    const hasFilters = Boolean(
+        queryOptions.search               ||
+        queryOptions.teacher_id           ||
+        queryOptions.class_id             ||
+        queryOptions.section_id           ||
+        queryOptions.subject_id           ||
+        queryOptions.academic_session_id
+    );
 
 
-  const hasFilters = Boolean(
-      queryOptions.search ||
-    queryOptions.teacher_id ||
-    queryOptions.class_id ||
-    queryOptions.section_id ||
-    queryOptions.subject_id ||
-    queryOptions.academic_session_id
-  );
-  
   return {
-
-        data:result.rows,
+    data: rows,
         
      message: hasFilters
-      ? `Showing ${filteredRecords} matching assignments (${totalRecords} total)`
+      ? `Showing ${filteredCount} matching assignments (${totalRecords} total)`
       : `Showing all ${totalRecords} assignments`,
 
   
 
       meta: {
       totalRecords,
-      filteredRecords,
+      filteredCount,
       hasFilters,
     },
 
         pagination: buildPaginationMeta(
-            filteredRecords,
+            filteredCount,
             page, 
             limit
         ),
@@ -205,46 +101,18 @@ ${whereClause}
 };
 
 const updateAssignment = async (id, data) => {
-  const result = await db.query(
-    `
-    UPDATE subject_assignments
-    SET
-      teacher_id = $1,
-        class_id = $2,
-        section_id = $3,
-        subject_id = $4,
-        academic_session_id = $5,
-        assigned_by = $6,
-        updated_at = NOW()
-    WHERE id = $7 AND deleted_at IS NULL
-    RETURNING *
-    `,
-    [
-      data.teacher_id,
-      data.class_id,
-        data.section_id,
-        data.subject_id,
-        data.academic_session_id,
-        data.assigned_by,
-      id,
-    ]
-  );
-
-  return result.rows[0];
+    const result = await subjectAssignmentsRepository.updateAssignment(id, data);
+    if (!result) return null;
+    return result;
 };
 
+// DELETE
 const deleteAssignment = async (id) => {
-  const result = await db.query(
-    `
-    UPDATE subject_assignments
-    SET deleted_at = NOW()
-    WHERE id = $1
-    RETURNING *
-    `,
-    [id]
-  );
-  return  result.rows[0];
+    const result = await subjectAssignmentsRepository.deleteAssignment(id);
+    if (!result) return null;
+    return result;
 };
+
 
 module.exports = {
   assignSubject,

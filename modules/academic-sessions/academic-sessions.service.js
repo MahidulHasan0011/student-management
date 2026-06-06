@@ -1,4 +1,3 @@
-const db = require("../../config/db");
 const academicSessionsRepository = require("./academic-sessions.repository");
 
 const { buildWhereClause } = require("../../utils/queryBuilder");
