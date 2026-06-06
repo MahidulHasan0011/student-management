@@ -7,8 +7,8 @@ const createExam = async (data) => {
     const result = await db.query(
         `
     INSERT INTO exams
-    (name, class_id, academic_session_id, exam_date)
-    VALUES ($1,$2,$3,$4)
+    (name, class_id, academic_session_id, exam_date, exam_type)
+    VALUES ($1,$2,$3,$4,$5)
     RETURNING *
     `,
         [
@@ -16,6 +16,7 @@ const createExam = async (data) => {
             data.class_id,
             data.academic_session_id,
             data.exam_date,
+            data.exam_type
         ]
     );
 
@@ -33,7 +34,9 @@ const getExams = async (queryOptions) => {
         exam_name: "e.name",
         class_name: "c.name",
         session_name: "ac.name",
-        exam_date: "e.exam_date"
+        exam_date: "e.exam_date",
+        exam_type: "e.exam_type"
+        
         }
     );
     const values = [];
@@ -48,7 +51,8 @@ const getExams = async (queryOptions) => {
         filterableColumns: [
             "e.class_id",
             "e.academic_session_id",
-            "e.exam_date"
+            "e.exam_date",
+            "e.exam_type"
         ]
     };
        const whereClause = buildWhereClause(
@@ -113,7 +117,8 @@ const getExams = async (queryOptions) => {
             queryOptions.search ||
             queryOptions.class_id ||
             queryOptions.academic_session_id ||
-            queryOptions.exam_date
+            queryOptions.exam_date ||
+            queryOptions.exam_type
         );
 
     return {
@@ -145,8 +150,9 @@ const updateExam = async (id, data) => {
       class_id = $2,
       academic_session_id = $3,
       exam_date = $4,
+      exam_type = $5,
       updated_at = NOW()
-    WHERE id = $5 AND deleted_at IS NULL
+    WHERE id = $6 AND deleted_at IS NULL
     RETURNING *
     `,
         [
@@ -154,7 +160,8 @@ const updateExam = async (id, data) => {
             data.name,
             data.class_id,
             data.academic_session_id,
-            data.exam_date
+            data.exam_date,
+            data.exam_type
         ]);
 
     return result.rows[0];

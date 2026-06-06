@@ -2,8 +2,8 @@ const express = require("express");
 const router = express.Router();
 
 const controller = require("./exam.controller");
-const auth = require("../../middleware/auth");
-const authorize = require("../../middleware/rbac");
+const auth = require("../../middleware/auth.middleware");
+const authorize = require("../../middleware/rbac.middleware");
 
 router.post("/", auth, authorize("HEAD_MASTER", "ADMIN"), controller.createExam);
 

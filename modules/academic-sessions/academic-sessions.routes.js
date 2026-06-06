@@ -1,8 +1,8 @@
 const express = require("express");
 const router = express.Router();
 const controller = require("./academic-sessions.controller");
-const auth = require("../../middleware/auth");
-const authorize = require("../../middleware/rbac");
+const auth = require("../../middleware/auth.middleware");
+const authorize = require("../../middleware/rbac.middleware");
 
 router.post("/", auth, authorize("ADMIN", "HEAD_MASTER"), controller.createSession);
 router.get("/", auth, controller.getAllSessions);

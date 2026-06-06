@@ -1,11 +1,11 @@
 const express = require("express");
 const app = express();
 
-const errorHandler = require("./middleware/error");
-const notFound = require("./middleware/notFound");
+const errorHandler = require("./middleware/error.middleware");
+const notFound = require("./middleware/notFound.middleware");
 
 // MAIN ROUTES
-const routes = require("./index");
+const routes = require("./api/v1/index");
 
 // BODY PARSER
 app.use(express.json());
