@@ -98,3 +98,15 @@ src/
 │   ├── response.js
 │
 └── docs/
+
+
+
+
+
+students.routes.js   → URL define করে
+        ↓
+students.controller.js → request handle করে
+        ↓
+students.service.js → business logic
+        ↓
+students.repository.js → DB query

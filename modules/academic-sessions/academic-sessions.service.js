@@ -1,17 +1,14 @@
 const db = require("../../config/db");
+const academicSessionsRepository = require("./academic-sessions.repository");
+
 const { buildWhereClause } = require("../../utils/queryBuilder");
 const { buildPagination, buildPaginationMeta } = require("../../utils/pagination");
 const { buildOrder } = require("../../utils/order");
 
 //create academic session
-const createSession = async (data) => {
-    const query = `INSERT INTO academic_sessions (name, start_date, end_date,is_active) 
-    VALUES ($1, $2, $3, $4)
-     RETURNING *`;
-
-   const values = [data.name, data.start_date, data.end_date, data.is_active];
-   const result = await db.query(query, values);
-   return result.rows[0];  
+const createSession = async (data) => { 
+const result = await academicSessionsRepository.createSession(data); 
+   return result;  
 }
 
 //get all academic sessions
