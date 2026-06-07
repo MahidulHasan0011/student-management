@@ -1,4 +1,3 @@
-const db = require("../../config/db");
 const subjectAssignmentsRepository = require("./assignments.repository");
 const { buildWhereClause } = require("../../utils/queryBuilder");
 const {buildPagination, buildPaginationMeta} = require("../../utils/pagination");

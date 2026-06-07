@@ -18,7 +18,12 @@ const getAllSessions = async (queryOptions) => {
     //sorting
     const {sortBy, sortOrder} = buildOrder(
         queryOptions,
-        ["created_at", "name", "start_date", "end_date"]
+        {
+            created_at: "created_at",
+            name: "name",
+            start_date: "start_date",
+            end_date: "end_date"
+        }
     );
 
     const values = [];

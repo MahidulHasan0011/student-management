@@ -95,7 +95,7 @@ const getAllStudents = async (queryOptions) => {
     const whereClause = buildWhereClause(
         queryOptions, values, config, countRef, "st"
     );
-//  Service শুধু parameter পাঠাচ্ছে — query জানে না
+
 const [{rows, filteredCount }, totalRecords] = await Promise.all([
     studentRepository.getAllStudents({
         whereClause,
