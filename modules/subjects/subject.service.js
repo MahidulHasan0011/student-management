@@ -1,13 +1,11 @@
-const db = require("../../config/db");
+const subjectsRepository = require("./subjects.repository");
 const { buildWhereClause } = require("../../utils/queryBuilder");
 const {buildPagination, buildPaginationMeta} = require("../../utils/pagination");
 const { buildOrder } = require("../../utils/order");
 
 const createSubject = async (data) => {
-    const query = `INSERT INTO subjects (name, code) VALUES ($1, $2) RETURNING *`;
-    const values = [data.name, data.code];
-    const result = await db.query(query, values);
-    return result.rows[0];
+    const result = await subjectsRepository.createSubject(data);
+    return result;
 };
 const getAllSubjects = async (queryOptions) => {
 
@@ -45,44 +43,18 @@ const getAllSubjects = async (queryOptions) => {
         countRef,
         "sub"
     );
-
-    // MAIN QUERY
-    const query = `
-        SELECT *
-        FROM subjects sub
-        ${whereClause}
-        ORDER BY ${sortBy} ${sortOrder}
-        LIMIT $${countRef.value}
-        OFFSET $${countRef.value + 1}
-    `;
-
-    values.push(limit, offset);
-
-    const result = await db.query(query, values);
-
-    // COUNT
-    const totalQuery = `
-        SELECT COUNT(*)
-        FROM subjects sub
-        ${whereClause}
-    `;
-
-    const totalResult = await db.query(
-        totalQuery,
-        values.slice(0, values.length - 2)
-    );
-
-    const filteredRecords =
-        parseInt(totalResult.rows[0].count);
-
-    const globalCountResult = await db.query(`
-        SELECT COUNT(*)
-        FROM subjects
-        WHERE deleted_at IS NULL
-    `);
-
-    const totalRecords =
-        parseInt(globalCountResult.rows[0].count);
+ const [{ rows, filteredCount }, totalRecords] = await Promise.all([
+        subjectsRepository.getAllSubjects({
+            whereClause,
+            sortBy,
+            sortOrder,
+            values,
+            limit,
+            offset,
+            countRef
+        }),
+        subjectsRepository.globalCount()
+    ]);
 
     const hasFilters = Boolean(
         queryOptions.search ||
@@ -90,37 +62,27 @@ const getAllSubjects = async (queryOptions) => {
     );
 
     return {
-        data: result.rows,
+        data: rows,
 
         message: hasFilters
-            ? `Showing ${filteredRecords} matching subjects (${totalRecords} total)`
+            ? `Showing ${filteredCount} matching subjects (${totalRecords} total)`
             : `Showing all ${totalRecords} subjects`,
 
-        meta: {
-            totalRecords,
-            filteredRecords,
-            hasFilters
-        },
+        meta: { totalRecords, filteredRecords: filteredCount, hasFilters },
 
-        pagination: buildPaginationMeta(
-            filteredRecords,
-            page,
-            limit
-        )
+        pagination: buildPaginationMeta(filteredCount, page, limit)
     };
 };
+
 const updateSubject = async (id, data) => {
-    const query = `UPDATE subjects SET name= $1, code= $2, updated_at = NOW()
-     WHERE id = $3 AND deleted_at IS NULL RETURNING *`;
-    const values = [data.name, data.code, id];
-    const result = await db.query(query, values);
-    return result.rows[0];
+    const result = await subjectsRepository.updateSubject(id, data);
+    if (!result) return null;
+    return result;
 };
 const deleteSubject = async (id) => {
-    const query = `UPDATE subjects SET deleted_at = NOW() WHERE id = $1 RETURNING *`;
-    const values = [id];
-    const result = await db.query(query, values);
-    return result.rows[0];
+    const result = await subjectsRepository.deleteSubject(id);
+    if (!result) return null;
+    return result;
 };
 
 module.exports = {

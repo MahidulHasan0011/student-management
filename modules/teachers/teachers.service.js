@@ -1,13 +1,11 @@
-const db = require("../../config/db");
+const teachersRepository = require("./teachers.repository");
 const { buildWhereClause } = require("../../utils/queryBuilder");
 const {buildPagination, buildPaginationMeta} = require("../../utils/pagination");
 const { buildOrder } = require("../../utils/order");
 
-const createTeacherst = async (data) => {
-    const query = `INSERT INTO subjects (user_id, phone, designation, qualification) VALUES ($1, $2, $3, $4) RETURNING *`;
-    const values = [data.user_id, data.phone, data.designation, data.qualification];
-    const result = await db.query(query, values);
-    return result.rows[0];
+const createTeacher = async (data) => {
+    const result = await teachersRepository.createTeacher(data);
+    return result;
 };
 const getAllTeachers = async (queryOptions) => {
 
@@ -48,104 +46,51 @@ const getAllTeachers = async (queryOptions) => {
         countRef,
         "t"
     );
-
-    // MAIN QUERY
-    const query = `
-        SELECT
-            t.*,
-            u.full_name,
-            u.email,
-            u.is_active
-
-        FROM teachers t
-
-        LEFT JOIN users u
-            ON t.user_id = u.id
-
-        ${whereClause}
-
-        ORDER BY ${sortBy} ${sortOrder}
-
-        LIMIT $${countRef.value}
-        OFFSET $${countRef.value + 1}
-    `;
-
-    values.push(limit, offset);
-
-    const result = await db.query(query, values);
-
-    // FILTERED COUNT
-    const totalQuery = `
-        SELECT COUNT(DISTINCT t.id)
-
-        FROM teachers t
-
-        LEFT JOIN users u
-            ON t.user_id = u.id
-
-        ${whereClause}
-    `;
-
-    const totalResult = await db.query(
-        totalQuery,
-        values.slice(0, values.length - 2)
-    );
-
-    const filteredRecords =
-        parseInt(totalResult.rows[0].count);
-
-    // GLOBAL COUNT
-    const globalCountResult = await db.query(`
-        SELECT COUNT(*)
-        FROM teachers
-        WHERE deleted_at IS NULL
-    `);
-
-    const totalRecords =
-        parseInt(globalCountResult.rows[0].count);
+const [{ rows, filteredCount }, totalRecords] = await Promise.all([
+        teachersRepository.getAllTeachers({
+            whereClause,
+            sortBy,
+            sortOrder,
+            values,
+            limit,
+            offset,
+            countRef
+        }),
+        teachersRepository.globalCount()
+    ]);
 
     const hasFilters = Boolean(
-        queryOptions.search ||
+        queryOptions.search      ||
         queryOptions.designation
     );
 
     return {
-        data: result.rows,
+        data: rows,
 
         message: hasFilters
-            ? `Showing ${filteredRecords} matching teachers (${totalRecords} total)`
+            ? `Showing ${filteredCount} matching teachers (${totalRecords} total)`
             : `Showing all ${totalRecords} teachers`,
 
-        meta: {
-            totalRecords,
-            filteredRecords,
-            hasFilters
-        },
+        meta: { totalRecords, filteredRecords: filteredCount, hasFilters },
 
-        pagination: buildPaginationMeta(
-            filteredRecords,
-            page,
-            limit
-        )
+        pagination: buildPaginationMeta(filteredCount, page, limit)
     };
 };
-const updateTeacherst = async (id, data) => {
-    const query = `UPDATE teachers SET user_id= $1, phone= $2, designation= $3, qualification= $4, updated_at = NOW()
-     WHERE id = $5 AND deleted_at IS NULL RETURNING *`;
-    const values = [data.user_id, data.phone, data.designation, data.qualification, id];
-    const result = await db.query(query, values);
-    return result.rows[0];
+
+const updateTeacher = async (id, data) => {
+    const result = await teachersRepository.updateTeacher(id, data);
+    if (!result) return null;
+    return result;
 };
-const deleteTeacherst = async (id) => {
-    const query = `UPDATE teachers SET deleted_at = NOW() WHERE id = $1 RETURNING *`;
-    const values = [id];
-    const result = await db.query(query, values);
-    return result.rows[0];
+const deleteTeacher = async (id) => {
+    const result = await teachersRepository.deleteTeacher(id);
+    if (!result) return null;
+    return result;
 };
 
 module.exports = {
-    createTeacherst,
+    createTeacher,
     getAllTeachers,
-    updateTeacherst,
-    deleteTeacherst
+    updateTeacher,
+    deleteTeacher
 };

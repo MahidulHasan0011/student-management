@@ -1,19 +1,11 @@
-const db = require("../../config/db");
+const sectionsRepository = require("./sections.repository");
 const { buildWhereClause } = require("../../utils/queryBuilder");
 const {buildPagination, buildPaginationMeta} = require("../../utils/pagination");
 const { buildOrder } = require("../../utils/order");
 
 const createSection = async (data) => {
-  const result = await db.query(
-    `
-    INSERT INTO sections (class_id, name)
-    VALUES ($1, $2)
-    RETURNING *
-    `,
-    [data.class_id, data.name]
-  );
-
-  return result.rows[0];
+  const result = await sectionsRepository.createSection(data);
+  return result;
 };
 
 const getSections = async (queryOptions) => {
@@ -52,115 +44,47 @@ const getSections = async (queryOptions) => {
         "s"
     ); 
     
-
-     // MAIN QUERY
-    const query = `
-        SELECT
-            s.*,
-            c.name AS class_name
-
-        FROM sections s
-
-        LEFT JOIN classes c
-            ON s.class_id = c.id
-
-        ${whereClause}
-
-        ORDER BY ${sortBy} ${sortOrder}
-
-        LIMIT $${countRef.value}
-        OFFSET $${countRef.value + 1}
-    `;
-
-    values.push(limit, offset);
-
-    const result = await db.query(query, values);
-
-     // COUNT QUERY
-    const totalQuery = `
-        SELECT COUNT(DISTINCT s.id)
-
-        FROM sections s
-
-        LEFT JOIN classes c
-            ON s.class_id = c.id
-
-        ${whereClause}
-    `;
-
-    const totalResult = await db.query(
-        totalQuery,
-        values.slice(0, values.length - 2)
-    );
-
-    const filteredRecords =
-        parseInt(totalResult.rows[0].count);
-
-    // GLOBAL COUNT
-    const globalCountResult = await db.query(`
-        SELECT COUNT(*)
-        FROM sections
-        WHERE deleted_at IS NULL
-    `);
-
-    const totalRecords =
-        parseInt(globalCountResult.rows[0].count);
+const [{ rows, filteredCount }, totalRecords] = await Promise.all([
+        sectionsRepository.getSections({
+            whereClause,
+            sortBy,
+            sortOrder,
+            values,
+            limit,
+            offset,
+            countRef
+        }),
+        sectionsRepository.globalCount()
+    ]);
 
     const hasFilters = Boolean(
-        queryOptions.search ||
+        queryOptions.search   ||
         queryOptions.class_id
     );
 
-  return {
-    data: result.rows,
+    return {
+        data: rows,
 
         message: hasFilters
-            ? `Showing ${filteredRecords} matching sections (${totalRecords} total)`
+            ? `Showing ${filteredCount} matching sections (${totalRecords} total)`
             : `Showing all ${totalRecords} sections`,
 
-        meta: {
-            totalRecords,
-            filteredRecords,
-            hasFilters
-        },
+        meta: { totalRecords, filteredRecords: filteredCount, hasFilters },
 
-        pagination: buildPaginationMeta(
-            filteredRecords,
-            page,
-            limit
-        )
-  };
+        pagination: buildPaginationMeta(filteredCount, page, limit)
+    };
 };
 
 const updateSection = async (id, data) => {
-  const result = await db.query(
-    `
-    UPDATE sections
-    SET 
-    class_id = $1,
-    name = $2, 
-    updated_at = NOW()
-    WHERE id = $3 AND deleted_at IS NULL
-    RETURNING *
-    `,
-    [data.class_id, data.name, id]
-  );
-    return result.rows[0];
+    const result = await sectionsRepository.updateSection(id, data);
+    if (!result) return null;
+    return result;
 };
 const deleteSection = async (id) => {
-  const result = await db.query(
-    `
-    UPDATE sections
-    SET deleted_at = NOW()
-    WHERE id = $1
-    RETURNING *
-    `,
-    [id]
-  );
-
-  return result.rows[0];
+    const result = await sectionsRepository.deleteSection(id);
+    if (!result) return null;
+    return result;
 };
-
 module.exports = {
   createSection,
   getSections,
