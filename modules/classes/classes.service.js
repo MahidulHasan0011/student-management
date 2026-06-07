@@ -1,4 +1,3 @@
-const db = require("../../config/db");
 const classesRepository = require("./classes.repository");
 const { buildWhereClause } = require("../../utils/queryBuilder");
 const {buildPagination, buildPaginationMeta} = require("../../utils/pagination");
