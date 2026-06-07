@@ -1,4 +1,4 @@
-const examsRepository = require("./exams.repository");
+const examsRepository = require("./exam.repository");
 const { buildWhereClause } = require("../../utils/queryBuilder");
 const {buildPagination,buildPaginationMeta} = require("../../utils/pagination");
 const { buildOrder } = require("../../utils/order");

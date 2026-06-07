@@ -1,4 +1,4 @@
-const rolePermissionsRepository = require("./role-permissions.repository");
+const rolePermissionsRepository = require("./rolepermission.repository");
 const { buildWhereClause } = require("../../utils/queryBuilder");
 const {buildPagination, buildPaginationMeta} = require("../../utils/pagination");
 const { buildOrder } = require("../../utils/order");
