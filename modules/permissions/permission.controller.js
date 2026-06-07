@@ -18,13 +18,17 @@ const createPermission = async (req, res, next) => {
 
 const getPermissions = async (req, res, next) => {
   try {
-    const data = await service.getPermissions( req.query );
+    const result = await service.getPermissions( req.query );
 
     return sendResponse(
       res,
       200,
-      "Permissions fetched",
-      data
+      result.message,
+      {
+        data: result.data,
+        meta: result.meta,
+        pagination: result.pagination
+      }
     );
   } catch (err) {
     next(err);

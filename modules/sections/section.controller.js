@@ -12,8 +12,12 @@ const createSection = async (req, res, next) => {
 
 const getSections = async (req, res, next) => {
   try {
-    const data = await service.getSections(req.query);
-    return sendResponse(res, 200, "Sections fetched", data);
+    const result = await service.getSections(req.query);
+    return sendResponse(res, 200, result.message, {
+      data: result.data,
+      meta: result.meta,
+      pagination: result.pagination
+    });
   } catch (err) {
     next(err);
   }

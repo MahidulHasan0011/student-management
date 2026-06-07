@@ -18,13 +18,17 @@ const createResult = async (req, res, next) => {
 
 const getResults = async (req, res, next) => {
   try {
-    const data = await service.getResults(req.query);
+    const result = await service.getResults(req.query);
 
     return sendResponse(
       res,
       200,
-      "Results fetched",
-      data
+      result.message,
+      {
+        data: result.data,
+        meta: result.meta,
+        pagination: result.pagination
+      }
     );
   } catch (err) {
     next(err);

@@ -13,8 +13,12 @@ const createClass = async (req, res, next) => {
 
 const getClasses = async (req, res, next) => {
     try {
-        const data = await service.getAllClasses(req.query);
-        return sendResponse(res, 200, "Classes fetched successfully", data);
+        const result = await service.getAllClasses(req.query);
+        return sendResponse(res, 200, result.message, {
+            data: result.data,
+            meta: result.meta,
+            pagination: result.pagination
+        });
     } catch (error) {
         next(error);
     }

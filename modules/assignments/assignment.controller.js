@@ -18,13 +18,17 @@ const assignSubject = async (req, res, next) => {
 
 const getAssignments = async (req, res, next) => {
   try {
-    const data = await service.getAssignments(req.query);
+    const result = await service.getAssignments(req.query);
 
     return sendResponse(
       res,
       200,
-      "Assignments fetched",
-      data
+      result.message,
+      {
+         data: result.data,
+         meta: result.meta,
+         pagination: result.pagination
+      } 
     );
   } catch (err) {
     next(err);

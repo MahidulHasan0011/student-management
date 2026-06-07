@@ -18,13 +18,17 @@ const assignEnrollment = async (req, res, next) => {
 
 const getEnrollments = async (req, res, next) => {
   try {
-    const data = await service.getEnrollments( req.query );
+    const result = await service.getEnrollments( req.query );
 
     return sendResponse(
       res,
       200,
-      "Enrollments fetched",
-      data
+      result.message,
+      {
+        data: result.data,
+        meta: result.meta,
+        pagination: result.pagination
+      }
     );
   } catch (err) {
     next(err);

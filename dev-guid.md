@@ -94,3 +94,37 @@ hasSearch কেন?	Search এ অন্য table এ যেতে হয়, �
 JOIN ছাড়া count কেন?	JOIN করলে database এর কাজ বেশি → slow
 academic_sessions এ নাই কেন?	সব data এক table এ, JOIN লাগেই না
 সহজ কথা: অন্য ঘরে খুঁজতে হলে hasSearch = true → সব ঘর খোলো। নিজের ঘরেই থাকলে hasSearch = false → শুধু নিজের ঘর দেখো। 
+
+
+
+
+
+Module                 JOIN           hasSearch       Type  
+
+students               সবসময়          ❌            Multi-table
+
+student_enrollments    সবসময়          ❌            Multi-table
+
+subject_assignments    searchএ         ✅            Conditional
+
+exams                  সবসময়          ❌            Multi-table
+
+exam_results           সবসময়          ❌            Multi-table
+
+role_permissions       সবসময়          ❌            Multi-table
+
+sections               সবসময়          ❌            Multi-table
+
+teachers               সবসময়          ❌            Multi-table
+
+users                  সবসময়          ❌            Multi-table
+
+academic_sessions      কখনো না        ❌            Single table
+
+classes                কখনো না        ❌            Single table
+
+permissions            কখনো না        ❌            Single table
+
+roles                  কখনো না        ❌            Single table
+
+subjects               কখনো না        ❌            Single table

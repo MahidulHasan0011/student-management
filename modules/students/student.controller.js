@@ -4,8 +4,8 @@ const sendResponse = require("../../utils/response");
 //create student
 const createStudent = async (req, res, next) => {
     try{
-        const student = await studentService.createStudent(req.body);
-        return sendResponse(res, 201, "Student created successfully", student);
+        const result  = await studentService.createStudent(req.body);
+        return sendResponse(res, 201, "Student created successfully", result );
        
     } catch (error) {
        next(error);
@@ -15,8 +15,12 @@ const createStudent = async (req, res, next) => {
 //get all students
 const getAllStudents = async (req, res, next) => {
     try{
-        const students  = await studentService.getAllStudents( req.query);
-        return sendResponse(res, 200, "Students fetched", students);
+        const result = await studentService.getAllStudents( req.query);
+        return sendResponse(res, 200, result.message, {
+            data:       result.data,
+            meta:       result.meta,
+            pagination: result.pagination
+        });
     } catch (error) {
        next(error);
     }

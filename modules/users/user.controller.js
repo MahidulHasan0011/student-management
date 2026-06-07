@@ -18,13 +18,17 @@ const createUser = async (req, res, next) => {
 
 const getUsers = async (req, res, next) => {
   try {
-    const data = await service.getUsers(req.query);
+    const result = await service.getUsers(req.query);
 
     return sendResponse(
       res,
       200,
-      "Users fetched",
-      data
+      result.message,
+      {
+        data: result.data,
+        meta: result.meta,
+        pagination: result.pagination
+      }
     );
   } catch (err) {
     next(err);

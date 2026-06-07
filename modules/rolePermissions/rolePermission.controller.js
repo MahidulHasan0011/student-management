@@ -18,13 +18,17 @@ const assignRolePermission = async (req, res, next) => {
 
 const getRolePermissions = async (req, res, next) => {
   try {
-    const data = await service.getRolePermissions(req.query);
+    const result = await service.getRolePermissions(req.query);
 
     return sendResponse(
       res,
       200,
-      "Role permissions fetched",
-      data
+      result.message,
+      {
+        data: result.data,
+        meta: result.meta,
+        pagination: result.pagination
+      }
     );
   } catch (err) {
     next(err);

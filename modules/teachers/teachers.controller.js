@@ -4,7 +4,7 @@ const sendResponse = require("../../utils/response");
 
 const createTeacher = async (req, res, next) => {
     try {
-       const data = await service.createTeacherst(req.body);
+       const data = await service.createTeacher(req.body);
        return sendResponse(res, 201,"Teacher created", data);
     } catch (error) {
         next(error);
@@ -13,8 +13,12 @@ const createTeacher = async (req, res, next) => {
 
 const getTeacher = async (req, res, next) => {
     try {
-        const data = await service.getAllTeacherst( req.query);
-        return sendResponse(res, 200, "Teachers fetched successfully", data);
+        const result = await service.getAllTeachers( req.query);
+        return sendResponse(res, 200, result.message, {
+            data: result.data,
+            meta: result.meta,
+            pagination: result.pagination
+        });
     } catch (error) {
         next(error);
     }
@@ -22,7 +26,7 @@ const getTeacher = async (req, res, next) => {
 
 const updateTeacher = async (req, res, next) => {   
     try {
-        const data = await service.updateTeacherst(req.params.id, req.body);
+        const data = await service.updateTeacher(req.params.id, req.body);
         if(!data){
             return sendResponse(res, 404, "Teacher not found");
         }
@@ -34,7 +38,7 @@ const updateTeacher = async (req, res, next) => {
 
 const deleteTeacher = async (req, res, next) => {
     try {
-        const data = await service.deleteTeacherst(req.params.id);
+        const data = await service.deleteTeacher(req.params.id);
         if(!data){
             return sendResponse(res, 404, "Teacher not found");
         }

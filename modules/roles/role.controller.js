@@ -18,13 +18,17 @@ const createRole = async (req, res, next) => {
 
 const getRoles = async (req, res, next) => {
   try {
-    const data = await service.getRoles( req.query);
+    const result = await service.getRoles( req.query);
 
     return sendResponse(
       res,
       200,
-      "Roles fetched",
-      data
+      result.message,
+      {
+        data: result.data,
+        meta: result.meta,
+        pagination: result.pagination
+      }
     );
   } catch (err) {
     next(err);
