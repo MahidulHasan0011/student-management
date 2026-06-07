@@ -65,7 +65,7 @@ const getAllStudents = async (queryOptions) => {
     const { sortBy, sortOrder } =
         buildOrder(queryOptions, {
             created_at: "st.created_at",
-            student_name: "st.full_name",
+            student_name: "u.full_name",
             student_code: "st.student_code",
             class_name: "c.name",
             section_name: "s.name"
@@ -76,7 +76,8 @@ const getAllStudents = async (queryOptions) => {
 
     const config = {
         searchableColumns: [
-            "st.full_name",
+            "u.full_name",  
+            "u.email",       
             "st.student_code",
             "st.guardian_name",
             "st.guardian_phone",
@@ -85,7 +86,7 @@ const getAllStudents = async (queryOptions) => {
         ],
 
         filterableColumns: [
-            "st.gender",
+            "u.gender",
             "se.class_id",
             "se.section_id",
             "se.academic_session_id"

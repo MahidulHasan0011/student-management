@@ -18,23 +18,23 @@ const getUsers = async (queryOptions) => {
       buildOrder(queryOptions, {
         created_at: "u.created_at",
         user_name: "u.full_name",
-        user_email: "u.email",
         role_name: "r.name"
     });
 
     const values = [];
     const countRef = { value: 1 };
 
-    const config = {
+    const config = { 
         searchableColumns: [
           "u.full_name",
           "u.email",
-          "r.name"
+          "r.name",
         ],
 
         filterableColumns: [
           "u.role_id",
-          "u.is_active"
+          "u.is_active",
+           "u.gender"
         ]
     };
     const whereClause = buildWhereClause(
@@ -60,7 +60,8 @@ const [{ rows, filteredCount }, totalRecords] = await Promise.all([
     const hasFilters = Boolean(
         queryOptions.search    ||
         queryOptions.role_id   ||
-        queryOptions.is_active
+        queryOptions.is_active ||
+        queryOptions.gender
     );
 
     return {

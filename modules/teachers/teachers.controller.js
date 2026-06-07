@@ -24,6 +24,19 @@ const getTeacher = async (req, res, next) => {
     }
 };
 
+const getTeacherById = async (req, res, next ) => {
+    try{
+        const teacher = await service.getTeacherById(req.params.id);
+        if(!teacher){
+            return sendResponse(res, 404, "Teacher not found");
+        }
+        return sendResponse( res, 200, "Teacher fetched", teacher);
+    }
+    catch (error) {
+        next(error);
+    }
+}
+
 const updateTeacher = async (req, res, next) => {   
     try {
         const data = await service.updateTeacher(req.params.id, req.body);
@@ -51,6 +64,7 @@ const deleteTeacher = async (req, res, next) => {
 module.exports = {
     createTeacher,
     getTeacher,
+    getTeacherById,
     updateTeacher,
     deleteTeacher
 };

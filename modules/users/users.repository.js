@@ -3,10 +3,10 @@ const db = require("../../config/db");
 // CREATE
 const createUser = async (data) => {
     const result = await db.query(
-        `INSERT INTO users (full_name, email, password, role_id)
-         VALUES ($1, $2, $3, $4)
+        `INSERT INTO users (full_name, email, password, role_id, gender)
+         VALUES ($1, $2, $3, $4, $5)
          RETURNING *`,
-        [data.full_name, data.email, data.password, data.role_id]
+        [data.full_name, data.email, data.password, data.role_id, data.gender]
     );
     return result.rows[0];
 };
@@ -24,6 +24,7 @@ const getUsers = async ({ whereClause, sortBy, sortOrder, values, limit, offset,
             u.id,
             u.full_name,
             u.email,
+            u.gender, 
             u.is_active,
             u.created_at,
             r.name AS role_name
@@ -66,14 +67,15 @@ const updateUser = async (id, data) => {
     const result = await db.query(
         `UPDATE users
          SET
-             full_name  = $1,
-             email      = $2,
-             password   = $3,
-             role_id    = $4,
+             full_name  = COALESCE($1, full_name),
+             email      = COALESCE($2, email),
+             password   = COALESCE($3, password),
+             role_id    = COALESCE($4, role_id),
+             gender     = COALESCE($5, gender),
              updated_at = NOW()
-         WHERE id = $5 AND deleted_at IS NULL
+         WHERE id = $6 AND deleted_at IS NULL
          RETURNING *`,
-        [data.full_name, data.email, data.password, data.role_id, id]
+        [data.full_name, data.email, data.password, data.role_id, data.gender, id]
     );
     return result.rows[0];
 };

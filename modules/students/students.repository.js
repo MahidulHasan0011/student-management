@@ -5,15 +5,16 @@ const createUser = async (client, data) => {
     return await client.query(
         `
         INSERT INTO users
-        (full_name, email, password, role_id)
-        VALUES ($1,$2,$3,$4)
+        (full_name, email, password, role_id, gender)
+        VALUES ($1,$2,$3,$4,$5)
         RETURNING id
         `,
         [
             data.full_name,
             data.email,
-            data.password,
-            data.role_id
+            data.password, 
+            data.role_id,
+            data.gender
         ]
     );
 };
@@ -24,20 +25,18 @@ const createStudent = async (client, user_id, data) => {
         INSERT INTO students
         (
             user_id, 
-            student_code, 
-            gender, 
+            student_code,  
             date_of_birth, 
             guardian_name, 
             guardian_phone, 
             address
         )
-        VALUES ($1,$2,$3,$4,$5,$6,$7)
+        VALUES ($1,$2,$3,$4,$5,$6)
         RETURNING *
         `,
         [
             user_id,
             data.student_code,
-            data.gender,
             data.date_of_birth,
             data.guardian_name,
             data.guardian_phone,
@@ -48,7 +47,8 @@ const createStudent = async (client, user_id, data) => {
 };
 
 
-const getAllStudents = async ({   whereClause,
+const getAllStudents = async ({  
+        whereClause,
         sortBy,
         sortOrder,
         values,
@@ -58,6 +58,7 @@ const getAllStudents = async ({   whereClause,
 
     const baseJoins = `
         FROM students st
+        LEFT JOIN users u                ON st.user_id = u.id   
         LEFT JOIN student_enrollments se ON st.id = se.student_id
         LEFT JOIN classes c              ON se.class_id = c.id
         LEFT JOIN sections s             ON se.section_id = s.id
@@ -67,6 +68,10 @@ const getAllStudents = async ({   whereClause,
     const mainQuery = `
         SELECT
             st.*,
+            u.full_name,
+            u.email,
+            u.gender,
+            u.is_active,
             se.roll_number,
             c.name  AS class_name,
             s.name  AS section_name,
@@ -112,30 +117,48 @@ const getStudentById = async (id) => {
     return result.rows[0];
 };
 
+// Fix — দুইটা table আলাদা update
 const updateStudent = async (id, data) => {
-    const result = await db.query(
+    const studentResult  = await db.query(
         `
         UPDATE students
         SET
-            full_name = COALESCE($1, full_name),
-            gender = COALESCE($2, gender),
-            guardian_name = COALESCE($3, guardian_name),
-            guardian_phone = COALESCE($4, guardian_phone),
-            address = COALESCE($5, address),
+            guardian_name = COALESCE($1, guardian_name),
+            guardian_phone = COALESCE($2, guardian_phone),
+            address = COALESCE($3, address),
             updated_at = NOW()
-        WHERE id = $6 AND deleted_at IS NULL
+        WHERE id = $4 AND deleted_at IS NULL
         RETURNING *
         `,
         [
-            data.full_name,
-            data.gender,
             data.guardian_name,
             data.guardian_phone,
             data.address,
             id
         ]
     );
-    return result.rows[0];
+    if (!studentResult.rows[0]) return null;
+
+ // 2. users table update — user_id দিয়ে
+    await db.query(
+        `UPDATE users
+         SET
+             full_name  = COALESCE($1, full_name),
+             gender     = COALESCE($2, gender),
+             updated_at = NOW()
+         WHERE id = (
+             SELECT user_id FROM students WHERE id = $3
+         )`,
+        [
+            data.full_name,
+            data.gender,
+            id
+        ]
+    );
+
+
+
+    return studentResult.rows[0];
 };
 
 const deleteStudent = async (id) => {
