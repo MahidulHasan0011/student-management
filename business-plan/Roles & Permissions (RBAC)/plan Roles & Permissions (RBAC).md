@@ -1,0 +1,1 @@
+Roles & Permissions — users.role_id → roles → role_permissions → permissions এই chain ধরে RBAC কাজ করে। permission.engine.js cache থেকে fast lookup করে, না পেলে DB-তে যায়।

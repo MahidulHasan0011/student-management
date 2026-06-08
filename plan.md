@@ -103,10 +103,26 @@ src/
 
 
 
-students.routes.js   → URL define করে
-        ↓
-students.controller.js → request handle করে
-        ↓
-students.service.js → business logic
-        ↓
-students.repository.js → DB query
+
+
+Module                         দায়িত্ব
+
+auth/                          Login, JWT token, session
+
+students/                      Student CRUD, enrollment
+
+teachers/                      Teacher profile, subject assignment
+
+exams/                         পরীক্ষা তৈরি, মার্কস এন্ট্রি
+
+attendance/                    Student ও Staff উভয়ের attendanc
+
+eroles/permissions/            RBAC system
+
+billing/                       ফি ব্যবস্থাপনা (future scope)
+
+core/roll.engine.js            Roll generation logic
+
+core/ranking.engine.js         Merit list তৈরি
+
+

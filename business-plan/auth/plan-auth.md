@@ -1,0 +1,1 @@
+Auth — Login করলে JWT access token + refresh token তৈরি হয়। Redis-এ session cache হয়। প্রতিটি request-এ auth.middleware.js token verify করে।
