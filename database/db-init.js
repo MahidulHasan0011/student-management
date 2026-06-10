@@ -9,13 +9,13 @@ const runFile = async (client, filename) => {
   const filePath = path.join(__dirname, filename);
   const sql = fs.readFileSync(filePath, "utf8");  // ← utf8 explicitly
 
-// সব comment বাদ দাও (বাংলা সহ)
+// remove all comment also bangla.
   const noComments  = sql
     .split("\n")
     .filter(line => !line.trim().startsWith("--"))
     .join("\n");
 
-// প্রতিটি statement আলাদা করো এবং একটা একটা করে run করো
+// Separate each statement and run it one by one.
     const statements = noComments
         .split(";")
         .map(s => s.trim())
@@ -51,7 +51,7 @@ const main = async () => {
 
   try {
     await client.connect();
-     // ✅ connect করার পরপরই encoding set করো
+     // set the encoding immediately after connecting.
     await client.query("SET client_encoding TO 'UTF8'");
     console.log(" Connected to database\n");
 
