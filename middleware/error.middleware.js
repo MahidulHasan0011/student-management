@@ -1,28 +1,28 @@
-const errorHandler = (err, req, res, next) => {
-  console.error(err);
+const { errorResponse } = require("../utils/response");
 
-  // POSTGRES DUPLICATE ERROR
+const errorMiddleware = (err, req, res, next) => {
+  if (err.isOperational) {
+    return errorResponse(res, {
+      message: err.message,
+      errors:  err.errors,
+      statusCode: err.statusCode,
+    });
+  }
+  // PostgreSQL unique violation
   if (err.code === "23505") {
-    return res.status(409).json({
-      success: false,
-      message: "Duplicate value error",
-      error: err.detail,
-    });
+    return errorResponse(res, { message: "Duplicate entry — record already exists", statusCode: 409 });
+  }
+  // PostgreSQL foreign key violation
+  if (err.code === "23503") {
+    return errorResponse(res, { message: "Referenced record does not exist", statusCode: 400 });
+  }
+  // PostgreSQL not-null violation
+  if (err.code === "23502") {
+    return errorResponse(res, { message: `Field "${err.column}" is required`, statusCode: 400 });
   }
 
-  // INVALID UUID
-  if (err.code === "22P02") {
-    return res.status(400).json({
-      success: false,
-      message: "Invalid UUID format",
-    });
-  }
-
-  // DEFAULT ERROR
-  return res.status(500).json({
-    success: false,
-    message: err.message || "Internal Server Error",
-  });
+  console.error("UNHANDLED ERROR:", err);
+  return errorResponse(res, { message: "Internal server error", statusCode: 500 });
 };
 
-module.exports = errorHandler;
+module.exports = { errorMiddleware };

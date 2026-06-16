@@ -1,7 +1,7 @@
 const express = require("express");
 const app = express();
 
-const errorHandler = require("./middleware/error.middleware");
+const {errorMiddleware} = require("./middleware/error.middleware");
 const notFound = require("./middleware/notFound.middleware");
 
 // MAIN ROUTES
@@ -22,6 +22,6 @@ app.get("/", (req, res) => {
 app.use(notFound);
 
 // GLOBAL ERROR HANDLER
-app.use(errorHandler);
+app.use(errorMiddleware);
 
 module.exports = app;

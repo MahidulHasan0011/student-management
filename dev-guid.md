@@ -133,3 +133,7 @@ subjects               কখনো না        ❌            Single table
 
 
 তোমার gender column-এর জন্য PostgreSQL Enum Type ব্যবহার করা ভালো হবে। তবে PostgreSQL Enum-এর ভেতরে 1 = MALE, 2 = FEMALE এভাবে mapping রাখা যায় না। Enum শুধুমাত্র string value সংরক্ষণ করে।
+
+
+
+errorResponse শুধু error.middleware-এর ভেতরে বসে। Service বা Repository-তে না।
