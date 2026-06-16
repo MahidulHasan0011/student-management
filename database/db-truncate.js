@@ -1,9 +1,9 @@
 require("dotenv").config();
 const { Client } = require("pg");
-const config = require("../config/env");
+const {env} = require("../config/env");
 
 const main = async () => {
-  const client = new Client({ connectionString: config.DATABASE_URL });
+  const client = new Client({ connectionString: env.DATABASE_URL });
 
   try {
     await client.connect();

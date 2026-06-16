@@ -2,7 +2,7 @@ require("dotenv").config();
 const { Client } = require("pg");
 const fs = require("fs");
 const path = require("path");
-const config = require("../config/env");
+const {env} = require("../config/env");
 
 
 const runFile = async (client, filename) => {
@@ -39,13 +39,13 @@ console.log(`${filename} done!`);
 const main = async () => {
   const arg = process.argv[2]; // "schema" | "seed" | "all"
 
-    if (!config.DATABASE_URL) {
+    if (!env.DATABASE_URL) {
     console.error(" DATABASE_URL not found");
     process.exit(1);
   }
 
   const client = new Client({
-    connectionString: config.DATABASE_URL,
+    connectionString: env.DATABASE_URL,
     ssl: false,
   });
 

@@ -1,6 +1,6 @@
 require("dotenv").config();
 
-module.exports = {
+const env  = {
   NODE_ENV: process.env.NODE_ENV || "development",
   PORT: parseInt(process.env.PORT, 10) || 4000,
   DATABASE_URL: process.env.DATABASE_URL || "",
@@ -13,8 +13,10 @@ module.exports = {
   //  REDIS
   REDIS_HOST: process.env.REDIS_HOST || "localhost",
   REDIS_PORT: parseInt(process.env.REDIS_PORT) || 6379,
-// REDIS_PASSWORD: process.env.REDIS_PASSWORD || "",
+REDIS_PASSWORD: process.env.REDIS_PASSWORD || "",
 
 
   BCRYPT_ROUNDS: parseInt(process.env.BCRYPT_ROUNDS) || 12,
 };
+
+module.exports = { env };
