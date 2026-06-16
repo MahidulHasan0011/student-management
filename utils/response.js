@@ -1,26 +1,14 @@
-const sendResponse = (res, statusCode, message, data = null) => {
-    const response ={
-        success: statusCode >= 200 && statusCode < 300,
-        message,
-    } 
-     if (data !== null) response.data = data;
-
-    return res.status(statusCode).json(response);
-    
+const successResponse = (res, { message = "Success", data = null, meta = null, statusCode = 200 } = {}) => {
+  const body = { success: true, message };
+  if (data !== null) body.data = data;
+  if (meta !== null) body.meta = meta;
+  return res.status(statusCode).json(body);
 };
-module.exports = sendResponse; 
 
+const errorResponse = (res, { message = "Something went wrong", errors = null, statusCode = 500 } = {}) => {
+  const body = { success: false, message };
+  if (errors !== null) body.errors = errors;
+  return res.status(statusCode).json(body);
+};
 
-
-//  404 — does not have data 
-// {
-//     "success": false,
-//     "message": "Student not found"
-// }
-
-// 200 — does have data 
-// {
-//     "success": true,
-//     "message": "Student fetched successfully",
-//     "data": { ... }
-// }
+module.exports = { successResponse, errorResponse };
