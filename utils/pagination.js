@@ -1,25 +1,17 @@
-const buildPagination = (queryOptions) => {
-    const page = parseInt(queryOptions.page) || 1;
-    const limit = parseInt(queryOptions.limit) || 10;
-    const offset = (page - 1) * limit;
-
-    return {
-        page,
-        limit,
-        offset,
-    };
+const getPagination = (query = {}) => {
+  const page   = Math.max(1, parseInt(query.page)  || 1);
+  const limit  = Math.min(100, Math.max(1, parseInt(query.limit) || 20));
+  const offset = (page - 1) * limit;
+  return { page, limit, offset };
 };
 
-const buildPaginationMeta = (total, page, limit) => {
-    return {
-        total: total,
-        page,
-        limit,
-        totalPages: Math.ceil(total / limit),
-    };
-};
+const buildMeta = ({ total, page, limit }) => ({
+  total,
+  page,
+  limit,
+  totalPages:  Math.ceil(total / limit),
+  hasNextPage: page * limit < total,
+  hasPrevPage: page > 1,
+});
 
-module.exports = {
-    buildPagination,
-    buildPaginationMeta,
-};
+module.exports = { getPagination, buildMeta };
