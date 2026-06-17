@@ -1,8 +1,8 @@
-const jwt = require("jsonwebtoken");
-const { env } = require("../config/env");
-const { errorResponse } = require("../utils/response");
+import jwt from "jsonwebtoken";
+import { env } from "../config/env.js";
+import { errorResponse } from "../utils/response.js";
 
-const authMiddleware = (req, res, next) => {
+export const authMiddleware = (req, res, next) => {
   const authHeader = req.headers.authorization;
 
   if (!authHeader || !authHeader.startsWith("Bearer ")) {
@@ -22,5 +22,3 @@ const authMiddleware = (req, res, next) => {
     return errorResponse(res, { message: "Invalid token", statusCode: 401 });
   }
 };
-
-export default { authMiddleware };

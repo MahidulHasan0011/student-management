@@ -1,11 +1,11 @@
-const getPagination = (query = {}) => {
+ export const getPagination = (query = {}) => {
   const page   = Math.max(1, parseInt(query.page)  || 1);
   const limit  = Math.min(100, Math.max(1, parseInt(query.limit) || 20));
   const offset = (page - 1) * limit;
   return { page, limit, offset };
 };
 
-const buildMeta = ({ total, page, limit }) => ({
+export const buildMeta = ({ total, page, limit }) => ({
   total,
   page,
   limit,
@@ -13,5 +13,3 @@ const buildMeta = ({ total, page, limit }) => ({
   hasNextPage: page * limit < total,
   hasPrevPage: page > 1,
 });
-
-module.exports = { getPagination, buildMeta };

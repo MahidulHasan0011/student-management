@@ -1,5 +1,7 @@
-const { Pool } = require("pg");
-const { env } = require("./env");
+import pg from "pg";
+import { env } from "./env.js";
+
+const { Pool } = pg;
 
 const pool = new Pool({
   connectionString: env.DATABASE_URL,
@@ -11,22 +13,20 @@ const pool = new Pool({
   connectionTimeoutMillis: 2000,
 });
 
-// client.release() — connection leak without test
 pool.connect()
   .then((client) => {
-    console.log(" DB Connected Successfully");
+    console.log("DB Connected Successfully");
     client.release();
   })
-  .catch((err) => console.error(" DB ERROR:", err));
+  .catch((err) => console.error("DB ERROR:", err));
 
 pool.on("error", (err) => {
   console.error("Unexpected DB pool error:", err);
 });
 
-// use this query andwithTransaction for all repository
-const query = (text, params) => pool.query(text, params);
+export const query = (text, params) => pool.query(text, params);
 
-const withTransaction = async (callback) => {
+export const withTransaction = async (callback) => {
   const client = await pool.connect();
   try {
     await client.query("BEGIN");
@@ -41,4 +41,4 @@ const withTransaction = async (callback) => {
   }
 };
 
-module.exports = { query, withTransaction, pool };
+export default pool;

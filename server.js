@@ -1,12 +1,15 @@
 import app from './app.js';
 import { env } from './config/env.js';
 import pool from './config/db.js';
-import './config/redis.js'; // initialize redis connection
+import redisClient from "./config/redis.js";
+
+// Redis connect — top-level await works because package.json has "type": "module"
+await redisClient.connect();
 
 const server = app.listen(env.PORT, () => {
-  console.log(`\n🚀 Server running on port ${env.PORT} [${env.NODE_ENV}]`);
-  console.log(`📍 Health: http://localhost:${env.PORT}/health`);
-  console.log(`📍 API:    http://localhost:${env.PORT}/api/v1\n`);
+  console.log(`\n Server running on port ${env.PORT} [${env.NODE_ENV}]`);
+  console.log(` Health: http://localhost:${env.PORT}/health`);
+  console.log(` API:    http://localhost:${env.PORT}/api/v1\n`);
 })
 
 // Graceful shutdown

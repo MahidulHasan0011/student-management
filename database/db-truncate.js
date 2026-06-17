@@ -1,38 +1,53 @@
-require("dotenv").config();
-const { Client } = require("pg");
-const {env} = require("../config/env");
+import dotenv from "dotenv";
+dotenv.config();
+import { Client } from "pg";
+import { env } from "../src/config/env.js";
+
+// Foreign key dependency অনুযায়ী reverse order — child table আগে truncate
+const TABLES = [
+  "exam_results", 
+  "exams", 
+  "student_attendance", 
+  "attendance_logs", 
+  "leaves", 
+  "student_enrollments", 
+  "subject_assignments", 
+  "students", 
+  "teachers", 
+  "sections",
+  "classes", 
+  "subjects",
+  "academic_sessions",
+  "role_permissions",
+  "users",
+  "roles",  
+  "permissions",
+  "fee_structures,"
+];
+
 
 const main = async () => {
-  const client = new Client({ connectionString: env.DATABASE_URL });
+  if (!env.DATABASE_URL) {
+    console.error("DATABASE_URL not found");
+    process.exit(1);
+  }
+  const client = new Client({
+    connectionString: env.DATABASE_URL,
+    ssl: env.NODE_ENV === "production"
+      ? { rejectUnauthorized: false }
+      : false,
+  });
 
   try {
     await client.connect();
-    console.log("Connected\n");
+    console.log("Connected to database\n");
 
-    await client.query(`
-      TRUNCATE TABLE
-        public.leaves,
-        public.attendance_logs,
-        public.student_attendance,
-        public.fee_structures,
-        public.exam_results,
-        public.exams,
-        public.student_enrollments,
-        public.subject_assignments,
-        public.subjects,
-        public.academic_sessions,
-        public.sections,
-        public.classes,
-        public.students,
-        public.teachers,
-        public.role_permissions,
-        public.permissions,
-        public.users,
-        public.roles
-      CASCADE
-    `);
+    // CASCADE দিয়ে truncate করলে FK constraint নিয়ে চিন্তা করতে হয় না
+    const tableList = TABLES.join(", ");
+    console.log(`Truncating ${TABLES.length} tables...`);
 
-    console.log("All tables truncated!");
+    await client.query(`TRUNCATE TABLE ${tableList} RESTART IDENTITY CASCADE`);
+    console.log("All tables truncated successfully!\n");
   } catch (err) {
     console.error("Failed:", err.message);
     process.exit(1);

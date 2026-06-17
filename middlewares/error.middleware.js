@@ -1,6 +1,6 @@
-const { errorResponse } = require("../utils/response");
+import { errorResponse } from "../utils/response.js";
 
-const errorMiddleware = (err, req, res, next) => {
+export const errorMiddleware = (err, req, res, next) => {
   if (err.isOperational) {
     return errorResponse(res, {
       message: err.message,
@@ -24,5 +24,3 @@ const errorMiddleware = (err, req, res, next) => {
   console.error("UNHANDLED ERROR:", err);
   return errorResponse(res, { message: "Internal server error", statusCode: 500 });
 };
-
-module.exports = { errorMiddleware };
