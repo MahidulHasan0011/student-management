@@ -1,14 +1,14 @@
-const express = require("express");
-const router = express.Router();
+import { Router } from 'express';
+import { controller } from './permission.controller.js';
+import { authMiddleware } from '../../middlewares/auth.middleware.js';
+import { rbacMiddleware } from '../../middlewares/rbac.middleware.js';
 
-const controller = require("./permission.controller");
-const auth = require("../../middleware/auth.middleware");
-const authorize = require("../../middleware/rbac.middleware");
+const router = Router();
+router.use(authMiddleware);
 
-router.post("/", auth, authorize("HEAD_MASTER", "ADMIN"), controller.createPermission);
+router.post("/", rbacMiddleware("HEAD_MASTER", "ADMIN"), controller.createPermission);
+router.get("/", controller.getPermissions);
+router.put("/:id", rbacMiddleware("HEAD_MASTER", "ADMIN"), controller.updatePermission);
+router.delete("/:id", rbacMiddleware("HEAD_MASTER", "ADMIN"), controller.deletePermission);
 
-router.get("/", auth, controller.getPermissions);
-router.put("/:id", auth, authorize("HEAD_MASTER", "ADMIN"), controller.updatePermission);
-router.delete("/:id", auth, authorize("HEAD_MASTER", "ADMIN"), controller.deletePermission);
-
-module.exports = router;
+export default router;

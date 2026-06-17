@@ -1,13 +1,15 @@
-const express = require("express");
-const router = express.Router();
+import { Router } from 'express';
+import { controller } from './teachers.controller.js';
+import { authMiddleware } from '../../middlewares/auth.middleware.js';
+import { rbacMiddleware } from '../../middlewares/rbac.middleware.js';
 
-const controller = require("./teachers.controller");
-const auth = require("../../middleware/auth.middleware");
-const authorize = require("../../middleware/rbac.middleware");
+const router = Router();
+router.use(authMiddleware);
 
-router.post("/", auth, authorize("ADMIN", "HEAD_MASTER"), controller.createTeacher);
-router.get("/", auth, controller.getTeacher);
-router.get("/:id", auth, controller.getTeacherById);
-router.put("/:id", auth, authorize("ADMIN", "HEAD_MASTER"), controller.updateTeacher);
-router.delete("/:id", auth, authorize("ADMIN", "HEAD_MASTER"), controller.deleteTeacher);
-module.exports = router;
+router.post("/", rbacMiddleware("ADMIN", "HEAD_MASTER"), controller.createTeacher);
+router.get("/", controller.getTeacher);
+router.get("/:id", controller.getTeacherById);
+router.put("/:id", rbacMiddleware("ADMIN", "HEAD_MASTER"), controller.updateTeacher);
+router.delete("/:id", rbacMiddleware("ADMIN", "HEAD_MASTER"), controller.deleteTeacher);
+
+export default router;

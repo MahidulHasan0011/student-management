@@ -1,42 +1,35 @@
-const express = require("express");
-const router  = express.Router();
+import { Router } from 'express';
+// import authRoutes from '../../modules/auth/auth.routes.js';
+import roleRoutes from '../../modules/roles/role.routes.js';
+import permissionRoutes from '../../modules/permissions/permission.routes.js';
+import userRoutes from '../../modules/users/user.routes.js';
+import studentRoutes from '../../modules/students/student.Routes.js';
+import academicSessionRoutes from '../../modules/academic-sessions/academic-sessions.routes.js';
+import teacherRoutes from '../../modules/teachers/teachers.routes.js';
+import classRoutes from '../../modules/classes/classes.routes.js';
+import subjectRoutes from '../../modules/subjects/subject.routes.js';
+import sectionRoutes from '../../modules/sections/section.routes.js';
+import assignmentRoutes from '../../modules/assignments/assignment.routes.js';
+import enrollmentRoutes from '../../modules/enrollments/enrollment.routes.js';
+import examRoutes from '../../modules/exams/exam.routes.js';
+import resultRoutes from '../../modules/results/result.routes.js';
+import rolePermissionRoutes from '../../modules/rolePermissions/rolePermission.routes.js';
 
-
-// import routes
-const studentRoutes = require("../../modules/students/student.Routes");
-const academicSessionRoutes = require("../../modules/academic-sessions/academic-sessions.routes");
-const teacherRoutes = require("../../modules/teachers/teachers.routes");
-const classRoutes = require("../../modules/classes/classes.routes");
-const subjectRoutes = require("../../modules/subjects/subject.routes");
-const sectionRoutes = require("../../modules/sections/section.routes");
-const assignmentRoutes = require("../../modules/assignments/assignment.routes");
-const enrollmentRoutes = require("../../modules/enrollments/enrollment.routes");
-const examRoutes = require("../../modules/exams/exam.routes");
-const resultRoutes = require("../../modules/results/result.routes");
-const userRoutes = require("../../modules/users/user.routes");
-const roleRoutes = require("../../modules/roles/role.routes");
-const permissionRoutes = require("../../modules/permissions/permission.routes");
-const rolePermissionRoutes = require("../../modules/rolePermissions/rolePermission.routes");
-
-
+const router = Router();
 // use routes
-router.use("/api/v1/students", studentRoutes);
-router.use("/api/v1/academic-sessions", academicSessionRoutes);
-router.use("/api/v1/teachers", teacherRoutes);
-router.use("/api/v1/classes", classRoutes);
-router.use("/api/v1/subjects", subjectRoutes);
-router.use("/api/v1/sections", sectionRoutes);
-router.use("/api/v1/assignments", assignmentRoutes);
-router.use("/api/v1/enrollments", enrollmentRoutes);
-router.use("/api/v1/exams", examRoutes);
-router.use("/api/v1/results", resultRoutes);
+router.use('/roles', roleRoutes);
+router.use('/permissions', permissionRoutes);
+router.use('/users', userRoutes);
+router.use("/students", studentRoutes);
+router.use("/academic-sessions", academicSessionRoutes);
+router.use("/teachers", teacherRoutes);
+router.use("/classes", classRoutes);
+router.use("/subjects", subjectRoutes);
+router.use("/sections", sectionRoutes);
+router.use("/assignments", assignmentRoutes);
+router.use("/enrollments", enrollmentRoutes);
+router.use("/exams", examRoutes);
+router.use("/results", resultRoutes);
+router.use("/role-permissions", rolePermissionRoutes);
 
-router.use("/api/v1/users", userRoutes);
-
-router.use("/api/v1/roles", roleRoutes);
-
-router.use("/api/v1/permissions", permissionRoutes);
-
-router.use("/api/v1/role-permissions", rolePermissionRoutes);
-
-module.exports = router;
+export default router;

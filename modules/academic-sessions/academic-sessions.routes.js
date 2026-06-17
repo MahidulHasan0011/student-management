@@ -1,12 +1,15 @@
-const express = require("express");
-const router = express.Router();
-const controller = require("./academic-sessions.controller");
-const auth = require("../../middleware/auth.middleware");
-const authorize = require("../../middleware/rbac.middleware");
 
-router.post("/", auth, authorize("ADMIN", "HEAD_MASTER"), controller.createSession);
-router.get("/", auth, controller.getAllSessions);
-router.patch("/:id", auth, authorize("ADMIN", "HEAD_MASTER"), controller.updateSession);
-router.delete("/:id", auth, authorize("ADMIN"), controller.deleteSession);
+import { Router } from 'express';
+import { controller } from './academic-sessions.controller.js';
+import { authMiddleware } from '../../middlewares/auth.middleware.js';
+import { rbacMiddleware } from '../../middlewares/rbac.middleware.js';
 
-module.exports = router;
+const router = Router();
+router.use(authMiddleware);
+
+router.post("/", rbacMiddleware("ADMIN", "HEAD_MASTER"), controller.createSession);
+router.get("/", controller.getAllSessions);
+router.patch("/:id", rbacMiddleware("ADMIN", "HEAD_MASTER"), controller.updateSession);
+router.delete("/:id", rbacMiddleware("ADMIN"), controller.deleteSession);
+
+export default router;

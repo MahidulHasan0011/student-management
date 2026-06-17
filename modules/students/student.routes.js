@@ -1,13 +1,15 @@
-const express = require("express");
-const router = express.Router();
-const controller = require("./student.controller");
-const auth = require("../../middleware/auth.middleware");
-const authorize = require("../../middleware/rbac.middleware");
+import { Router } from 'express';
+import { controller } from './student.controller.js';
+import { authMiddleware } from '../../middlewares/auth.middleware.js';
+import { rbacMiddleware } from '../../middlewares/rbac.middleware.js';
 
-router.post("/", auth, authorize("ADMIN", "HEAD_MASTER"), controller.createStudent);
-router.get("/", auth, controller.getAllStudents);
-router.get("/:id", auth, controller.getStudentById);
-router.patch("/:id", auth,authorize("ADMIN", "HEAD_MASTER"), controller.updateStudent);
-router.delete("/:id", auth, authorize("ADMIN"), controller.deleteStudent);
+const router = Router();
+router.use(authMiddleware);
 
-module.exports = router;
+router.post("/", rbacMiddleware("ADMIN", "HEAD_MASTER"), controller.createStudent);
+router.get("/", controller.getAllStudents);
+router.get("/:id", controller.getStudentById);
+router.patch("/:id", rbacMiddleware("ADMIN", "HEAD_MASTER"), controller.updateStudent);
+router.delete("/:id", rbacMiddleware("ADMIN"), controller.deleteStudent);
+
+export default router;

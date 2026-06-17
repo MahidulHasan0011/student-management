@@ -137,3 +137,16 @@ subjects               কখনো না        ❌            Single table
 
 
 errorResponse শুধু error.middleware-এর ভেতরে বসে। Service বা Repository-তে না।
+
+**ES Module
+        package.json-এ:
+
+        {
+        "type": "module"
+        }
+
+ex:
+        import { Router } from 'express';
+        import { userController } from './user.controller.js';
+
+        export default router;

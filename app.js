@@ -1,27 +1,40 @@
-const express = require("express");
+import express from 'express';
+import cors from 'cors';
+import helmet from 'helmet';
+import morgan from 'morgan';
+import v1Router from './api/v1/index.js';
+import { errorMiddleware } from './middlewares/error.middleware.js';
+
 const app = express();
 
-const {errorMiddleware} = require("./middleware/error.middleware");
-const notFound = require("./middleware/notFound.middleware");
+// Security & parsing 
+app.use(helmet());
+app.use(cors());
+app.use(express.json({ limit: '10mb' }));
+app.use(express.urlencoded({ extended: true }));
 
-// MAIN ROUTES
-const routes = require("./api/v1/index");
+//Logging
+if (process.env.NODE_ENV !== 'test') {
+  app.use(morgan('dev'));
+}
 
-// BODY PARSER
-app.use(express.json());
+//Health check
+app.get('/health', (_req, res) => {
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+}); 
 
-// ROUTES
-app.use(routes);
+//API routes
+app.use('/api/v1', v1Router);
 
-// HOME ROUTE
-app.get("/", (req, res) => {
-  res.send("Student Management API Running ... Powered by MHI");
+
+//404 handler
+app.use((_req, res) => {
+  res.status(404).json({ success: false, message: 'Route not found' });
 });
 
-// NOT FOUND
-app.use(notFound);
-
-// GLOBAL ERROR HANDLER
+//Global error handler 
 app.use(errorMiddleware);
 
-module.exports = app;
+
+
+export default app;
