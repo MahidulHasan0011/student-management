@@ -11,7 +11,7 @@ EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
 
 DO $$ BEGIN
-  CREATE TYPE exam_type_enum AS ENUM ('ADMISSION', 'QUIZ', 'MID', 'FINAL');
+  CREATE TYPE exam_type_enum AS ENUM ('ADMISSION', 'MIDTERM', 'FINAL', 'UNIT_TEST');
 EXCEPTION WHEN duplicate_object THEN NULL;
 END $$;
 

@@ -13,43 +13,34 @@ CREATE TYPE public.exam_type_enum AS ENUM (
 );
 
 
-CREATE TABLE public.exams (
-    id                   UUID NOT NULL DEFAULT gen_random_uuid(),
-    name                 CHARACTER VARYING(100) NOT NULL,
-    class_id             UUID NULL,
-    academic_session_id  UUID NULL,
-    exam_date            DATE NULL,
-    exam_type            public.exam_type_enum NOT NULL DEFAULT 'ADMISSION'::exam_type_enum,
-    created_at           TIMESTAMP WITHOUT TIME ZONE NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at           TIMESTAMP WITHOUT TIME ZONE NULL DEFAULT CURRENT_TIMESTAMP,
-    deleted_at           TIMESTAMP WITHOUT TIME ZONE NULL,
+CREATE TABLE IF NOT EXISTS public.exams (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  name character varying(100) NOT NULL,
+  class_id uuid,
+  academic_session_id uuid,
+  exam_date date,
+  created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+  updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+  deleted_at timestamp without time zone,
+  exam_type exam_type_enum NOT NULL DEFAULT 'ADMISSION',
+  CONSTRAINT exams_pkey PRIMARY KEY (id),
+  CONSTRAINT exams_academic_session_id_fkey FOREIGN KEY (academic_session_id) REFERENCES academic_sessions (id),
+  CONSTRAINT exams_class_id_fkey FOREIGN KEY (class_id) REFERENCES classes (id)
+);
 
-    CONSTRAINT exams_pkey PRIMARY KEY (id),
-    CONSTRAINT exams_class_id_fkey
-        FOREIGN KEY (class_id) REFERENCES public.classes (id),
-    CONSTRAINT exams_academic_session_id_fkey
-        FOREIGN KEY (academic_session_id) REFERENCES public.academic_sessions (id)
-) TABLESPACE pg_default;
-
-
-CREATE TABLE public.exam_results (
-    id          UUID NOT NULL DEFAULT gen_random_uuid(),
-    exam_id     UUID NULL,
-    student_id  UUID NULL,
-    subject_id  UUID NULL,
-    marks       NUMERIC(5, 2) NULL,
-    grade       CHARACTER VARYING(5) NULL,
-    created_at  TIMESTAMP WITHOUT TIME ZONE NULL DEFAULT CURRENT_TIMESTAMP,
-    updated_at  TIMESTAMP WITHOUT TIME ZONE NULL DEFAULT CURRENT_TIMESTAMP,
-    deleted_at  TIMESTAMP WITHOUT TIME ZONE NULL,
-
-    CONSTRAINT exam_results_pkey PRIMARY KEY (id),
-    CONSTRAINT unique_exam_student_subject
-        UNIQUE (exam_id, student_id, subject_id),
-    CONSTRAINT exam_results_exam_id_fkey
-        FOREIGN KEY (exam_id) REFERENCES public.exams (id),
-    CONSTRAINT exam_results_student_id_fkey
-        FOREIGN KEY (student_id) REFERENCES public.students (id),
-    CONSTRAINT exam_results_subject_id_fkey
-        FOREIGN KEY (subject_id) REFERENCES public.subjects (id)
-) TABLESPACE pg_default;
+CREATE TABLE IF NOT EXISTS public.exam_results (
+  id uuid NOT NULL DEFAULT gen_random_uuid(),
+  exam_id uuid,
+  student_id uuid,
+  subject_id uuid,
+  marks numeric(5, 2),
+  grade character varying(5),
+  created_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+  updated_at timestamp without time zone DEFAULT CURRENT_TIMESTAMP,
+  deleted_at timestamp without time zone,
+  CONSTRAINT exam_results_pkey PRIMARY KEY (id),
+  CONSTRAINT exam_results_exam_id_student_id_subject_id_key UNIQUE (exam_id, student_id, subject_id),
+  CONSTRAINT exam_results_exam_id_fkey FOREIGN KEY (exam_id) REFERENCES exams (id),
+  CONSTRAINT exam_results_student_id_fkey FOREIGN KEY (student_id) REFERENCES students (id),
+  CONSTRAINT exam_results_subject_id_fkey FOREIGN KEY (subject_id) REFERENCES subjects (id)
+);
