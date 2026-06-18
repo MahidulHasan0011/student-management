@@ -48,3 +48,22 @@ ADD COLUMN profile_photo TEXT NULL;
 ২. নতুন change মানেই নতুন ফাইল
 ৩. নম্বর সবসময় বাড়তে থাকে
 ৪. schema.sql সবসময় সব migration এর combined result
+
+
+
+View একাধিক টেবিল থেকে ডেটা join করে virtual table তৈরি করে। ভিউ নিজে কোনো ডেটা সংরক্ষণ করে না। Query চালানোর সময় ডেটা তৈরি হয়।
+ex,
+CREATE VIEW teacher_class_assignments AS
+SELECT ...
+
+ Views — কোনগুলো বানানো উচিত
+তোমার schema দেখে যেসব জায়গায় বারবার জটিল JOIN লেখা লাগবে, সেগুলোর জন্য view বানানো ভালো। চারটা view সবচেয়ে বেশি কাজে লাগবে:
+1 student_full_profile.sql,
+2 exam_result_summary.sql,
+3 student_merit_list.sql,
+4 teacher_assignment_overview.sql
+
+
+
+Views গুলো db-init.js দিয়ে রান করার জন্য একটা ছোট addition লাগবে — db-init.js-এ views argument যোগ করছি
+

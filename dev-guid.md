@@ -150,3 +150,10 @@ ex:
         import { userController } from './user.controller.js';
 
         export default router;
+
+
+
+
+View
+
+একাধিক টেবিল থেকে ডেটা join করে virtual table তৈরি করে।        
