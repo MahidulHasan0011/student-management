@@ -1,93 +1,70 @@
-const subjectsRepository = require("./subjects.repository");
-const { buildWhereClause } = require("../../utils/queryBuilder");
-const {buildPagination, buildPaginationMeta} = require("../../utils/pagination");
-const { buildOrder } = require("../../utils/order");
+import { subjectRepository } from "./subject.repository.js";
+import { AppError } from "../../utils/AppError.js";
+import { getPagination, buildMeta } from "../../utils/pagination.js";
 
-const createSubject = async (data) => {
-    const result = await subjectsRepository.createSubject(data);
-    return result;
-};
-const getAllSubjects = async (queryOptions) => {
+export const subjectService = {
+  async create({ name, code }) {
+    if (!name) throw new AppError("name is required", 400);
 
+    const existingName = await subjectRepository.findByName(name.trim());
+    if (existingName) throw new AppError(`Subject "${name}" already exists`, 409);
 
- // pagination
-    const { page, limit, offset } =
-        buildPagination(queryOptions);
+    if (code) {
+      const existingCode = await subjectRepository.findByCode(code.trim().toUpperCase());
+      if (existingCode) throw new AppError(`Subject code "${code}" already exists`, 409);
+    }
 
-    // sorting
-    const { sortBy, sortOrder } =
-        buildOrder(queryOptions, {
-            created_at: "sub.created_at",
-            subject_name: "sub.name",
-            subject_code: "sub.code"
-        });
+    return subjectRepository.create({
+      name: name.trim(),
+      code: code?.trim().toUpperCase(),
+    });
+  },
 
-    const values = [];
-    const countRef = { value: 1 };
-
-    const config = {
-        searchableColumns: [
-            "sub.name",
-            "sub.code"
-        ],
-
-        filterableColumns: [
-            "sub.code"
-        ]
-    };
-
-    const whereClause = buildWhereClause(
-        queryOptions,
-        values,
-        config,
-        countRef,
-        "sub"
-    );
- const [{ rows, filteredCount }, totalRecords] = await Promise.all([
-        subjectsRepository.getAllSubjects({
-            whereClause,
-            sortBy,
-            sortOrder,
-            values,
-            limit,
-            offset,
-            countRef
-        }),
-        subjectsRepository.globalCount()
+  async getAll(queryOptions) {
+    const { page, limit, offset } = getPagination(queryOptions);
+    const [data, total] = await Promise.all([
+      subjectRepository.findAll(queryOptions, { limit, offset }),
+      subjectRepository.countAll(queryOptions),
     ]);
+    return { data, meta: buildMeta({ total, page, limit }) };
+  },
 
-    const hasFilters = Boolean(
-        queryOptions.search ||
-        queryOptions.code
-    );
+  async getById(id) {
+    const subject = await subjectRepository.findById(id);
+    if (!subject) throw new AppError("Subject not found", 404);
+    return subject;
+  },
 
-    return {
-        data: rows,
+  async update(id, { name, code }) {
+    await this.getById(id);
 
-        message: hasFilters
-            ? `Showing ${filteredCount} matching subjects (${totalRecords} total)`
-            : `Showing all ${totalRecords} subjects`,
+    if (name) {
+      const existing = await subjectRepository.findByName(name.trim());
+      if (existing && existing.id !== id) throw new AppError(`Subject "${name}" already exists`, 409);
+    }
+    if (code) {
+      const existing = await subjectRepository.findByCode(code.trim().toUpperCase());
+      if (existing && existing.id !== id) throw new AppError(`Subject code "${code}" already exists`, 409);
+    }
 
-        meta: { totalRecords, filteredRecords: filteredCount, hasFilters },
+    const updated = await subjectRepository.update(id, {
+      name: name?.trim(),
+      code: code?.trim().toUpperCase(),
+    });
+    if (!updated) throw new AppError("Subject not found", 404);
+    return updated;
+  },
 
-        pagination: buildPaginationMeta(filteredCount, page, limit)
-    };
-};
+  async delete(id) {
+    await this.getById(id);
 
-const updateSubject = async (id, data) => {
-    const result = await subjectsRepository.updateSubject(id, data);
-    if (!result) return null;
-    return result;
-};
-const deleteSubject = async (id) => {
-    const result = await subjectsRepository.deleteSubject(id);
-    if (!result) return null;
-    return result;
-};
+    const isAssigned = await subjectRepository.isAssignedToTeacher(id);
+    if (isAssigned) {
+      throw new AppError("Cannot delete subject — it is assigned to one or more teachers", 400);
+    }
 
-module.exports = {
-    createSubject,
-    getAllSubjects,
-    updateSubject,
-    deleteSubject
+    const deleted = await subjectRepository.softDelete(id);
+    if (!deleted) throw new AppError("Subject not found", 404);
+    return deleted;
+  },
 };

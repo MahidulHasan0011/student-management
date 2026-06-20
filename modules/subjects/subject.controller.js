@@ -1,55 +1,39 @@
-const service = require('./subject.service');
-const sendResponse = require("../../utils/response");
+import { subjectService } from "./subject.service.js";
+import { successResponse } from "../../utils/response.js";
 
-const createSubject = async (req, res, next) => {
+export const subjectController = {
+  async create(req, res, next) {
     try {
-       const data = await service.createSubject(req.body);
-       return sendResponse(res, 201,"Subject created", data);
-    } catch (error) {
-        next(error);
-    }
-};
+      const data = await subjectService.create(req.body);
+      return successResponse(res, { message: "Subject created", data, statusCode: 201 });
+    } catch (err) { next(err); }
+  },
 
-const getSubjects = async (req, res, next) => {
+  async getAll(req, res, next) {
     try {
-        const result = await service.getAllSubjects( req.query);
-        return sendResponse(res, 200, result.message, {
-            data: result.data,
-            meta: result.meta,
-            pagination: result.pagination
-        });
-    } catch (error) {
-        next(error);
-    }
-};
+      const { data, meta } = await subjectService.getAll(req.query);
+      return successResponse(res, { message: "Subjects fetched", data, meta });
+    } catch (err) { next(err); }
+  },
 
-const updateSubject = async (req, res, next) => {   
+  async getById(req, res, next) {
     try {
-        const data = await service.updateSubject(req.params.id, req.body);
-        if(!data){
-            return sendResponse(res, 404, "Subject not found");
-        }
-        return sendResponse(res, 200, "Subject updated successfully", data);
-    } catch (error) {
-        next(error);
-    }
-};
+      const data = await subjectService.getById(req.params.id);
+      return successResponse(res, { message: "Subject fetched", data });
+    } catch (err) { next(err); }
+  },
 
-const deleteSubject = async (req, res, next) => {
+  async update(req, res, next) {
     try {
-        const data = await service.deleteSubject(req.params.id);
-        if(!data){
-            return sendResponse(res, 404, "Subject not found");
-        }
-        return sendResponse(res, 200, "Subject deleted successfully", data);
-    } catch (error) {
-        next(error);
-    }
-};
+      const data = await subjectService.update(req.params.id, req.body);
+      return successResponse(res, { message: "Subject updated", data });
+    } catch (err) { next(err); }
+  },
 
-module.exports = {
-    createSubject,
-    getSubjects,
-    updateSubject,
-    deleteSubject
+  async delete(req, res, next) {
+    try {
+      await subjectService.delete(req.params.id);
+      return successResponse(res, { message: "Subject deleted" });
+    } catch (err) { next(err); }
+  },
 };
