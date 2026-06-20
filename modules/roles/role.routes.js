@@ -6,9 +6,11 @@ import { rbacMiddleware } from '../../middlewares/rbac.middleware.js';
 const router = Router();
 router.use(authMiddleware);
 
-router.post("/", rbacMiddleware("HEAD_MASTER", "ADMIN"), controller.createRole);
-router.get("/", controller.getRoles);
-router.put("/:id", rbacMiddleware("HEAD_MASTER", "ADMIN"), controller.updateRole);
-router.delete("/:id", rbacMiddleware("HEAD_MASTER", "ADMIN"), controller.deleteRole);
+router.post("/", rbacMiddleware("HEAD_MASTER", "ADMIN"), roleController.create);
+router.get("/:id", rbacMiddleware("HEAD_MASTER", "ADMIN"), roleController.getById);
+router.get("/", rbacMiddleware("HEAD_MASTER", "ADMIN"), roleController.getAll);
+router.patch("/:id", rbacMiddleware("HEAD_MASTER", "ADMIN"), roleController.update);
+router.delete("/:id", rbacMiddleware("HEAD_MASTER", "ADMIN"), roleController.delete);
+router.put("/:id/permissions", rbacMiddleware("HEAD_MASTER", "ADMIN"), roleController.syncPermissions);
 
 export default router;

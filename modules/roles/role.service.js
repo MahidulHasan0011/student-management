@@ -1,84 +1,73 @@
-const rolesRepository = require("./roles.repository");
-const { buildWhereClause } = require("../../utils/queryBuilder");
-const {buildPagination, buildPaginationMeta} = require("../../utils/pagination");
-const { buildOrder } = require("../../utils/order");
+import { roleRepository } from "./role.repository.js";
+import { permissionRepository } from "../permissions/permission.repository.js";
+import { AppError } from "../../utils/AppError.js";
+import { getPagination, buildMeta } from "../../utils/pagination.js";
+import redisClient, { TTL } from "../../config/redis.js";
 
-const createRole = async (data) => {
-  const result = await rolesRepository.createRole(data);
-  return result;
-};
+const PERM_CACHE_KEY = (roleId) => `role_permissions:${roleId}`;
 
-const getRoles = async (queryOptions) => {
+export const roleService = {
+  async create({ name }) {
+    if(!name) throw new AppError("name is required", 400);
+    const existing = await roleRepository.findByName(name.toUpperCase());
+    if(existing) throw new AppError(`Role "${name}" already exists`, 409);
+    return roleRepository.create({ name: name.toUpperCase() });
+  },
 
-    // pagination
-    const { page, limit, offset } = buildPagination(queryOptions);
+async getAll(queryOptions) {
+  const { page, limit, offset } = getPagination(queryOptions);
+  const [ data, total ] = await Promise.all([
+    roleRepository.findAll(queryOptions, { limit, offset }),
+    roleRepository.countAll(queryOptions)
+  ]);
+  return { data, meta: buildMeta({ total, page, limit }) };
+},
 
-    // sorting
-    const { sortBy, sortOrder } = buildOrder(queryOptions, {
-          created_at: "created_at",
-          name: "name"
-});
+async getById(id) {
+  const role = await roleRepository.findById(id);
+  if (!role) throw new AppError("Role not found", 404);
+  return role;
+},
 
-    const values = [];
-    const countRef = { value: 1 };
+async update(id, { name }) {
+    await this.getById(id);
+    if (name) {
+      const existing = await roleRepository.findByName(name.toUpperCase());
+      if (existing && existing.id !== id) throw new AppError(`Role "${name}" already exists`, 409);
+    }
+    const updated = await roleRepository.update(id, { name: name.toUpperCase() });
+    if (!updated) throw new AppError("Role not found", 404);
+    return updated;
+  },
 
-    const config = {
-        searchableColumns: ["name"],
-        filterableColumns: ["name"]
-    };
+async syncPermissions(roleId, permissionIds) {
+    await this.getById(roleId);
+    if (permissionIds.length) {
+      const found = await permissionRepository.findByIds(permissionIds);
+      if (found.length !== permissionIds.length) {
+        throw new AppError("One or more permission IDs are invalid", 400);
+      }
+    }
+    await roleRepository.syncPermissions(roleId, permissionIds);
+    await redisClient.del(PERM_CACHE_KEY(roleId));
+    return this.getById(roleId);
+  },
 
-    const whereClause = buildWhereClause(
-        queryOptions,
-        values,
-        config,
-        countRef
-    );
 
-const [{ rows, filteredCount }, totalRecords] = await Promise.all([
-        rolesRepository.getRoles({
-            whereClause,
-            sortBy,
-            sortOrder,
-            values,
-            limit,
-            offset,
-            countRef
-        }),
-        rolesRepository.globalCount()
-    ]);
+ async getCachedPermissions(roleId) {
+    const cacheKey = PERM_CACHE_KEY(roleId);
+    const cached = await redisClient.get(cacheKey);
+    if (cached) return JSON.parse(cached);
+    const permissions = await roleRepository.getPermissionNames(roleId);
+    await redisClient.setEx(cacheKey, TTL.PERMISSIONS, JSON.stringify(permissions));
+    return permissions;
+  },
 
-    const hasFilters = Boolean(
-        queryOptions.search ||
-        queryOptions.name
-    );
+  async delete(id) {
+    const deleted = await roleRepository.softDelete(id);
+    if (!deleted) throw new AppError("Role not found", 404);
+    await redisClient.del(PERM_CACHE_KEY(id));
+    return deleted;
+  },
 
-    return {
-        data: rows,
-
-        message: hasFilters
-            ? `Showing ${filteredCount} matching roles (${totalRecords} total)`
-            : `Showing all ${totalRecords} roles`,
-
-        meta: { totalRecords, filteredRecords: filteredCount, hasFilters },
-
-        pagination: buildPaginationMeta(filteredCount, page, limit)
-    };
-};
-
-const updateRole = async (id, data) => {
-    const result = await rolesRepository.updateRole(id, data);
-    if (!result) return null;
-    return result;
-};
-
-const deleteRole = async (id) => {
-    const result = await rolesRepository.deleteRole(id);
-    if (!result) return null;
-    return result;
-};
-module.exports = {
-  createRole,
-  getRoles,
-  updateRole,
-  deleteRole
 };
