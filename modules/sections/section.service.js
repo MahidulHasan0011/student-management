@@ -1,93 +1,117 @@
-const sectionsRepository = require("./sections.repository");
-const { buildWhereClause } = require("../../utils/queryBuilder");
-const {buildPagination, buildPaginationMeta} = require("../../utils/pagination");
-const { buildOrder } = require("../../utils/order");
+import { sectionRepository } from "./section.repository.js";
+import { classRepository } from "../classes/class.repository.js";
+import { AppError } from "../../utils/AppError.js";
+import { getPagination, buildMeta } from "../../utils/pagination.js";
 
-const createSection = async (data) => {
-  const result = await sectionsRepository.createSection(data);
-  return result;
-};
+export const sectionService = {
+  async create({ class_id, name, max_capacity }) {
+    if (!class_id || !name) throw new AppError("class_id and name are required", 400);
 
-const getSections = async (queryOptions) => {
+    const cls = await classRepository.findById(class_id);
+    if (!cls) throw new AppError("Class not found", 404);
 
-    // pagination
-    const { page, limit, offset } =
-        buildPagination(queryOptions);
+    const existing = await sectionRepository.findByClassAndName(class_id, name.trim().toUpperCase());
+    if (existing) throw new AppError(`Section "${name}" already exists in this class`, 409);
 
-// sorting
-    const { sortBy, sortOrder } =
-        buildOrder(queryOptions, {
-            created_at: "s.created_at",
-            section_name: "s.name",
-            class_name: "c.name"
-        });
+    if (max_capacity !== undefined && max_capacity !== null && max_capacity < 1) {
+      throw new AppError("max_capacity must be at least 1", 400);
+    }
 
-    const values = [];
-    const countRef = { value: 1 };
+    return sectionRepository.create({
+      class_id,
+      name: name.trim().toUpperCase(),
+      max_capacity,
+    });
+  },
 
-    const config = {
-        searchableColumns: [
-            "s.name",
-            "c.name"
-        ],
-
-        filterableColumns: [
-            "s.class_id"
-        ]
-    };
-
-    const whereClause = buildWhereClause(
-        queryOptions,
-        values,
-        config,
-        countRef,
-        "s"
-    ); 
-    
-const [{ rows, filteredCount }, totalRecords] = await Promise.all([
-        sectionsRepository.getSections({
-            whereClause,
-            sortBy,
-            sortOrder,
-            values,
-            limit,
-            offset,
-            countRef
-        }),
-        sectionsRepository.globalCount()
+  async getAll(queryOptions) {
+    const { page, limit, offset } = getPagination(queryOptions);
+    const [data, total] = await Promise.all([
+      sectionRepository.findAll(queryOptions, { limit, offset }),
+      sectionRepository.countAll(queryOptions),
     ]);
+    return { data, meta: buildMeta({ total, page, limit }) };
+  },
 
-    const hasFilters = Boolean(
-        queryOptions.search   ||
-        queryOptions.class_id
-    );
+  async getById(id) {
+    const section = await sectionRepository.findById(id);
+    if (!section) throw new AppError("Section not found", 404);
+    return section;
+  },
 
+  // section-এর current occupancy (কত ছাত্র আছে / max_capacity)
+  async getOccupancy(id) {
+    const section = await this.getById(id);
+    const enrolledCount = await sectionRepository.countEnrolledStudents(id);
     return {
-        data: rows,
-
-        message: hasFilters
-            ? `Showing ${filteredCount} matching sections (${totalRecords} total)`
-            : `Showing all ${totalRecords} sections`,
-
-        meta: { totalRecords, filteredRecords: filteredCount, hasFilters },
-
-        pagination: buildPaginationMeta(filteredCount, page, limit)
+      ...section,
+      enrolled_count: enrolledCount,
+      available_seats: section.max_capacity != null
+        ? Math.max(0, section.max_capacity - enrolledCount)
+        : null, // max_capacity না দিলে unlimited ধরা হয়
+      is_full: section.max_capacity != null && enrolledCount >= section.max_capacity,
     };
-};
+  },
 
-const updateSection = async (id, data) => {
-    const result = await sectionsRepository.updateSection(id, data);
-    if (!result) return null;
-    return result;
-};
-const deleteSection = async (id) => {
-    const result = await sectionsRepository.deleteSection(id);
-    if (!result) return null;
-    return result;
-};
-module.exports = {
-  createSection,
-  getSections,
-  updateSection,
-  deleteSection,
+  async update(id, { name, max_capacity }) {
+    const section = await this.getById(id);
+
+    if (name) {
+      const existing = await sectionRepository.findByClassAndName(section.class_id, name.trim().toUpperCase());
+      if (existing && existing.id !== id) {
+        throw new AppError(`Section "${name}" already exists in this class`, 409);
+      }
+    }
+
+    if (max_capacity !== undefined && max_capacity !== null) {
+      if (max_capacity < 1) throw new AppError("max_capacity must be at least 1", 400);
+
+      // capacity কমানোর সময় চেক — already enrolled student-এর চেয়ে কম করা যাবে না
+      const enrolledCount = await sectionRepository.countEnrolledStudents(id);
+      if (max_capacity < enrolledCount) {
+        throw new AppError(
+          `Cannot set max_capacity to ${max_capacity} — ${enrolledCount} students already enrolled`,
+          400
+        );
+      }
+    }
+
+    const updated = await sectionRepository.update(id, {
+      name: name?.trim().toUpperCase(),
+      max_capacity,
+    });
+    if (!updated) throw new AppError("Section not found", 404);
+    return updated;
+  },
+
+  async delete(id) {
+    await this.getById(id);
+
+    const hasEnrollments = await sectionRepository.hasEnrollments(id);
+    if (hasEnrollments) {
+      throw new AppError("Cannot delete section — students are enrolled in it", 400);
+    }
+
+    const deleted = await sectionRepository.softDelete(id);
+    if (!deleted) throw new AppError("Section not found", 404);
+    return deleted;
+  },
+
+  // roll/section বিতরণ engine এটা ব্যবহার করবে — class-এর সব section + occupancy
+  async getSectionsForDistribution(class_id) {
+    const sections = await sectionRepository.findByClassId(class_id);
+    const withOccupancy = await Promise.all(
+      sections.map(async (s) => {
+        const enrolledCount = await sectionRepository.countEnrolledStudents(s.id);
+        return {
+          ...s,
+          enrolled_count: enrolledCount,
+          available_seats: s.max_capacity != null
+            ? Math.max(0, s.max_capacity - enrolledCount)
+            : null,
+        };
+      })
+    );
+    return withOccupancy;
+  },
 };

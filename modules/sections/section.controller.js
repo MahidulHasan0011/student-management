@@ -1,56 +1,47 @@
-const service = require("./section.service");
-const sendResponse = require("../../utils/response");
+import { sectionService } from "./section.service.js";
+import { successResponse } from "../../utils/response.js";
 
-const createSection = async (req, res, next) => {
-  try {
-    const data = await service.createSection(req.body);
-    return sendResponse(res, 201, "Section created", data);
-  } catch (err) {
-    next(err);
-  }
-};
+export const sectionController = {
+  async create(req, res, next) {
+    try {
+      const data = await sectionService.create(req.body);
+      return successResponse(res, { message: "Section created", data, statusCode: 201 });
+    } catch (err) { next(err); }
+  },
 
-const getSections = async (req, res, next) => {
-  try {
-    const result = await service.getSections(req.query);
-    return sendResponse(res, 200, result.message, {
-      data: result.data,
-      meta: result.meta,
-      pagination: result.pagination
-    });
-  } catch (err) {
-    next(err);
-  }
-};
+  async getAll(req, res, next) {
+    try {
+      const { data, meta } = await sectionService.getAll(req.query);
+      return successResponse(res, { message: "Sections fetched", data, meta });
+    } catch (err) { next(err); }
+  },
 
-const updateSection = async (req, res, next) => {
-    try{
-        const data = await service.updateSection(req.params.id, req.body);
-        if(!data){
-            return sendResponse(res, 404, "Section not found");
-        }
-        return sendResponse(res, 200, "Section updated successfully", data);
-    }
-    catch(error){
-        next(error);
-    }
-}
+  async getById(req, res, next) {
+    try {
+      const data = await sectionService.getById(req.params.id);
+      return successResponse(res, { message: "Section fetched", data });
+    } catch (err) { next(err); }
+  },
 
-const deleteSection = async (req, res, next) => {
-  try {
-    const data = await service.deleteSection(req.params.id);
-    if(!data){
-      return sendResponse(res, 404, "Section not found");
-    }
-    return sendResponse(res, 200, "Section deleted", data);
-  } catch (err) {
-    next(err);
-  }
-};
+  // GET /sections/:id/occupancy
+  async getOccupancy(req, res, next) {
+    try {
+      const data = await sectionService.getOccupancy(req.params.id);
+      return successResponse(res, { message: "Section occupancy fetched", data });
+    } catch (err) { next(err); }
+  },
 
-module.exports = {
-  createSection,
-  getSections,
-  updateSection,
-  deleteSection
+  async update(req, res, next) {
+    try {
+      const data = await sectionService.update(req.params.id, req.body);
+      return successResponse(res, { message: "Section updated", data });
+    } catch (err) { next(err); }
+  },
+
+  async delete(req, res, next) {
+    try {
+      await sectionService.delete(req.params.id);
+      return successResponse(res, { message: "Section deleted" });
+    } catch (err) { next(err); }
+  },
 };

@@ -6,7 +6,7 @@ import userRoutes from '../../modules/users/user.routes.js';
 import studentRoutes from '../../modules/students/student.Routes.js';
 import academicSessionRoutes from '../../modules/academic-sessions/academic-session.routes.js';
 import teacherRoutes from '../../modules/teachers/teachers.routes.js';
-import classRoutes from '../../modules/class/class.routes.js';
+import classRoutes from '../../modules/classes/class.routes.js';
 import subjectRoutes from '../../modules/subjects/subject.routes.js';
 import sectionRoutes from '../../modules/sections/section.routes.js';
 import assignmentRoutes from '../../modules/assignments/assignment.routes.js';
