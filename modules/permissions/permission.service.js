@@ -1,83 +1,46 @@
-const permissionsRepository = require("./permissions.repository");
-const { buildWhereClause } = require("../../utils/queryBuilder");
-const {buildPagination, buildPaginationMeta} = require("../../utils/pagination");
-const { buildOrder } = require("../../utils/order");
+import { permissionRepository } from "./permission.repository.js";
+import { AppError } from "../../utils/AppError.js";
+import { getPagination, buildMeta } from "../../utils/pagination.js";
 
-const createPermission = async (data) => {
-  const result = await permissionsRepository.createPermission(data);
-  return result;
-};
+export const permissionService = {
+  async create({ name }) {
+    if (!name) throw new AppError("name is required", 400);
+    const existing = await permissionRepository.findByName(name.toUpperCase());
+    if (existing) throw new AppError(`Permission "${name}" already exists`, 409);
+    return permissionRepository.create({ name: name.toUpperCase() });
+  },
 
-const getPermissions = async (queryOptions) => {
-      //pagination
-    const { page, limit, offset } = buildPagination(queryOptions);
-    //sorting
-    const {sortBy, sortOrder} = buildOrder(
-        queryOptions, {
-          created_at: "created_at",
-          name: "name"
-        }
-    );
-    const values = [];
-    const countRef = { value: 1 };
-    // config
-    const config = {
-        searchableColumns: ["name"],
-        filterableColumns: ["name"]
-    };
-    const whereClause = buildWhereClause(
-        queryOptions, 
-        values,
-        config,
-        countRef
-    );
+  async getAll(queryOptions) {
+    const { page, limit, offset } = getPagination(queryOptions);
 
- const [{ rows, filteredCount }, totalRecords] = await Promise.all([
-        permissionsRepository.getPermissions({
-            whereClause,
-            sortBy,
-            sortOrder,
-            values,
-            limit,
-            offset,
-            countRef
-        }),
-        permissionsRepository.globalCount()
+    const [data, total] = await Promise.all([
+      permissionRepository.findAll(queryOptions, { limit, offset }),
+      permissionRepository.countAll(queryOptions),
     ]);
 
-    const hasFilters = Boolean(
-        queryOptions.search ||
-        queryOptions.name
-    );
+    return { data, meta: buildMeta({ total, page, limit }) };
+  },
 
-    return {
-        data: rows,
+  async getById(id) {
+    const permission = await permissionRepository.findById(id);
+    if (!permission) throw new AppError("Permission not found", 404);
+    return permission;
+  },
 
-        message: hasFilters
-            ? `Showing ${filteredCount} matching permissions (${totalRecords} total)`
-            : `Showing all ${totalRecords} permissions`,
+  async update(id, { name }) {
+    await this.getById(id);
+    if (name) {
+      const existing = await permissionRepository.findByName(name.toUpperCase());
+      if (existing && existing.id !== id) throw new AppError(`Permission "${name}" already exists`, 409);
+    }
+    const updated = await permissionRepository.update(id, { name: name.toUpperCase() });
+    if (!updated) throw new AppError("Permission not found", 404);
+    return updated;
+  },
 
-        meta: { totalRecords, filteredRecords: filteredCount, hasFilters },
-
-        pagination: buildPaginationMeta(filteredCount, page, limit)
-    };
-};
-
-const updatePermission = async (id, data) => {
-    const result = await permissionsRepository.updatePermission(id, data);
-    if (!result) return null;
-    return result;
-};
-
-const deletePermission = async (id) => {
-    const result = await permissionsRepository.deletePermission(id);
-    if (!result) return null;
-    return result;
-};     
-
-module.exports = {
-  createPermission,
-  getPermissions,
-  updatePermission,
-  deletePermission
+  async delete(id) {
+    const deleted = await permissionRepository.delete(id);
+    if (!deleted) throw new AppError("Permission not found", 404);
+    return deleted;
+  },
 };

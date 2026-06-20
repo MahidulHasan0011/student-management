@@ -1,88 +1,35 @@
-const service = require("./permission.service");
-const sendResponse = require("../../utils/response");
+import { permissionService } from "./permission.service.js";
+import { successResponse } from "../../utils/response.js";
 
-const createPermission = async (req, res, next) => {
-  try {
-    const data = await service.createPermission(req.body);
-
-    return sendResponse(
-      res,
-      201,
-      "Permission created successfully",
-      data
-    );
-  } catch (err) {
-    next(err);
-  }
+export const permissionController = {
+  async create(req, res, next) {
+    try {
+      const data = await permissionService.create(req.body);
+      return successResponse(res, { message: "Permission created", data, statusCode: 201 });
+    } catch (err) { next(err); }
+  },
+  async getAll(req, res, next) {
+    try {
+      const { data, meta } = await permissionService.getAll(req.query);
+      return successResponse(res, { message: "Permissions fetched", data, meta });
+    } catch (err) { next(err); }
+  },
+  async getById(req, res, next) {
+    try {
+      const data = await permissionService.getById(req.params.id);
+      return successResponse(res, { message: "Permission fetched", data });
+    } catch (err) { next(err); }
+  },
+  async update(req, res, next) {
+    try {
+      const data = await permissionService.update(req.params.id, req.body);
+      return successResponse(res, { message: "Permission updated", data });
+    } catch (err) { next(err); }
+  },
+  async delete(req, res, next) {
+    try {
+      await permissionService.delete(req.params.id);
+      return successResponse(res, { message: "Permission deleted" });
+    } catch (err) { next(err); }
+  },
 };
-
-const getPermissions = async (req, res, next) => {
-  try {
-    const result = await service.getPermissions( req.query );
-
-    return sendResponse(
-      res,
-      200,
-      result.message,
-      {
-        data: result.data,
-        meta: result.meta,
-        pagination: result.pagination
-      }
-    );
-  } catch (err) {
-    next(err);
-  }
-};
-
-const updatePermission = async (req, res, next) => {
-  try {
-    const data = await service.updatePermission(req.params, req.body);
-    if(!data) {
-      return sendResponse(
-        res,
-        404,
-        "Permission not found"
-      );
-    }
-
-    return sendResponse(
-      res,
-      200,
-      "Permission updated",
-      data
-    );
-  } catch (err) {
-    next(err);
-  }
-};
-
-const deletePermission = async (req, res, next) => {
-  try {
-    const data = await service.deletePermission(req.params);
-    if(!data) {
-      return sendResponse(
-        res,
-        404,
-        "Permission not found"
-      );
-    }
-
-    return sendResponse(
-      res,
-      200,
-      "Permission deleted",
-      data
-    );
-  } catch (err) {
-    next(err);
-  }
-};
-
-module.exports = {
-  createPermission,
-  getPermissions,
-  updatePermission,
-  deletePermission
-}
- 
