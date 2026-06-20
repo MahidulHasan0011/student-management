@@ -1,88 +1,64 @@
-const service = require("./user.service");
-const sendResponse = require("../../utils/response");
+import { userService } from "./user.service.js";
+import { successResponse, errorResponse } from "../../utils/response.js";
 
-const createUser = async (req, res, next) => {
-  try {
-    const data = await service.createUser(req.body);
+export const userController = {
+  async create(req, res, next) {
+    try {
+      const data = await userService.create(req.body);
+      return successResponse(res, { message: "User created", data, statusCode: 201 });
+    } catch (err) { next(err); }
+  },
 
-    return sendResponse(
-      res,
-      201,
-      "User created successfully",
-      data
-    );
-  } catch (err) {
-    next(err);
-  }
+  async getAll(req, res, next) {
+    try {
+      const { data, meta } = await userService.getAll(req.query);
+      return successResponse(res, { message: "Users fetched", data, meta });
+    } catch (err) { next(err); }
+  },
+
+  async getById(req, res, next) {
+    try {
+      const data = await userService.getById(req.params.id);
+      return successResponse(res, { message: "User fetched", data });
+    } catch (err) { next(err); }
+  },
+
+  async update(req, res, next) {
+    try {
+      const data = await userService.update(req.params.id, req.body);
+      return successResponse(res, { message: "User updated", data });
+    } catch (err) { next(err); }
+  },
+
+  async changePassword(req, res, next) {
+    try {
+      await userService.changePassword(req.user.userId, req.body);
+      return successResponse(res, { message: "Password changed successfully" });
+    } catch (err) { next(err); }
+  },
+
+  async resetPassword(req, res, next) {
+    try {
+      const { newPassword } = req.body;
+      if (!newPassword) return errorResponse(res, { message: "newPassword required", statusCode: 400 });
+      await userService.resetPassword(req.params.id, newPassword);
+      return successResponse(res, { message: "Password reset successfully" });
+    } catch (err) { next(err); }
+  },
+
+  async toggleActive(req, res, next) {
+    try {
+      const { is_active } = req.body;
+      if (is_active === undefined) return errorResponse(res, { message: "is_active required", statusCode: 400 });
+      const data = await userService.toggleActive(req.params.id, is_active);
+      return successResponse(res, { message: `User ${is_active ? "activated" : "deactivated"}`, data });
+    } catch (err) { next(err); }
+  },
+
+  async delete(req, res, next) {
+    try {
+      await userService.delete(req.params.id);
+      return successResponse(res, { message: "User deleted" });
+    } catch (err) { next(err); }
+  },
 };
-
-const getUsers = async (req, res, next) => {
-  try {
-    const result = await service.getUsers(req.query);
-
-    return sendResponse(
-      res,
-      200,
-      result.message,
-      {
-        data: result.data,
-        meta: result.meta,
-        pagination: result.pagination
-      }
-    );
-  } catch (err) {
-    next(err);
-  }
-};
-
-const updateUser = async (req, res, next) => {
-  try {
-    const data = await service.updateUser(req.params, req.body);
-    if(!data) {
-      return sendResponse(
-        res,
-        404,
-        "User not found"
-      );
-    }
-
-    return sendResponse(
-      res,
-      200,
-      "User updated",
-      data
-    );
-  } catch (err) {
-    next(err);
-  }
-};
-
-const deleteUser = async (req, res, next) => {
-  try {
-    const data = await service.deleteUser(req.params);
-    if(!data) {
-      return sendResponse(
-        res,
-        404,
-        "User not found"
-      );
-    }
-
-    return sendResponse(
-      res,
-      200,
-      "User deleted",
-      data
-    );
-  } catch (err) {
-    next(err);
-  }
-};
-
-module.exports = {
-  createUser,
-  getUsers,
-  updateUser,
-  deleteUser
-}
- 
