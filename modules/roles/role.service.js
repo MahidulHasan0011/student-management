@@ -2,17 +2,15 @@ import { roleRepository } from "./role.repository.js";
 import { permissionRepository } from "../permissions/permission.repository.js";
 import { AppError } from "../../utils/AppError.js";
 import { getPagination, buildMeta } from "../../utils/pagination.js";
-import redisClient, { TTL } from "../../config/redis.js";
-
-const PERM_CACHE_KEY = (roleId) => `role_permissions:${roleId}`;
+import { permissionEngine } from "../../core/permission.engine.js";
 
 export const roleService = {
-  async create({ name }) {
+async create({ name }) {
     if(!name) throw new AppError("name is required", 400);
     const existing = await roleRepository.findByName(name.toUpperCase());
     if(existing) throw new AppError(`Role "${name}" already exists`, 409);
     return roleRepository.create({ name: name.toUpperCase() });
-  },
+},
 
 async getAll(queryOptions) {
   const { page, limit, offset } = getPagination(queryOptions);
@@ -38,7 +36,7 @@ async update(id, { name }) {
     const updated = await roleRepository.update(id, { name: name.toUpperCase() });
     if (!updated) throw new AppError("Role not found", 404);
     return updated;
-  },
+},
 
 async syncPermissions(roleId, permissionIds) {
     await this.getById(roleId);
@@ -49,25 +47,20 @@ async syncPermissions(roleId, permissionIds) {
       }
     }
     await roleRepository.syncPermissions(roleId, permissionIds);
-    await redisClient.del(PERM_CACHE_KEY(roleId));
+    await redisClient.del(PERM_CACHE_KEY(roleId));  // cache stale হয়ে গেলো, clear করো
     return this.getById(roleId);
-  },
+},
 
+// rbac.middleware.js এটা কল করে — আসল cache+DB logic এখন core/permission.engine.js-এ
+async getCachedPermissions(roleId) {
+    return permissionEngine.resolvePermissions(roleId);
+},
 
- async getCachedPermissions(roleId) {
-    const cacheKey = PERM_CACHE_KEY(roleId);
-    const cached = await redisClient.get(cacheKey);
-    if (cached) return JSON.parse(cached);
-    const permissions = await roleRepository.getPermissionNames(roleId);
-    await redisClient.setEx(cacheKey, TTL.PERMISSIONS, JSON.stringify(permissions));
-    return permissions;
-  },
-
-  async delete(id) {
+async delete(id) {
     const deleted = await roleRepository.softDelete(id);
     if (!deleted) throw new AppError("Role not found", 404);
-    await redisClient.del(PERM_CACHE_KEY(id));
+    await permissionEngine.invalidate(id);
     return deleted;
-  },
+},
 
 };

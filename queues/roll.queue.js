@@ -1,8 +1,9 @@
-const { Queue } = require("bullmq");
-const redis = require("../config/redis");
+import { createQueue, addJob } from "../services/queue.service.js";
 
-const rollQueue = new Queue("roll-queue", {
-  connection: redis
-});
+export const rollQueue = createQueue("roll");
 
-module.exports = rollQueue;
+// ranking job শেষ হওয়ার পর এটা trigger হয়
+// data = { rankedList, classId, academicSessionId, sectionId }
+export const enqueueRollJob = (data) => {
+  return addJob(rollQueue, "generate-roll", data);
+};
