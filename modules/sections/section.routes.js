@@ -7,11 +7,11 @@ import { rbacMiddleware } from "../../middlewares/rbac.middleware.js";
 const router = Router();
 router.use(authMiddleware);
 
-router.get("/", rbacMiddleware("ADMIN", "HEAD_MASTER"), sectionController.getAll);
-router.get("/:id", rbacMiddleware("ADMIN", "HEAD_MASTER"), sectionController.getById);
-router.get("/:id/occupancy", rbacMiddleware("ADMIN", "HEAD_MASTER"), sectionController.getOccupancy);
-router.post("/", rbacMiddleware("ADMIN", "HEAD_MASTER"), sectionController.create);
-router.patch("/:id", rbacMiddleware("ADMIN", "HEAD_MASTER"), sectionController.update);
-router.delete("/:id", rbacMiddleware("ADMIN", "HEAD_MASTER"), sectionController.delete);
+router.get("/", rbacMiddleware("ADMIN", "SUPER_ADMIN"), sectionController.getAll);
+router.get("/:id", rbacMiddleware("ADMIN", "SUPER_ADMIN"), sectionController.getById);
+router.get("/:id/occupancy", rbacMiddleware("ADMIN", "SUPER_ADMIN"), sectionController.getOccupancy);
+router.post("/", rbacMiddleware("ADMIN", "SUPER_ADMIN"), sectionController.create);
+router.patch("/:id", rbacMiddleware("ADMIN", "SUPER_ADMIN"), sectionController.update);
+router.delete("/:id", rbacMiddleware("ADMIN", "SUPER_ADMIN"), sectionController.delete);
 
 export default router;

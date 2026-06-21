@@ -7,9 +7,9 @@ const router = Router();
 router.use(authMiddleware);
 
 
-router.post("/", rbacMiddleware("HEAD_MASTER", "ADMIN"), controller.createExam);
+router.post("/", rbacMiddleware("SUPER_ADMIN", "ADMIN"), controller.createExam);
 router.get("/", controller.getExams);
-router.put("/:id", rbacMiddleware("HEAD_MASTER", "ADMIN"), controller.updateExam);
-router.delete("/:id", rbacMiddleware("HEAD_MASTER", "ADMIN"), controller.deleteExam);
+router.put("/:id", rbacMiddleware("SUPER_ADMIN", "ADMIN"), controller.updateExam);
+router.delete("/:id", rbacMiddleware("SUPER_ADMIN", "ADMIN"), controller.deleteExam);
 
 export default router;

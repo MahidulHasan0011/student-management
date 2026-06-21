@@ -7,16 +7,16 @@ const router = Router();
 router.use(authMiddleware);
 
 // নির্দিষ্ট /active route অবশ্যই /:id-এর আগে থাকতে হবে — নাহলে "active"-কে id ভাবে নিবে
-router.get("/active", rbacMiddleware("ADMIN", "HEAD_MASTER"), academicSessionController.getActive);
+router.get("/active", rbacMiddleware("ADMIN", "SUPER_ADMIN"), academicSessionController.getActive);
 
-router.get("/", rbacMiddleware("ADMIN", "HEAD_MASTER"), academicSessionController.getAll);
-router.get("/:id", rbacMiddleware("ADMIN", "HEAD_MASTER"), academicSessionController.getById);
-router.post("/", rbacMiddleware("ADMIN", "HEAD_MASTER"), academicSessionController.create);
-router.patch("/:id", rbacMiddleware("ADMIN", "HEAD_MASTER"), academicSessionController.update);
-router.delete("/:id", rbacMiddleware("ADMIN", "HEAD_MASTER"), academicSessionController.delete);
+router.get("/", rbacMiddleware("ADMIN", "SUPER_ADMIN"), academicSessionController.getAll);
+router.get("/:id", rbacMiddleware("ADMIN", "SUPER_ADMIN"), academicSessionController.getById);
+router.post("/", rbacMiddleware("ADMIN", "SUPER_ADMIN"), academicSessionController.create);
+router.patch("/:id", rbacMiddleware("ADMIN", "SUPER_ADMIN"), academicSessionController.update);
+router.delete("/:id", rbacMiddleware("ADMIN", "SUPER_ADMIN"), academicSessionController.delete);
 
-router.patch("/:id/activate", rbacMiddleware("ADMIN", "HEAD_MASTER"), academicSessionController.activate);
-router.patch("/:id/deactivate", rbacMiddleware("ADMIN", "HEAD_MASTER"), academicSessionController.deactivate);
-router.patch("/:id/admission-test", rbacMiddleware("ADMIN", "HEAD_MASTER"), academicSessionController.toggleAdmissionTest);
+router.patch("/:id/activate", rbacMiddleware("ADMIN", "SUPER_ADMIN"), academicSessionController.activate);
+router.patch("/:id/deactivate", rbacMiddleware("ADMIN", "SUPER_ADMIN"), academicSessionController.deactivate);
+router.patch("/:id/admission-test", rbacMiddleware("ADMIN", "SUPER_ADMIN"), academicSessionController.toggleAdmissionTest);
 
 export default router;

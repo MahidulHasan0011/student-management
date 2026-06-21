@@ -7,10 +7,10 @@ const router = Router();
 router.use(authMiddleware);
 
 
-router.post("/", rbacMiddleware("HEAD_MASTER", "ADMIN"), controller.assignEnrollment);
+router.post("/", rbacMiddleware("SUPER_ADMIN", "ADMIN"), controller.assignEnrollment);
 
 router.get("/", controller.getEnrollments);
-router.put("/:id", rbacMiddleware("HEAD_MASTER", "ADMIN"), controller.updateEnrollment);
-router.delete("/:id", rbacMiddleware("HEAD_MASTER", "ADMIN"), controller.deleteEnrollment);
+router.put("/:id", rbacMiddleware("SUPER_ADMIN", "ADMIN"), controller.updateEnrollment);
+router.delete("/:id", rbacMiddleware("SUPER_ADMIN", "ADMIN"), controller.deleteEnrollment);
 
 export default router;

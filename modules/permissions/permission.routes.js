@@ -6,10 +6,10 @@ import { rbacMiddleware } from '../../middlewares/rbac.middleware.js';
 const router = Router();
 router.use(authMiddleware);
 
-router.post("/", rbacMiddleware("HEAD_MASTER", "ADMIN"), permissionController.create);
+router.post("/", rbacMiddleware("SUPER_ADMIN", "ADMIN"), permissionController.create);
 router.get("/", permissionController.getAll);
-router.get("/:id", rbacMiddleware("HEAD_MASTER", "ADMIN"), permissionController.getById);
-router.patch("/:id", rbacMiddleware("HEAD_MASTER", "ADMIN"), permissionController.update);
-router.delete("/:id", rbacMiddleware("HEAD_MASTER", "ADMIN"), permissionController.delete);
+router.get("/:id", rbacMiddleware("SUPER_ADMIN", "ADMIN"), permissionController.getById);
+router.patch("/:id", rbacMiddleware("SUPER_ADMIN", "ADMIN"), permissionController.update);
+router.delete("/:id", rbacMiddleware("SUPER_ADMIN", "ADMIN"), permissionController.delete);
 
 export default router;

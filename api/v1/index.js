@@ -5,7 +5,7 @@ import permissionRoutes from '../../modules/permissions/permission.routes.js';
 import userRoutes from '../../modules/users/user.routes.js';
 import studentRoutes from '../../modules/students/student.Routes.js';
 import academicSessionRoutes from '../../modules/academic-sessions/academic-session.routes.js';
-import teacherRoutes from '../../modules/teachers/teachers.routes.js';
+import teacherRoutes from '../../modules/teachers/teacher.routes.js';
 import classRoutes from '../../modules/classes/class.routes.js';
 import subjectRoutes from '../../modules/subjects/subject.routes.js';
 import sectionRoutes from '../../modules/sections/section.routes.js';
@@ -16,7 +16,9 @@ import resultRoutes from '../../modules/results/result.routes.js';
 import rolePermissionRoutes from '../../modules/rolePermissions/rolePermission.routes.js';
 
 const router = Router();
+
 // use routes
+// router.use("/auth", authRoutes);
 router.use('/roles', roleRoutes);
 router.use('/permissions', permissionRoutes);
 router.use('/users', userRoutes);
