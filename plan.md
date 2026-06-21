@@ -68,7 +68,7 @@ src/
 │   ├── permissions/
 │   ├── billing/
 │
-├── core/
+├── core/                                                      
 │   ├── roll.engine.js
 │   ├── ranking.engine.js
 │   ├── attendance.engine.js
@@ -104,25 +104,29 @@ src/
 
 
 
-
-Module                         দায়িত্ব
-
-auth/                          Login, JWT token, session
-
-students/                      Student CRUD, enrollment
-
-teachers/                      Teacher profile, subject assignment
-
-exams/                         পরীক্ষা তৈরি, মার্কস এন্ট্রি
-
-attendance/                    Student ও Staff উভয়ের attendanc
-
-eroles/permissions/            RBAC system
-
-billing/                       ফি ব্যবস্থাপনা (future scope)
-
-core/roll.engine.js            Roll generation logic
-
-core/ranking.engine.js         Merit list তৈরি
+HTTP request
+   ↓
+controller → service → queue.service.js (job পাঠায়)
+                              ↓
+                        ranking.queue.js (Bull/BullMQ queue)
+                              ↓
+                  (worker process, ভিন্ন event loop)
+                              ↓
+                       ranking.job.js (queue থেকে job নেয়)
+                              ↓
+                  ranking.engine.js (আসল calculation logic)
+                              ↓
+                       roll.queue.js (পরের ধাপ trigger করে)
+                              ↓
+                        roll.job.js → roll.engine.js
+                              ↓
+                  student_enrollments.roll_number আপডেট
 
 
+core/ — pure business logic, কোনো queue/HTTP জানে না, শুধু calculation
+
+services/ — infrastructure wrapper (Redis cache, BullMQ queue client)
+
+queues/ — queue definition (নাম, connection)
+
+jobs/ — worker যা queue থেকে job নিয়ে core/-এর engine call করে
