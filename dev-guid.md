@@ -156,4 +156,30 @@ ex:
 
 View
 
-একাধিক টেবিল থেকে ডেটা join করে virtual table তৈরি করে।        
+একাধিক টেবিল থেকে ডেটা join করে virtual table তৈরি করে।   
+
+
+
+AUTH refresh service
+
+// Refresh token rotation যোগ করছি। আগে concept-টা ছোট করে বুঝিয়ে নিই, তারপর code।
+// Rotation মানে কী
+// এখন তোমার system-এ refresh token ৭ দিন ধরে একই থাকে। কেউ যদি সেই token চুরি করে, ৭ দিন ধরে সে চাইলেই নতুন access token বানাতে পারবে — তোমার জানার কোনো উপায় নেই।
+// Rotation-এর নিয়ম: প্রতিবার refresh token ব্যবহার করলে, পুরনোটা বাতিল হয়ে যাবে এবং নতুন একটা refresh token দেওয়া হবে। 
+// তাই যদি কেউ token চুরি করে এবং দুজনেই (real user + attacker) একই token দিয়ে refresh করার চেষ্টা করে — 
+// যেই আগে করবে সেটাই কাজ করবে, পরেরজন ব্যর্থ হবে এবং পুরো session invalidate হয়ে যাবে (security alert হিসেবে)।
+
+// এখন refresh() method আপডেট করছি — পুরনো token verify করে, সাথে সাথে নতুন refresh token বানিয়ে Redis-এ store করবে (atomic না করলে race condition হতে পারে,
+
+
+// ব্যবহারকারী → POST /auth/refresh { refreshToken: "OLD_TOKEN" }
+//                 ↓
+//         OLD_TOKEN ঠিক আছে কিনা verify
+//                 ↓
+//         Redis-এ যেটা আছে তার সাথে মিলছে কিনা চেক
+//                 ↓
+//    ┌── মিলছে না/নেই ──┐         ┌── মিলছে ──┐
+//    ↓                            ↓
+// Redis থেকে মুছে দাও    নতুন accessToken + নতুন refreshToken বানাও
+// 401 দিয়ে বলো            Redis-এ নতুনটা সেভ করো (পুরনোটা automatic overwrite)
+// "আবার login করো"       client-কে দুটোই পাঠাও

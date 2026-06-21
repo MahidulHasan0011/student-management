@@ -15,9 +15,10 @@ const signRefresh = (payload) =>
 
 export const authService = {
   async login({ email, password }) {
-   const user = await authRepository.findByEmail(email.toLowerCase());
+    const user = await authRepository.findByEmail(email.toLowerCase());
     if (!user) throw new AppError("Invalid email or password", 401);
     if (!user.is_active) throw new AppError("Account is deactivated", 403);
+
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) throw new AppError("Invalid email or password", 401);
 
@@ -29,9 +30,10 @@ export const authService = {
 
     const { password: _pw, ...safeUser } = user;
     return { user: safeUser, accessToken, refreshToken };
- },
+  },
 
- async refresh(refreshToken) {
+
+  async refresh(refreshToken) {
     if (!refreshToken) throw new AppError("Refresh token required", 401);
 
     let decoded;
@@ -42,23 +44,34 @@ export const authService = {
     }
 
     const stored = await redisClient.get(REFRESH_KEY(decoded.userId));
-    if (stored !== refreshToken) throw new AppError("Refresh token is no longer valid", 401);
+
+    // stored token-ই না থাকলে বা না মিললে — token reuse/theft সন্দেহ, পুরো session বাতিল করো
+    if (!stored || stored !== refreshToken) {
+      await redisClient.del(REFRESH_KEY(decoded.userId)); // safety: যদি কোনো token পড়েও থাকে, মুছে দাও
+      throw new AppError("Refresh token is no longer valid — please log in again", 401);
+    }
 
     const user = await authRepository.findById(decoded.userId);
     if (!user || !user.is_active) throw new AppError("User not found or deactivated", 401);
 
-    const accessToken = signAccess({
-      userId: user.id, roleId: user.role_id, roleName: user.role_name,
-    });
-    return { accessToken };
+    const tokenPayload = { userId: user.id, roleId: user.role_id, roleName: user.role_name };
+
+    // ── Rotation: নতুন access + নতুন refresh টোকেন, পুরনো refresh টোকেন বাতিল ──
+    const accessToken = signAccess(tokenPayload);
+    const newRefreshToken = signRefresh({ userId: user.id });
+
+    await redisClient.setEx(REFRESH_KEY(user.id), TTL.REFRESH_TOKEN, newRefreshToken);
+
+    return { accessToken, refreshToken: newRefreshToken };
   },
 
   async logout(userId) {
     await redisClient.del(REFRESH_KEY(userId));
   },
- async getMe(userId) {
+
+  async getMe(userId) {
     const user = await authRepository.findById(userId);
     if (!user) throw new AppError("User not found", 404);
     return user;
-  }
-} 
+  },
+};
