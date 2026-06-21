@@ -6,11 +6,11 @@ import { rbacMiddleware } from "../../middlewares/rbac.middleware.js";
 const router = Router();
 router.use(authMiddleware);
 
-router.get("/", rbacMiddleware("ADMIN", "SUPER_ADMIN"), teacherController.getAll);
-router.get("/:id", rbacMiddleware("ADMIN", "SUPER_ADMIN"), teacherController.getById);
-router.get("/:id/assignments", rbacMiddleware("ADMIN", "SUPER_ADMIN"), teacherController.getWithAssignments);
-router.post("/", rbacMiddleware("ADMIN", "SUPER_ADMIN"), teacherController.create);
-router.patch("/:id", rbacMiddleware("ADMIN", "SUPER_ADMIN"), teacherController.update);
-router.delete("/:id", rbacMiddleware("ADMIN", "SUPER_ADMIN"), teacherController.delete);
+router.get("/", rbacMiddleware("TEACHER_READ"), teacherController.getAll);
+router.get("/:id", rbacMiddleware("TEACHER_READ"), teacherController.getById);
+router.get("/:id/assignments", rbacMiddleware("TEACHER_READ"), teacherController.getWithAssignments);
+router.post("/", rbacMiddleware("TEACHER_CREATE"), teacherController.create);
+router.patch("/:id", rbacMiddleware("TEACHER_UPDATE"), teacherController.update);
+router.delete("/:id", rbacMiddleware("TEACHER_DELETE"), teacherController.delete);
 
 export default router;
