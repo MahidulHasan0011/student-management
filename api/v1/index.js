@@ -13,7 +13,7 @@ import assignmentRoutes from '../../modules/assignments/assignment.routes.js';
 import enrollmentRoutes from '../../modules/enrollments/enrollment.routes.js';
 import examRoutes from '../../modules/exams/exam.routes.js';
 import resultRoutes from '../../modules/results/result.routes.js';
-import rolePermissionRoutes from '../../modules/rolePermissions/rolePermission.routes.js';
+import rolePermissionRoutes from '../../modules/role-permissions/role-permission.routes.js';
 
 const router = Router();
 
