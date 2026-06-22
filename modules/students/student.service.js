@@ -1,171 +1,103 @@
-const db = require("../../config/db");
-const studentRepository = require("./students.repository");
+import bcrypt from "bcryptjs";
+import { studentRepository } from "./student.repository.js";
+import { userRepository } from "../users/user.repository.js";
+import { roleRepository } from "../roles/role.repository.js";
+import { AppError } from "../../utils/AppError.js";
+import { getPagination, buildMeta } from "../../utils/pagination.js";
+import { withTransaction, query } from "../../config/db.js";
+import { env } from "../../config/env.js";
 
-const { buildWhereClause } = require("../../utils/queryBuilder");
-const { buildPagination, buildPaginationMeta } = require("../../utils/pagination");
-const { buildOrder } = require("../../utils/order");
-
-
-
-
-const createStudent = async (data) => {
-    const client = await db.connect();
-
-    // Teacher Request
-    //       ↓
-    // START TRANSACTION
-    //       ↓
-    // Create User (login)
-    //       ↓
-    // Create Student Profile
-    //       ↓
-    // COMMIT (SAVE ALL)
-    //       ↓
-    // Response success
-
-
-    try {
-
-        // START TRANSACTION
-        await client.query("BEGIN");
-
-        // 1. create user (login identity)
-        const userResult = await studentRepository.createUser
-        (
-            client, 
-            data
-        );
-        const user_id = userResult.rows[0].id;
-
-        // 2. create student profile
-        const result = await studentRepository.createStudent
-        (
-            client, 
-            user_id, 
-            data
-        );
-       // SUCCESS → COMMIT
-        await client.query("COMMIT");
-        return result;
-    } catch (error) {
-        //  ERROR → ROLLBACK
-        await client.query("ROLLBACK");
-        throw error;
-    } finally {
-        client.release();
-    }
+// student_code ফরম্যাট: STU-2026-001 (বছর + ক্রমিক নম্বর)
+const generateStudentCode = async (client) => {
+  const year = new Date().getFullYear();
+  const { rows } = await client.query(
+    `SELECT COUNT(*) FROM students WHERE student_code LIKE $1`,
+    [`STU-${year}-%`]
+  );
+  const nextSeq = parseInt(rows[0].count) + 1;
+  return `STU-${year}-${String(nextSeq).padStart(3, "0")}`;
 };
 
-// Get all students
-const getAllStudents = async (queryOptions) => {
-    // pagination
-    const { page, limit, offset } =
-        buildPagination(queryOptions);
-    // sorting
-    const { sortBy, sortOrder } =
-        buildOrder(queryOptions, {
-            created_at: "st.created_at",
-            student_name: "u.full_name",
-            student_code: "st.student_code",
-            class_name: "c.name",
-            section_name: "s.name"
-        });
-
-    const values = [];
-    const countRef = { value: 1 };
-
-    const config = {
-        searchableColumns: [
-            "u.full_name",  
-            "u.email",       
-            "st.student_code",
-            "st.guardian_name",
-            "st.guardian_phone",
-            "c.name",
-            "s.name"
-        ],
-
-        filterableColumns: [
-            "u.gender",
-            "se.class_id",
-            "se.section_id",
-            "se.academic_session_id"
-        ]
-    };
-
-    const whereClause = buildWhereClause(
-        queryOptions, values, config, countRef, "st"
-    );
-
-const [{rows, filteredCount }, totalRecords] = await Promise.all([
-    studentRepository.getAllStudents({
-        whereClause,
-        sortBy,
-        sortOrder,
-        values,
-        limit,
-        offset,
-        countRef
-    }),
-    studentRepository.globalCount()
-]);
-
-    const hasFilters = Boolean(
-        queryOptions.search ||
-        queryOptions.gender ||
-        queryOptions.class_id ||
-        queryOptions.section_id ||
-        queryOptions.academic_session_id
-
-    );
-
-   return {
-        data: rows,
-
-        message: hasFilters
-            ? `Showing ${filteredCount} matching students (${totalRecords} total)`
-            : `Showing all ${totalRecords} students`,
-
-        meta: {
-            totalRecords,
-            filteredCount,
-            hasFilters
-        },
-
-        pagination: buildPaginationMeta(
-            filteredCount,
-            page,
-            limit
-        )
-    };
-}
-//GET BY ID
-const getStudentById = async (id) => {
-    const result = await studentRepository.getStudentById(id);
-    if(!result){
-        return null;
+export const studentService = {
+  // user account + student profile একসাথে তৈরি — একটা fail করলে rollback (teacher.service.js-এর মতোই pattern)
+  async create({ full_name, email, password, gender, date_of_birth, guardian_name, guardian_phone, address }) {
+    if (!full_name || !email || !password) {
+      throw new AppError("full_name, email and password are required", 400);
     }
-    return result;
-}
-//update student
-const updateStudent = async (id, data) => {
-    const result = await studentRepository.updateStudent(id, data);
-    if(!result){
-        return null;
-    }  
-    return result;
 
-    
-   
+    const existing = await userRepository.findByEmail(email.toLowerCase());
+    if (existing) throw new AppError("Email already in use", 409);
+
+    const studentRole = await roleRepository.findByName("STUDENT");
+    if (!studentRole) {
+      throw new AppError("STUDENT role not found — run db:seed first", 500);
+    }
+
+    const hashedPassword = await bcrypt.hash(password, env.BCRYPT_ROUNDS);
+
+    return withTransaction(async (client) => {
+      const user = await studentRepository.createUser(client, {
+        full_name: full_name.trim(),
+        email: email.toLowerCase().trim(),
+        password: hashedPassword,
+        role_id: studentRole.id,
+        gender,
+      });
+
+      const student_code = await generateStudentCode(client);
+
+      const student = await studentRepository.createStudentProfile(client, {
+        user_id: user.id,
+        student_code,
+        date_of_birth,
+        guardian_name,
+        guardian_phone,
+        address,
+      });
+
+      return { ...student, full_name: full_name.trim(), email: email.toLowerCase().trim() };
+    });
+  },
+
+  async getAll(queryOptions) {
+    const { page, limit, offset } = getPagination(queryOptions);
+    const [data, total] = await Promise.all([
+      studentRepository.findAll(queryOptions, { limit, offset }),
+      studentRepository.countAll(queryOptions),
+    ]);
+    return { data, meta: buildMeta({ total, page, limit }) };
+  },
+
+  async getById(id) {
+    const student = await studentRepository.findById(id);
+    if (!student) throw new AppError("Student not found", 404);
+    return student;
+  },
+
+  // profile + current session-এর enrollment (class/section/roll) একসাথে
+  async getByIdWithEnrollment(id) {
+    const student = await this.getById(id);
+    const enrollment = await studentRepository.findCurrentEnrollment(id);
+    return { ...student, current_enrollment: enrollment };
+  },
+
+  async update(id, fields) {
+    await this.getById(id);
+    const updated = await studentRepository.update(id, fields);
+    if (!updated) throw new AppError("Student not found", 404);
+    return updated;
+  },
+
+  async delete(id) {
+    await this.getById(id);
+
+    const hasEnrollments = await studentRepository.hasEnrollments(id);
+    if (hasEnrollments) {
+      throw new AppError("Cannot delete student — enrollment records exist. Remove enrollments first.", 400);
+    }
+
+    const deleted = await studentRepository.softDelete(id);
+    if (!deleted) throw new AppError("Student not found", 404);
+    return deleted;
+  },
 };
-// delete student by id (soft delete)
-const deleteStudent = async (id) => {
-    const result = await studentRepository.deleteStudent(id);
-    if(!result){
-        return null;
-    }
-    return result;
-}
-
-
-module.exports = { createStudent, getAllStudents, getStudentById, updateStudent, deleteStudent };

@@ -1,5 +1,5 @@
 import { Router } from 'express';
-import { controller } from './assignment.controller.js';
+import { controller } from './subject-assignment.controller.js';
 import { authMiddleware } from '../../middlewares/auth.middleware.js';
 import { rbacMiddleware } from '../../middlewares/rbac.middleware.js';
 

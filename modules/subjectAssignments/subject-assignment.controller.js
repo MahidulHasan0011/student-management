@@ -1,4 +1,4 @@
-const service = require("./assignment.service");
+const service = require("./subject-assignment.service");
 const sendResponse = require("../../utils/response");
 
 const assignSubject = async (req, res, next) => {

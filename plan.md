@@ -130,3 +130,10 @@ services/ — infrastructure wrapper (Redis cache, BullMQ queue client)
 queues/ — queue definition (নাম, connection)
 
 jobs/ — worker যা queue থেকে job নিয়ে core/-এর engine call করে
+
+
+
+
+দুটোই রাখা ভালো — UI-তে যদি checklist থাকে তো PUT /roles/:id/permissions ব্যবহার হবে, আর যদি একটা একটা toggle button থাকে তো এই নতুন role-permissions,
+POST/role-permissions {roleId, permissionId}   একটা, permission assign 
+POST/role-permissions/bulk {roleId, permissionIds:[]}  একাধিক assign, একসাথে

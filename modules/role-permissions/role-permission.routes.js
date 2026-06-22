@@ -16,3 +16,7 @@ router.post("/bulk", rbacMiddleware("ROLE_UPDATE"), rolePermissionController.ass
 router.delete("/", rbacMiddleware("ROLE_UPDATE"), rolePermissionController.revoke);
 
 export default router;
+
+
+
+
