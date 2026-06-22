@@ -1,24 +1,21 @@
-const { Worker } = require("bullmq");
-const db = require("../config/db");
+import { createWorker } from "../services/queue.service.js";
+import { rollEngine } from "../core/roll.engine.js";
 
-new Worker("roll-queue", async job => {
-  const { class_id, exam_id, academic_session_id } = job.data;
+// ranking.job.js এই queue-তে job পাঠায় (rankedList সহ) — এখানে আসল roll_number বসানো হয়
+const processor = async (job) => {
+  const { rankedList, classId, academicSessionId, sectionId } = job.data;
 
-  const result = await db.query(`
-    SELECT student_id,
-           SUM(marks) as total_marks
-    FROM exam_results
-    WHERE class_id = $1
-      AND academic_session_id = $2
-    GROUP BY student_id
-    ORDER BY total_marks DESC
-  `, [class_id, academic_session_id]);
+  console.log(`[roll.job] assigning rolls for class=${classId} session=${academicSessionId}`);
 
-  for (let i = 0; i < result.rows.length; i++) {
-    await db.query(`
-      UPDATE student_enrollments
-      SET roll_number = $1
-      WHERE student_id = $2
-    `, [i + 1, result.rows[i].student_id]);
-  }
-});
+  const results = await rollEngine.generateRolls({
+    rankedList,
+    classId,
+    academicSessionId,
+    sectionId,
+  });
+
+  return { assignedCount: results.length };
+};
+
+// "roll" নামের queue listen করে
+export const rollWorker = createWorker("roll", processor);

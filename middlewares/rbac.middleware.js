@@ -1,3 +1,17 @@
+// work Flow
+
+// rbacMiddleware
+//     ↓
+// roleService.getCachedPermissions()
+//     ↓
+// permissionEngine.resolvePermissions()
+//     ↓
+// Redis Cache
+//     ↓
+// roleRepository.getPermissionNames()
+
+
+
 import { roleService } from "../modules/roles/role.service.js";
 import { errorResponse } from "../utils/response.js";
 
@@ -29,3 +43,4 @@ export const rbacMiddleware = (requiredPermissions) => {
     }
   };
 };
+
