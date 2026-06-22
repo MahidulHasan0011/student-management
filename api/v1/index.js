@@ -9,7 +9,7 @@ import teacherRoutes from '../../modules/teachers/teacher.routes.js';
 import classRoutes from '../../modules/classes/class.routes.js';
 import subjectRoutes from '../../modules/subjects/subject.routes.js';
 import sectionRoutes from '../../modules/sections/section.routes.js';
-import assignmentRoutes from '../../modules/subjectAssignments/subject-assignment.routes.js';
+import assignmentRoutes from '../../modules/subject-assignments/subject-assignment.routes.js';
 import studentEnrollmentRoutes from '../../modules/student-enrollments/student-enrollment.routes.js';
 import examRoutes from '../../modules/exams/exam.routes.js';
 import resultRoutes from '../../modules/results/result.routes.js';
