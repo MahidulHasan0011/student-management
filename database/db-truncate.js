@@ -1,28 +1,30 @@
 import dotenv from "dotenv";
 dotenv.config();
 import { Client } from "pg";
-import { env } from "../src/config/env.js";
+import { env } from "../config/env.js";
 
 // Foreign key dependency অনুযায়ী reverse order — child table আগে truncate
 const TABLES = [
-  "exam_results", 
-  "exams", 
-  "student_attendance", 
-  "attendance_logs", 
-  "leaves", 
-  "student_enrollments", 
-  "subject_assignments", 
-  "students", 
-  "teachers", 
+  "ranking_history",
+  "ranking_locks",
+  "exam_results",
+  "exams",
+  "student_attendance",
+  "attendance_logs",
+  "leaves",
+  "student_enrollments",
+  "subject_assignments",
+  "students",
+  "teachers",
   "sections",
-  "classes", 
+  "classes",
   "subjects",
   "academic_sessions",
   "role_permissions",
   "users",
-  "roles",  
+  "roles",
   "permissions",
-  "fee_structures,"
+  "fee_structures"
 ];
 
 
