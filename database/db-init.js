@@ -78,6 +78,41 @@ const runViewsFolder = async (client) => {
   console.log("views done!");
 };
 
+const runMigrationsFolder = async (client) => {
+  const migrationsDir = path.join(__dirname, "migrations");
+  if (!fs.existsSync(migrationsDir)) {
+    console.log("does not exist migrations/ folder, skipping...");
+    return;
+  }
+  
+  const files = fs.readdirSync(migrationsDir).filter((f) => f.endsWith(".sql")).sort();
+  console.log(`Running migrations/ (${files.length} files)...`);
+
+  for(const file of files){
+    const sql = fs.readFileSync(path.join(migrationsDir, file), "utf8");
+    const noComments = sql
+      .split("\n")
+      .filter((line) => !line.trim().startsWith("--"))
+      .join("\n");
+    const statements = noComments
+      .split(";")
+      .map((s) => s.trim())
+      .filter((s) => s.length > 0);
+
+    for (const stmt of statements) {
+      try {
+        await client.query(stmt);
+      } catch (err) {
+        console.error(`\nFailed in ${file}:`);
+        console.error(stmt.substring(0, 150));
+        throw err;
+      }
+    }
+    console.log(`  ✓ ${file}`);
+  }
+  console.log("migrations done!");
+};
+
 const main = async () => {
   const arg = process.argv[2]; // "schema" | "seed" | "all"
 
@@ -100,6 +135,7 @@ const main = async () => {
     console.log("Connected to database\n");
 
     if (arg === "schema" || arg === "all") await runFile(client, "schema.sql");
+    if (arg === "migrations" || arg === "all") await runMigrationsFolder(client);
     if (arg === "views" || arg === "all") await runViewsFolder(client);
     if (arg === "seed" || arg === "all") await runFile(client, "seed.sql");
 
