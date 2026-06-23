@@ -1,87 +1,55 @@
-const service = require("./exam.service");
-const sendResponse = require("../../utils/response");
+import { examService } from "./exam.service.js";
+import { successResponse } from "../../utils/response.js";
 
-const createExam = async (req, res, next) => {
-  try {
-    const data = await service.createExam(req.body);
+export const examController = {
+  async create(req, res, next) {
+    try {
+      const data = await examService.create(req.body);
+      return successResponse(res, { message: "Exam created", data, statusCode: 201 });
+    } catch (err) { next(err); }
+  },
 
-    return sendResponse(
-      res,
-      201,
-      "Exam created successfully",
-      data
-    );
-  } catch (err) {
-    next(err);
-  }
-};
+  async getAll(req, res, next) {
+    try {
+      const { data, meta } = await examService.getAll(req.query);
+      return successResponse(res, { message: "Exams fetched", data, meta });
+    } catch (err) { next(err); }
+  },
 
-const getExams = async (req, res, next) => {
-  try {
-    const result = await service.getExams(req.query);
+  async getById(req, res, next) {
+    try {
+      const data = await examService.getById(req.params.id);
+      return successResponse(res, { message: "Exam fetched", data });
+    } catch (err) { next(err); }
+  },
 
-    return sendResponse(
-      res,
-      200,
-      result.message,
-      {
-        data: result.data,
-        meta: result.meta,
-        pagination: result.pagination
-      }
-    );
-  } catch (err) {
-    next(err);
-  }
-};
+  async update(req, res, next) {
+    try {
+      const data = await examService.update(req.params.id, req.body);
+      return successResponse(res, { message: "Exam updated", data });
+    } catch (err) { next(err); }
+  },
 
-const updateExam = async (req, res, next) => {
-  try {
-    const data = await service.updateExam(req.params, req.body);
-    if(!data) {
-      return sendResponse(
-        res,
-        404,
-        "Exam not found"
-      );
-    }
+  // PATCH /exams/:id/publish — DRAFT → PUBLISHED
+  async publish(req, res, next) {
+    try {
+      const data = await examService.publish(req.params.id);
+      return successResponse(res, { message: "Exam published", data });
+    } catch (err) { next(err); }
+  },
 
-    return sendResponse(
-      res,
-      200,
-      "Exam updated",
-      data
-    );
-  } catch (err) {
-    next(err);
-  }
-};
+  // PATCH /exams/:id/unpublish — PUBLISHED → DRAFT
+  async unpublish(req, res, next) {
+    try {
+      const data = await examService.unpublish(req.params.id);
+      return successResponse(res, { message: "Exam moved back to draft", data });
+    } catch (err) { next(err); }
+  },
 
-const deleteExam = async (req, res, next) => {
-  try {
-    const data = await service.deleteExam(req.params);
-    if(!data) {
-      return sendResponse(
-        res,
-        404,
-        "Exam not found"
-      );
-    }
-
-    return sendResponse(
-      res,
-      200,
-      "Exam deleted",
-      data
-    );
-  } catch (err) {
-    next(err);
-  }
-};
-
-module.exports = {
-  createExam,
-  getExams,
-  updateExam,
-  deleteExam
+  async delete(req, res, next) {
+    try {
+      await examService.delete(req.params.id);
+      return successResponse(res, { message: "Exam deleted" });
+    } catch (err) { next(err); }
+  },
 };

@@ -1,100 +1,120 @@
-const examsRepository = require("./exam.repository");
-const { buildWhereClause } = require("../../utils/queryBuilder");
-const {buildPagination,buildPaginationMeta} = require("../../utils/pagination");
-const { buildOrder } = require("../../utils/order");
+import { examRepository } from "./exam.repository.js";
+import { classRepository } from "../classes/class.repository.js";
+import { academicSessionRepository } from "../academic-sessions/academic-session.repository.js";
+import { AppError } from "../../utils/AppError.js";
+import { getPagination, buildMeta } from "../../utils/pagination.js";
 
-const createExam = async (data) => {
-    const result = await examsRepository.createExam(data);
-    return result;
-};
+const VALID_EXAM_TYPES = ["ADMISSION", "QUIZ", "MID", "FINAL"];
 
-const getExams = async (queryOptions) => {
-     //pagination
-    const { page, limit, offset } = buildPagination(queryOptions);
+export const examService = {
+  async create({ name, class_id, academic_session_id, exam_date, exam_type }) {
+    if (!name) throw new AppError("name is required", 400);
 
-    // sorting
-    const {sortBy, sortOrder} = buildOrder(
-        queryOptions,{   
-        created_at: "e.created_at",
-        exam_name: "e.name",
-        class_name: "c.name",
-        session_name: "ac.name",
-        exam_date: "e.exam_date",
-        exam_type: "e.exam_type"
-        
-        }
-    );
-    const values = [];
-    const countRef = { value: 1 };
-    // config
-    const config = {
-        searchableColumns: [
-            "e.name",
-            "c.name",
-            "ac.name"
-        ],
-        filterableColumns: [
-            "e.class_id",
-            "e.academic_session_id",
-            "e.exam_date",
-            "e.exam_type"
-        ]
-    };
-       const whereClause = buildWhereClause(
-        queryOptions,
-        values,
-        config,
-        countRef,
-        "e"
-    );
-const [{ rows, filteredCount }, totalRecords] = await Promise.all([
-        examsRepository.getExams({
-            whereClause,
-            sortBy,
-            sortOrder,
-            values,
-            limit,
-            offset,
-            countRef
-        }),
-        examsRepository.globalCount()
+    if (exam_type && !VALID_EXAM_TYPES.includes(exam_type)) {
+      throw new AppError(`exam_type must be one of: ${VALID_EXAM_TYPES.join(", ")}`, 400);
+    }
+
+    if (class_id) {
+      const cls = await classRepository.findById(class_id);
+      if (!cls) throw new AppError("Class not found", 404);
+    }
+
+    if (academic_session_id) {
+      const session = await academicSessionRepository.findById(academic_session_id);
+      if (!session) throw new AppError("Academic session not found", 404);
+    }
+
+    return examRepository.create({ name: name.trim(), class_id, academic_session_id, exam_date, exam_type });
+  },
+
+  async getAll(queryOptions) {
+    const { page, limit, offset } = getPagination(queryOptions);
+    const [data, total] = await Promise.all([
+      examRepository.findAll(queryOptions, { limit, offset }),
+      examRepository.countAll(queryOptions),
+    ]);
+    return { data, meta: buildMeta({ total, page, limit }) };
+  },
+
+  async getById(id) {
+    const exam = await examRepository.findById(id);
+    if (!exam) throw new AppError("Exam not found", 404);
+    return exam;
+  },
+
+  async update(id, fields) {
+    await this.getById(id);
+
+    if (fields.exam_type && !VALID_EXAM_TYPES.includes(fields.exam_type)) {
+      throw new AppError(`exam_type must be one of: ${VALID_EXAM_TYPES.join(", ")}`, 400);
+    }
+
+    const updated = await examRepository.update(id, fields);
+    if (!updated) throw new AppError("Exam not found", 404);
+    return updated;
+  },
+
+  async delete(id) {
+    await this.getById(id);
+
+    const hasResults = await examRepository.hasResults(id);
+    if (hasResults) {
+      throw new AppError("Cannot delete exam — results already exist. Delete results first.", 400);
+    }
+
+    const deleted = await examRepository.softDelete(id);
+    if (!deleted) throw new AppError("Exam not found", 404);
+    return deleted;
+  },
+
+  // exam-এর class-এ enrolled সব ছাত্রের result entry সম্পূর্ণ হয়েছে কিনা — auto-trigger-এর জন্য মূল check
+  // শুধুমাত্র FINAL exam-এই ranking/roll trigger হবে — QUIZ/MID/ADMISSION-এ না
+  async isResultEntryComplete(examId) {
+    const exam = await this.getById(examId);
+
+    if (exam.exam_type !== "FINAL") return false; // FINAL ছাড়া কখনো ranking trigger হবে না
+    if (!exam.class_id || !exam.academic_session_id) return false; // class/session না থাকলে চেক করা যায় না
+
+    const [enrolledCount, resultCount] = await Promise.all([
+      examRepository.countEnrolledStudents(exam.class_id, exam.academic_session_id),
+      examRepository.countStudentsWithResults(examId),
     ]);
 
-    const hasFilters = Boolean(
-        queryOptions.search               ||
-        queryOptions.class_id             ||
-        queryOptions.academic_session_id  ||
-        queryOptions.exam_date            ||
-        queryOptions.exam_type
-    );
+    return enrolledCount > 0 && resultCount >= enrolledCount;
+  },
 
-    return {
-        data: rows,
+  // ── DRAFT → PUBLISHED ──
+  // Publish করার পর exam_results আর সাধারণভাবে edit করা যাবে না (correction আলাদা flow-এ হবে, ধাপ পরে)
+  async publish(id) {
+    const exam = await this.getById(id);
 
-        message: hasFilters
-            ? `Showing ${filteredCount} matching exams (${totalRecords} total)`
-            : `Showing all ${totalRecords} exams`,
+    if (exam.status === "PUBLISHED") {
+      throw new AppError("Exam is already published", 400);
+    }
 
-        meta: { totalRecords, filteredRecords: filteredCount, hasFilters },
+    if (!exam.class_id || !exam.academic_session_id) {
+      throw new AppError("Exam must have a class and academic session before publishing", 400);
+    }
 
-        pagination: buildPaginationMeta(filteredCount, page, limit)
-    };
-};
+    const hasResults = await examRepository.hasResults(id);
+    if (!hasResults) {
+      throw new AppError("Cannot publish an exam with no results entered", 400);
+    }
 
-const updateExam = async (id, data) => {
-    const result = await examsRepository.updateExam(id, data);
-    if (!result) return null;
-    return result;
-};
+    const updated = await examRepository.setStatus(id, "PUBLISHED");
+    return updated;
+  },
 
-const deleteExam = async (id) => {
-    const result = await examsRepository.deleteExam(id);
-    if (!result) return null;
-    return result;
-};
-module.exports = {
-    createExam,
-    getExams,
-    updateExam,
-    deleteExam
+  // ── PUBLISHED → DRAFT ──
+  // Unpublish করলে result correction করা যায় (ধাপ পরে যুক্ত হবে), কিন্তু ranking_locked থাকলে আটকাতে হবে —
+  // নাহলে already-locked roll/rank-এর ভিত্তি বদলে যাবে অথচ roll নম্বর পুরনোই থেকে যাবে
+  async unpublish(id) {
+    const exam = await this.getById(id);
+
+    if (exam.status === "DRAFT") {
+      throw new AppError("Exam is already in draft status", 400);
+    }
+
+    return examRepository.setStatus(id, "DRAFT");
+  },
 };
