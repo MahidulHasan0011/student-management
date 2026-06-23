@@ -11,21 +11,86 @@ import { env } from "../config/env.js";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
+// SQL কে statement-এ ভাঙে, কিন্তু dollar-quote ($$...$$), single-quote string,
+// এবং comment-এর ভিতরের ';' কে আলাদা করে না — তাই DO $$ ... $$ block নিরাপদ থাকে
+const splitStatements = (sql) => {
+  const statements = [];
+  let current = "";
+  let i = 0;
+  let dollarTag = null; // চলমান dollar-quote tag, যেমন "$$" বা "$body$"
+  let inSingle = false; // '...' string-এর ভিতরে আছি কি না
+  let inLineComment = false; // -- comment
+  let inBlockComment = false; // /* */ comment
+
+  while (i < sql.length) {
+    const ch = sql[i];
+    const next = sql[i + 1];
+
+    if (inLineComment) {
+      if (ch === "\n") { inLineComment = false; current += ch; }
+      i++;
+      continue;
+    }
+    if (inBlockComment) {
+      if (ch === "*" && next === "/") { inBlockComment = false; i += 2; }
+      else i++;
+      continue;
+    }
+    if (dollarTag) {
+      if (sql.startsWith(dollarTag, i)) {
+        current += dollarTag;
+        i += dollarTag.length;
+        dollarTag = null;
+      } else {
+        current += ch;
+        i++;
+      }
+      continue;
+    }
+    if (inSingle) {
+      current += ch;
+      if (ch === "'") {
+        if (next === "'") { current += next; i += 2; continue; } // '' = escaped quote
+        inSingle = false;
+      }
+      i++;
+      continue;
+    }
+
+    // কোনো special state-এ নেই
+    if (ch === "-" && next === "-") { inLineComment = true; i += 2; continue; }
+    if (ch === "/" && next === "*") { inBlockComment = true; i += 2; continue; }
+    if (ch === "'") { inSingle = true; current += ch; i++; continue; }
+    if (ch === "$") {
+      const m = sql.slice(i).match(/^\$[A-Za-z0-9_]*\$/);
+      if (m) {
+        dollarTag = m[0];
+        current += dollarTag;
+        i += dollarTag.length;
+        continue;
+      }
+    }
+    if (ch === ";") {
+      const trimmed = current.trim();
+      if (trimmed.length > 0) statements.push(trimmed);
+      current = "";
+      i++;
+      continue;
+    }
+    current += ch;
+    i++;
+  }
+  const last = current.trim();
+  if (last.length > 0) statements.push(last);
+  return statements;
+};
+
 const runFile = async (client, filename) => {
   const filePath = path.join(__dirname, filename);
   const sql = fs.readFileSync(filePath, "utf8"); // ← utf8 explicitly
 
-  // remove all comment also bangla.
-  const noComments = sql
-    .split("\n")
-    .filter((line) => !line.trim().startsWith("--"))
-    .join("\n");
-
-  // Separate each statement and run it one by one.
-  const statements = noComments
-    .split(";")
-    .map((s) => s.trim())
-    .filter((s) => s.length > 0);
+  // dollar-quote ও comment বুঝে statement আলাদা করো
+  const statements = splitStatements(sql);
 
   console.log(`Running ${filename}... (${statements.length} statements)`);
 
@@ -42,11 +107,11 @@ const runFile = async (client, filename) => {
   console.log(`${filename} done!`);
 };
 
-// Execute each .sql file in the views/ folder sequentially.
+// views/ folder-এর সব .sql file একটা একটা করে রান করে
 const runViewsFolder = async (client) => {
   const viewsDir = path.join(__dirname, "views");
   if (!fs.existsSync(viewsDir)) {
-    console.log("does not exist views/ folder, skipping...");
+    console.log("views/ folder নেই, skip করা হলো");
     return;
   }
 
@@ -55,14 +120,7 @@ const runViewsFolder = async (client) => {
 
   for (const file of files) {
     const sql = fs.readFileSync(path.join(viewsDir, file), "utf8");
-    const noComments = sql
-      .split("\n")
-      .filter((line) => !line.trim().startsWith("--"))
-      .join("\n");
-    const statements = noComments
-      .split(";")
-      .map((s) => s.trim())
-      .filter((s) => s.length > 0);
+    const statements = splitStatements(sql);
 
     for (const stmt of statements) {
       try {
@@ -78,26 +136,20 @@ const runViewsFolder = async (client) => {
   console.log("views done!");
 };
 
+// migrations/ folder-এর সব .sql file ক্রমানুসারে (নম্বর অনুযায়ী) রান করে
 const runMigrationsFolder = async (client) => {
   const migrationsDir = path.join(__dirname, "migrations");
   if (!fs.existsSync(migrationsDir)) {
-    console.log("does not exist migrations/ folder, skipping...");
+    console.log("migrations/ folder নেই, skip করা হলো");
     return;
   }
-  
+
   const files = fs.readdirSync(migrationsDir).filter((f) => f.endsWith(".sql")).sort();
   console.log(`Running migrations/ (${files.length} files)...`);
 
-  for(const file of files){
+  for (const file of files) {
     const sql = fs.readFileSync(path.join(migrationsDir, file), "utf8");
-    const noComments = sql
-      .split("\n")
-      .filter((line) => !line.trim().startsWith("--"))
-      .join("\n");
-    const statements = noComments
-      .split(";")
-      .map((s) => s.trim())
-      .filter((s) => s.length > 0);
+    const statements = splitStatements(sql);
 
     for (const stmt of statements) {
       try {
@@ -140,7 +192,7 @@ const main = async () => {
     if (arg === "seed" || arg === "all") await runFile(client, "seed.sql");
 
     if (!arg) {
-      console.log('Usage: node db-init.js <schema|views|seed|all>');
+      console.log('Usage: node db-init.js <schema|migrations|views|seed|all>');
     }
 
     console.log("\nDone!");
