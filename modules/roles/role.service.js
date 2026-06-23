@@ -47,7 +47,7 @@ async syncPermissions(roleId, permissionIds) {
       }
     }
     await roleRepository.syncPermissions(roleId, permissionIds);
-    await redisClient.del(PERM_CACHE_KEY(roleId));  // cache stale হয়ে গেলো, clear করো
+    await permissionEngine.invalidate(roleId);  // cache stale হয়ে গেলো, clear করো
     return this.getById(roleId);
 },
 
