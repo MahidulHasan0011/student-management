@@ -5,7 +5,7 @@ import { Client } from 'pg';
 import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
-import { env } from '../config/env.js';
+import { env } from '../src/config/env.js';
 
 // ESM-এ __dirname নেই — এভাবে বানাতে হয়
 const __filename = fileURLToPath(import.meta.url);

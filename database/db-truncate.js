@@ -1,7 +1,7 @@
 import dotenv from 'dotenv';
 dotenv.config();
 import { Client } from 'pg';
-import { env } from '../config/env.js';
+import { env } from '../src/config/env.js';
 
 // Foreign key dependency অনুযায়ী reverse order — child table আগে truncate
 const TABLES = [
