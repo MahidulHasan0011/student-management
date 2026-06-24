@@ -1,7 +1,7 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { authRepository } from './auth.repository.js';
-import { AppError } from '../../utils/AppError.js';
+import { AppError } from '../../utils/appError.js';
 import { env } from '../../config/env.js';
 import redisClient, { TTL } from '../../config/redis.js';
 

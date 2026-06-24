@@ -3,7 +3,7 @@ import { studentRepository } from '../students/student.repository.js';
 import { classRepository } from '../classes/class.repository.js';
 import { sectionRepository } from '../sections/section.repository.js';
 import { academicSessionRepository } from '../academic-sessions/academic-session.repository.js';
-import { AppError } from '../../utils/AppError.js';
+import { AppError } from '../../utils/appError.js';
 import { getPagination, buildMeta } from '../../utils/pagination.js';
 
 export const studentEnrollmentService = {

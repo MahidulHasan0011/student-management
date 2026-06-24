@@ -1,5 +1,5 @@
 import { query, withTransaction } from '../config/db.js';
-import { AppError } from '../utils/AppError.js';
+import { AppError } from '../utils/appError.js';
 
 // ── Core business logic — কোনো HTTP/queue/job জানে না, শুধু calculation ──
 // এই ফাইলটা ranking.job.js কল করবে, কিন্তু controller থেকেও সরাসরি কল করা যায় (sync ছোট কাজে)

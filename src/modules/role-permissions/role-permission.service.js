@@ -1,7 +1,7 @@
 import { rolePermissionRepository } from './role-permission.repository.js';
 import { roleRepository } from '../roles/role.repository.js';
 import { permissionRepository } from '../permissions/permission.repository.js';
-import { AppError } from '../../utils/AppError.js';
+import { AppError } from '../../utils/appError.js';
 import { permissionEngine } from '../../core/permission.engine.js';
 
 export const rolePermissionService = {

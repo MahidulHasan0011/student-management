@@ -2,7 +2,7 @@ import bcrypt from 'bcryptjs';
 import { teacherRepository } from './teacher.repository.js';
 import { userRepository } from '../users/user.repository.js';
 import { roleRepository } from '../roles/role.repository.js';
-import { AppError } from '../../utils/AppError.js';
+import { AppError } from '../../utils/appError.js';
 import { getPagination, buildMeta } from '../../utils/pagination.js';
 import { withTransaction } from '../../config/db.js';
 import { env } from '../../config/env.js';

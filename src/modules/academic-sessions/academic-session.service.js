@@ -1,5 +1,5 @@
 import { academicSessionRepository } from './academic-session.repository.js';
-import { AppError } from '../../utils/AppError.js';
+import { AppError } from '../../utils/appError.js';
 import { getPagination, buildMeta } from '../../utils/pagination.js';
 import { withTransaction } from '../../config/db.js';
 

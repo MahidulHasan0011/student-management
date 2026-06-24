@@ -3,7 +3,7 @@ import authRoutes from '../../modules/auth/auth.routes.js';
 import roleRoutes from '../../modules/roles/role.routes.js';
 import permissionRoutes from '../../modules/permissions/permission.routes.js';
 import userRoutes from '../../modules/users/user.routes.js';
-import studentRoutes from '../../modules/students/student.Routes.js';
+import studentRoutes from '../../modules/students/student.routes.js';
 import academicSessionRoutes from '../../modules/academic-sessions/academic-session.routes.js';
 import teacherRoutes from '../../modules/teachers/teacher.routes.js';
 import classRoutes from '../../modules/classes/class.routes.js';
@@ -14,6 +14,7 @@ import studentEnrollmentRoutes from '../../modules/student-enrollments/student-e
 import examRoutes from '../../modules/exams/exam.routes.js';
 import resultRoutes from '../../modules/results/result.routes.js';
 import rolePermissionRoutes from '../../modules/role-permissions/role-permission.routes.js';
+import rankingRoutes from '../../modules/ranking/ranking.routes.js';
 
 const router = Router();
 
@@ -33,5 +34,6 @@ router.use('/enrollments', studentEnrollmentRoutes);
 router.use('/exams', examRoutes);
 router.use('/results', resultRoutes);
 router.use('/role-permissions', rolePermissionRoutes);
+router.use('/ranking', rankingRoutes);
 
 export default router;

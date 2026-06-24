@@ -1,6 +1,6 @@
 import { sectionRepository } from './section.repository.js';
 import { classRepository } from '../classes/class.repository.js';
-import { AppError } from '../../utils/AppError.js';
+import { AppError } from '../../utils/appError.js';
 import { getPagination, buildMeta } from '../../utils/pagination.js';
 
 export const sectionService = {

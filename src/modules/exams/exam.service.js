@@ -1,7 +1,7 @@
 import { examRepository } from './exam.repository.js';
 import { classRepository } from '../classes/class.repository.js';
 import { academicSessionRepository } from '../academic-sessions/academic-session.repository.js';
-import { AppError } from '../../utils/AppError.js';
+import { AppError } from '../../utils/appError.js';
 import { getPagination, buildMeta } from '../../utils/pagination.js';
 
 const VALID_EXAM_TYPES = ['ADMISSION', 'QUIZ', 'MID', 'FINAL'];

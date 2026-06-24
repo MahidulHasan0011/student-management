@@ -1,6 +1,6 @@
 import { roleRepository } from './role.repository.js';
 import { permissionRepository } from '../permissions/permission.repository.js';
-import { AppError } from '../../utils/AppError.js';
+import { AppError } from '../../utils/appError.js';
 import { getPagination, buildMeta } from '../../utils/pagination.js';
 import { permissionEngine } from '../../core/permission.engine.js';
 

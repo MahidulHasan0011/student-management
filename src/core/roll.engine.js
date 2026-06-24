@@ -1,6 +1,6 @@
 import { withTransaction } from '../config/db.js';
 import { sectionService } from '../modules/sections/section.service.js';
-import { AppError } from '../utils/AppError.js';
+import { AppError } from '../utils/appError.js';
 
 // ── Core business logic — rank অনুযায়ী roll_number ও section_id বসায় ──
 export const rollEngine = {
