@@ -4,7 +4,7 @@ import { academicSessionRepository } from '../academic-sessions/academic-session
 import { AppError } from '../../utils/appError.js';
 import { getPagination, buildMeta } from '../../utils/pagination.js';
 
-const VALID_EXAM_TYPES = ['ADMISSION', 'QUIZ', 'MID', 'FINAL'];
+const VALID_EXAM_TYPES = ['ADMISSION', 'UNIT_TEST', 'MIDTERM', 'FINAL'];
 
 export const examService = {
   async create({ name, class_id, academic_session_id, exam_date, exam_type }) {
@@ -74,7 +74,7 @@ export const examService = {
   },
 
   // exam-এর class-এ enrolled সব ছাত্রের result entry সম্পূর্ণ হয়েছে কিনা — auto-trigger-এর জন্য মূল check
-  // শুধুমাত্র FINAL exam-এই ranking/roll trigger হবে — QUIZ/MID/ADMISSION-এ না
+  // শুধুমাত্র FINAL exam-এই ranking/roll trigger হবে — UNIT_TEST/MIDTERM/ADMISSION-এ না
   async isResultEntryComplete(examId) {
     const exam = await this.getById(examId);
 
