@@ -10,20 +10,16 @@
 //     ↓
 // roleRepository.getPermissionNames()
 
-
-
-import { roleService } from "../modules/roles/role.service.js";
-import { errorResponse } from "../utils/response.js";
+import { roleService } from '../modules/roles/role.service.js';
+import { errorResponse } from '../utils/response.js';
 
 export const rbacMiddleware = (requiredPermissions) => {
-  const perms = Array.isArray(requiredPermissions)
-    ? requiredPermissions
-    : [requiredPermissions];
+  const perms = Array.isArray(requiredPermissions) ? requiredPermissions : [requiredPermissions];
 
   return async (req, res, next) => {
     try {
       if (!req.user?.roleId) {
-        return errorResponse(res, { message: "Unauthorized", statusCode: 401 });
+        return errorResponse(res, { message: 'Unauthorized', statusCode: 401 });
       }
 
       const userPerms = await roleService.getCachedPermissions(req.user.roleId);
@@ -31,7 +27,7 @@ export const rbacMiddleware = (requiredPermissions) => {
 
       if (!hasPermission) {
         return errorResponse(res, {
-          message: `Access denied. Required: ${perms.join(" or ")}`,
+          message: `Access denied. Required: ${perms.join(' or ')}`,
           statusCode: 403,
         });
       }
@@ -43,4 +39,3 @@ export const rbacMiddleware = (requiredPermissions) => {
     }
   };
 };
-

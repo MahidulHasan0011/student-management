@@ -1,17 +1,17 @@
-import { academicSessionRepository } from "./academic-session.repository.js";
-import { AppError } from "../../utils/AppError.js";
-import { getPagination, buildMeta } from "../../utils/pagination.js";
-import { withTransaction } from "../../config/db.js";
+import { academicSessionRepository } from './academic-session.repository.js';
+import { AppError } from '../../utils/AppError.js';
+import { getPagination, buildMeta } from '../../utils/pagination.js';
+import { withTransaction } from '../../config/db.js';
 
 export const academicSessionService = {
   async create({ name, start_date, end_date, admission_test_enabled }) {
-    if (!name) throw new AppError("name is required", 400);
+    if (!name) throw new AppError('name is required', 400);
 
     const existing = await academicSessionRepository.findByName(name.trim());
     if (existing) throw new AppError(`Session "${name}" already exists`, 409);
 
     if (start_date && end_date && new Date(start_date) >= new Date(end_date)) {
-      throw new AppError("start_date must be before end_date", 400);
+      throw new AppError('start_date must be before end_date', 400);
     }
 
     return academicSessionRepository.create({
@@ -33,13 +33,13 @@ export const academicSessionService = {
 
   async getById(id) {
     const session = await academicSessionRepository.findById(id);
-    if (!session) throw new AppError("Academic session not found", 404);
+    if (!session) throw new AppError('Academic session not found', 404);
     return session;
   },
 
   async getActive() {
     const session = await academicSessionRepository.findActive();
-    if (!session) throw new AppError("No active academic session found", 404);
+    if (!session) throw new AppError('No active academic session found', 404);
     return session;
   },
 
@@ -55,12 +55,12 @@ export const academicSessionService = {
 
     if (fields.start_date && fields.end_date) {
       if (new Date(fields.start_date) >= new Date(fields.end_date)) {
-        throw new AppError("start_date must be before end_date", 400);
+        throw new AppError('start_date must be before end_date', 400);
       }
     }
 
     const updated = await academicSessionRepository.update(id, fields);
-    if (!updated) throw new AppError("Academic session not found", 404);
+    if (!updated) throw new AppError('Academic session not found', 404);
     return updated;
   },
 
@@ -72,7 +72,7 @@ export const academicSessionService = {
     return withTransaction(async (client) => {
       await academicSessionRepository.deactivateAll(client);
       const activated = await academicSessionRepository.setActive(client, id);
-      if (!activated) throw new AppError("Academic session not found", 404);
+      if (!activated) throw new AppError('Academic session not found', 404);
       return activated;
     });
   },
@@ -87,7 +87,7 @@ export const academicSessionService = {
       const { rows } = await client.query(
         `UPDATE academic_sessions SET is_active = false, updated_at = NOW()
          WHERE id = $1 AND deleted_at IS NULL RETURNING *`,
-        [id]
+        [id],
       );
       return rows[0];
     });
@@ -96,21 +96,21 @@ export const academicSessionService = {
   // ── Admin admission test on/off করতে পারেন ─────────────────
   async toggleAdmissionTest(id, admission_test_enabled) {
     if (admission_test_enabled === undefined) {
-      throw new AppError("admission_test_enabled (boolean) is required", 400);
+      throw new AppError('admission_test_enabled (boolean) is required', 400);
     }
     await this.getById(id);
     const updated = await academicSessionRepository.toggleAdmissionTest(id, admission_test_enabled);
-    if (!updated) throw new AppError("Academic session not found", 404);
+    if (!updated) throw new AppError('Academic session not found', 404);
     return updated;
   },
 
   async delete(id) {
     const session = await this.getById(id);
     if (session.is_active) {
-      throw new AppError("Cannot delete an active session — deactivate it first", 400);
+      throw new AppError('Cannot delete an active session — deactivate it first', 400);
     }
     const deleted = await academicSessionRepository.softDelete(id);
-    if (!deleted) throw new AppError("Academic session not found", 404);
+    if (!deleted) throw new AppError('Academic session not found', 404);
     return deleted;
   },
 };

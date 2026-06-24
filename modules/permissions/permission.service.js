@@ -1,10 +1,10 @@
-import { permissionRepository } from "./permission.repository.js";
-import { AppError } from "../../utils/AppError.js";
-import { getPagination, buildMeta } from "../../utils/pagination.js";
+import { permissionRepository } from './permission.repository.js';
+import { AppError } from '../../utils/AppError.js';
+import { getPagination, buildMeta } from '../../utils/pagination.js';
 
 export const permissionService = {
   async create({ name }) {
-    if (!name) throw new AppError("name is required", 400);
+    if (!name) throw new AppError('name is required', 400);
     const existing = await permissionRepository.findByName(name.toUpperCase());
     if (existing) throw new AppError(`Permission "${name}" already exists`, 409);
     return permissionRepository.create({ name: name.toUpperCase() });
@@ -23,7 +23,7 @@ export const permissionService = {
 
   async getById(id) {
     const permission = await permissionRepository.findById(id);
-    if (!permission) throw new AppError("Permission not found", 404);
+    if (!permission) throw new AppError('Permission not found', 404);
     return permission;
   },
 
@@ -31,16 +31,17 @@ export const permissionService = {
     await this.getById(id);
     if (name) {
       const existing = await permissionRepository.findByName(name.toUpperCase());
-      if (existing && existing.id !== id) throw new AppError(`Permission "${name}" already exists`, 409);
+      if (existing && existing.id !== id)
+        throw new AppError(`Permission "${name}" already exists`, 409);
     }
     const updated = await permissionRepository.update(id, { name: name.toUpperCase() });
-    if (!updated) throw new AppError("Permission not found", 404);
+    if (!updated) throw new AppError('Permission not found', 404);
     return updated;
   },
 
   async delete(id) {
     const deleted = await permissionRepository.delete(id);
-    if (!deleted) throw new AppError("Permission not found", 404);
+    if (!deleted) throw new AppError('Permission not found', 404);
     return deleted;
   },
 };

@@ -1,11 +1,10 @@
-students.routes.js   → URL define করে
-        ↓
+students.routes.js → URL define করে
+↓
 students.controller.js → request handle করে
-        ↓
+↓
 students.service.js → business logic
-        ↓
+↓
 students.repository.js → DB query
-
 
 👉 Service কখনো DB query লিখবে না
 👉 Service শুধু Repository call করবে
@@ -13,13 +12,7 @@ students.repository.js → DB query
 Controller → Service → Repository → DB
 Service → transaction control (BEGIN/COMMIT/ROLLBACK)
 
-
-
-
-
-
-
-hasSearch কেন আছে 
+hasSearch কেন আছে
 আগে একটা গল্প দিয়ে বুঝি
 ধরো তোমার স্কুলে ৫টা আলমারি আছে —
 
@@ -35,11 +28,13 @@ hasSearch কেন আছে
 এখন Code এ বুঝি
 subject_assignments Table দেখো
 subject_assignments
--------------------
-teacher_id   ✅ এখানেই আছে
-class_id     ✅ এখানেই আছে  
-section_id   ✅ এখানেই আছে
-subject_id   ✅ এখানেই আছে
+
+---
+
+teacher_id ✅ এখানেই আছে
+class_id ✅ এখানেই আছে  
+section_id ✅ এখানেই আছে
+subject_id ✅ এখানেই আছে
 Filter করলে (search ছাড়া)
 javascript
 // "class_id = 5 দেখাও" বললে
@@ -47,7 +42,7 @@ javascript
 
 SELECT COUNT(sa.id)
 FROM subject_assignments sa
-WHERE sa.class_id = 5   // ✅ JOIN ছাড়াই পারি!
+WHERE sa.class_id = 5 // ✅ JOIN ছাড়াই পারি!
 Search করলে
 javascript
 // "John" নামের teacher খুঁজলে
@@ -57,16 +52,17 @@ javascript
 SELECT COUNT(DISTINCT sa.id)
 FROM subject_assignments sa
 LEFT JOIN teachers t ON sa.teacher_id = t.id
-LEFT JOIN users u    ON t.user_id = u.id  // এখানে "John" আছে
+LEFT JOIN users u ON t.user_id = u.id // এখানে "John" আছে
 WHERE u.full_name ILIKE '%John%'
 তাহলে hasSearch দিয়ে কী করছি?
 javascript
 const countQuery = hasSearch
-    //  search আছে = অন্য table এ নাম খুঁজতে হবে = JOIN লাগবে
-    ? `SELECT COUNT(DISTINCT sa.id) ${baseJoins}`
+// search আছে = অন্য table এ নাম খুঁজতে হবে = JOIN লাগবে
+? `SELECT COUNT(DISTINCT sa.id) ${baseJoins}`
 
     // search নাই = নিজের table এই সব আছে = JOIN ছাড়া FAST!
     : `SELECT COUNT(sa.id) FROM subject_assignments sa ${whereClause}`;
+
 Real Example
 Request 1: GET /assignments?class_id=5
 → hasSearch = false
@@ -77,109 +73,96 @@ Request 2: GET /assignments?search=John
 → JOIN সহ COUNT ✅ কারণ "John" users table এ আছে
 academic_sessions এ কেন hasSearch নাই?
 academic_sessions
------------------
-name        ✅ এখানেই আছে
-start_date  ✅ এখানেই আছে
-end_date    ✅ এখানেই আছে
+
+---
+
+name ✅ এখানেই আছে
+start_date ✅ এখানেই আছে
+end_date ✅ এখানেই আছে
 javascript
 // "Math" session খুঁজলে
-SELECT COUNT(*) FROM academic_sessions
+SELECT COUNT(\*) FROM academic_sessions
 WHERE name ILIKE '%Math%'
 // ✅ JOIN লাগেই না! সব এক table এ!
 search করলেও, filter করলেও — সব কিছু academic_sessions table এই আছে। তাই সবসময় একই COUNT query — hasSearch দরকার নাই।
 
 Summary — এক কথায়
-প্রশ্ন	উত্তর
-hasSearch কেন?	Search এ অন্য table এ যেতে হয়, তাই JOIN লাগে
-JOIN ছাড়া count কেন?	JOIN করলে database এর কাজ বেশি → slow
-academic_sessions এ নাই কেন?	সব data এক table এ, JOIN লাগেই না
-সহজ কথা: অন্য ঘরে খুঁজতে হলে hasSearch = true → সব ঘর খোলো। নিজের ঘরেই থাকলে hasSearch = false → শুধু নিজের ঘর দেখো। 
+প্রশ্ন উত্তর
+hasSearch কেন? Search এ অন্য table এ যেতে হয়, তাই JOIN লাগে
+JOIN ছাড়া count কেন? JOIN করলে database এর কাজ বেশি → slow
+academic_sessions এ নাই কেন? সব data এক table এ, JOIN লাগেই না
+সহজ কথা: অন্য ঘরে খুঁজতে হলে hasSearch = true → সব ঘর খোলো। নিজের ঘরেই থাকলে hasSearch = false → শুধু নিজের ঘর দেখো।
 
+Module JOIN hasSearch Type
 
+students সবসময় ❌ Multi-table
 
+student_enrollments সবসময় ❌ Multi-table
 
+subject_assignments searchএ ✅ Conditional
 
-Module                 JOIN           hasSearch       Type  
+exams সবসময় ❌ Multi-table
 
-students               সবসময়          ❌            Multi-table
+exam_results সবসময় ❌ Multi-table
 
-student_enrollments    সবসময়          ❌            Multi-table
+role_permissions সবসময় ❌ Multi-table
 
-subject_assignments    searchএ         ✅            Conditional
+sections সবসময় ❌ Multi-table
 
-exams                  সবসময়          ❌            Multi-table
+teachers সবসময় ❌ Multi-table
 
-exam_results           সবসময়          ❌            Multi-table
+users সবসময় ❌ Multi-table
 
-role_permissions       সবসময়          ❌            Multi-table
+academic_sessions কখনো না ❌ Single table
 
-sections               সবসময়          ❌            Multi-table
+classes কখনো না ❌ Single table
 
-teachers               সবসময়          ❌            Multi-table
+permissions কখনো না ❌ Single table
 
-users                  সবসময়          ❌            Multi-table
+roles কখনো না ❌ Single table
 
-academic_sessions      কখনো না        ❌            Single table
-
-classes                কখনো না        ❌            Single table
-
-permissions            কখনো না        ❌            Single table
-
-roles                  কখনো না        ❌            Single table
-
-subjects               কখনো না        ❌            Single table
-
-
-
+subjects কখনো না ❌ Single table
 
 তোমার gender column-এর জন্য PostgreSQL Enum Type ব্যবহার করা ভালো হবে। তবে PostgreSQL Enum-এর ভেতরে 1 = MALE, 2 = FEMALE এভাবে mapping রাখা যায় না। Enum শুধুমাত্র string value সংরক্ষণ করে।
 
-
-
 errorResponse শুধু error.middleware-এর ভেতরে বসে। Service বা Repository-তে না।
 
-**ES Module
-        package.json-এ:
+\*\*ES Module
+package.json-এ:
 
         {
         "type": "module"
         }
 
 ex:
-        import { Router } from 'express';
-        import { userController } from './user.controller.js';
+import { Router } from 'express';
+import { userController } from './user.controller.js';
 
         export default router;
 
-
-
-
 View
 
-একাধিক টেবিল থেকে ডেটা join করে virtual table তৈরি করে।   
-
-
+একাধিক টেবিল থেকে ডেটা join করে virtual table তৈরি করে।
 
 AUTH refresh service
 
 // Refresh token rotation যোগ করছি। আগে concept-টা ছোট করে বুঝিয়ে নিই, তারপর code।
 // Rotation মানে কী
 // এখন তোমার system-এ refresh token ৭ দিন ধরে একই থাকে। কেউ যদি সেই token চুরি করে, ৭ দিন ধরে সে চাইলেই নতুন access token বানাতে পারবে — তোমার জানার কোনো উপায় নেই।
-// Rotation-এর নিয়ম: প্রতিবার refresh token ব্যবহার করলে, পুরনোটা বাতিল হয়ে যাবে এবং নতুন একটা refresh token দেওয়া হবে। 
-// তাই যদি কেউ token চুরি করে এবং দুজনেই (real user + attacker) একই token দিয়ে refresh করার চেষ্টা করে — 
+// Rotation-এর নিয়ম: প্রতিবার refresh token ব্যবহার করলে, পুরনোটা বাতিল হয়ে যাবে এবং নতুন একটা refresh token দেওয়া হবে।
+// তাই যদি কেউ token চুরি করে এবং দুজনেই (real user + attacker) একই token দিয়ে refresh করার চেষ্টা করে —
 // যেই আগে করবে সেটাই কাজ করবে, পরেরজন ব্যর্থ হবে এবং পুরো session invalidate হয়ে যাবে (security alert হিসেবে)।
 
 // এখন refresh() method আপডেট করছি — পুরনো token verify করে, সাথে সাথে নতুন refresh token বানিয়ে Redis-এ store করবে (atomic না করলে race condition হতে পারে,
 
-
 // ব্যবহারকারী → POST /auth/refresh { refreshToken: "OLD_TOKEN" }
-//                 ↓
-//         OLD_TOKEN ঠিক আছে কিনা verify
-//                 ↓
-//         Redis-এ যেটা আছে তার সাথে মিলছে কিনা চেক
-//                 ↓
-//    ┌── মিলছে না/নেই ──┐         ┌── মিলছে ──┐
-//    ↓                            ↓
-// Redis থেকে মুছে দাও    নতুন accessToken + নতুন refreshToken বানাও
-// 401 দিয়ে বলো            Redis-এ নতুনটা সেভ করো (পুরনোটা automatic overwrite)
-// "আবার login করো"       client-কে দুটোই পাঠাও
+// ↓
+// OLD_TOKEN ঠিক আছে কিনা verify
+// ↓
+// Redis-এ যেটা আছে তার সাথে মিলছে কিনা চেক
+// ↓
+// ┌── মিলছে না/নেই ──┐ ┌── মিলছে ──┐
+// ↓ ↓
+// Redis থেকে মুছে দাও নতুন accessToken + নতুন refreshToken বানাও
+// 401 দিয়ে বলো Redis-এ নতুনটা সেভ করো (পুরনোটা automatic overwrite)
+// "আবার login করো" client-কে দুটোই পাঠাও

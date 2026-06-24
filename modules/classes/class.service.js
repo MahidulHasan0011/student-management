@@ -1,10 +1,10 @@
-import { classRepository } from "./class.repository.js";
-import { AppError } from "../../utils/AppError.js";
-import { getPagination, buildMeta } from "../../utils/pagination.js";
+import { classRepository } from './class.repository.js';
+import { AppError } from '../../utils/AppError.js';
+import { getPagination, buildMeta } from '../../utils/pagination.js';
 
 export const classService = {
   async create({ name }) {
-    if (!name) throw new AppError("name is required", 400);
+    if (!name) throw new AppError('name is required', 400);
 
     const existing = await classRepository.findByName(name.trim());
     if (existing) throw new AppError(`Class "${name}" already exists`, 409);
@@ -23,14 +23,14 @@ export const classService = {
 
   async getById(id) {
     const cls = await classRepository.findById(id);
-    if (!cls) throw new AppError("Class not found", 404);
+    if (!cls) throw new AppError('Class not found', 404);
     return cls;
   },
 
   // class + section list — section assign/capacity দেখানোর জন্য
   async getByIdWithSections(id) {
     const cls = await classRepository.findByIdWithSections(id);
-    if (!cls) throw new AppError("Class not found", 404);
+    if (!cls) throw new AppError('Class not found', 404);
     return cls;
   },
 
@@ -41,7 +41,7 @@ export const classService = {
       if (existing && existing.id !== id) throw new AppError(`Class "${name}" already exists`, 409);
     }
     const updated = await classRepository.update(id, { name: name?.trim() });
-    if (!updated) throw new AppError("Class not found", 404);
+    if (!updated) throw new AppError('Class not found', 404);
     return updated;
   },
 
@@ -50,11 +50,14 @@ export const classService = {
 
     const hasSections = await classRepository.hasSections(id);
     if (hasSections) {
-      throw new AppError("Cannot delete class — it has sections attached. Delete sections first.", 400);
+      throw new AppError(
+        'Cannot delete class — it has sections attached. Delete sections first.',
+        400,
+      );
     }
 
     const deleted = await classRepository.softDelete(id);
-    if (!deleted) throw new AppError("Class not found", 404);
+    if (!deleted) throw new AppError('Class not found', 404);
     return deleted;
   },
 };

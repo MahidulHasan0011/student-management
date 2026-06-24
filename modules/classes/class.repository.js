@@ -1,23 +1,20 @@
-import { query } from "../../config/db.js";
-import { buildWhereClause } from "../../utils/queryBuilder.js";
-import { buildOrder } from "../../utils/order.js";
+import { query } from '../../config/db.js';
+import { buildWhereClause } from '../../utils/queryBuilder.js';
+import { buildOrder } from '../../utils/order.js';
 
 const SORTABLE_FIELDS = {
-  name: "name",
-  created_at: "created_at",
+  name: 'name',
+  created_at: 'created_at',
 };
 
 const FILTER_CONFIG = {
-  searchableColumns: ["name"],
+  searchableColumns: ['name'],
   filterableColumns: [],
 };
 
 export const classRepository = {
   async create({ name }) {
-    const { rows } = await query(
-      `INSERT INTO classes (name) VALUES ($1) RETURNING *`,
-      [name]
-    );
+    const { rows } = await query(`INSERT INTO classes (name) VALUES ($1) RETURNING *`, [name]);
     return rows[0];
   },
 
@@ -26,7 +23,7 @@ export const classRepository = {
     const countRef = { value: 1 };
 
     const where = buildWhereClause(queryOptions, values, FILTER_CONFIG, countRef);
-    const { sortBy, sortOrder } = buildOrder(queryOptions, SORTABLE_FIELDS, "created_at");
+    const { sortBy, sortOrder } = buildOrder(queryOptions, SORTABLE_FIELDS, 'created_at');
 
     values.push(limit, offset);
     const limitIdx = countRef.value;
@@ -37,7 +34,7 @@ export const classRepository = {
        ${where}
        ORDER BY ${sortBy} ${sortOrder}
        LIMIT $${limitIdx} OFFSET $${offsetIdx}`,
-      values
+      values,
     );
     return rows;
   },
@@ -51,10 +48,9 @@ export const classRepository = {
   },
 
   async findById(id) {
-    const { rows } = await query(
-      `SELECT * FROM classes WHERE id = $1 AND deleted_at IS NULL`,
-      [id]
-    );
+    const { rows } = await query(`SELECT * FROM classes WHERE id = $1 AND deleted_at IS NULL`, [
+      id,
+    ]);
     return rows[0] || null;
   },
 
@@ -71,16 +67,15 @@ export const classRepository = {
        LEFT JOIN sections s ON s.class_id = c.id AND s.deleted_at IS NULL
        WHERE c.id = $1 AND c.deleted_at IS NULL
        GROUP BY c.id`,
-      [id]
+      [id],
     );
     return rows[0] || null;
   },
 
   async findByName(name) {
-    const { rows } = await query(
-      `SELECT * FROM classes WHERE name = $1 AND deleted_at IS NULL`,
-      [name]
-    );
+    const { rows } = await query(`SELECT * FROM classes WHERE name = $1 AND deleted_at IS NULL`, [
+      name,
+    ]);
     return rows[0] || null;
   },
 
@@ -88,7 +83,7 @@ export const classRepository = {
     const { rows } = await query(
       `UPDATE classes SET name = $1, updated_at = NOW()
        WHERE id = $2 AND deleted_at IS NULL RETURNING *`,
-      [name, id]
+      [name, id],
     );
     return rows[0] || null;
   },
@@ -97,7 +92,7 @@ export const classRepository = {
     const { rows } = await query(
       `UPDATE classes SET deleted_at = NOW()
        WHERE id = $1 AND deleted_at IS NULL RETURNING id`,
-      [id]
+      [id],
     );
     return rows[0] || null;
   },
@@ -106,7 +101,7 @@ export const classRepository = {
   async hasSections(id) {
     const { rows } = await query(
       `SELECT id FROM sections WHERE class_id = $1 AND deleted_at IS NULL LIMIT 1`,
-      [id]
+      [id],
     );
     return rows.length > 0;
   },

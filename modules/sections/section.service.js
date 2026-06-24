@@ -1,20 +1,23 @@
-import { sectionRepository } from "./section.repository.js";
-import { classRepository } from "../classes/class.repository.js";
-import { AppError } from "../../utils/AppError.js";
-import { getPagination, buildMeta } from "../../utils/pagination.js";
+import { sectionRepository } from './section.repository.js';
+import { classRepository } from '../classes/class.repository.js';
+import { AppError } from '../../utils/AppError.js';
+import { getPagination, buildMeta } from '../../utils/pagination.js';
 
 export const sectionService = {
   async create({ class_id, name, max_capacity }) {
-    if (!class_id || !name) throw new AppError("class_id and name are required", 400);
+    if (!class_id || !name) throw new AppError('class_id and name are required', 400);
 
     const cls = await classRepository.findById(class_id);
-    if (!cls) throw new AppError("Class not found", 404);
+    if (!cls) throw new AppError('Class not found', 404);
 
-    const existing = await sectionRepository.findByClassAndName(class_id, name.trim().toUpperCase());
+    const existing = await sectionRepository.findByClassAndName(
+      class_id,
+      name.trim().toUpperCase(),
+    );
     if (existing) throw new AppError(`Section "${name}" already exists in this class`, 409);
 
     if (max_capacity !== undefined && max_capacity !== null && max_capacity < 1) {
-      throw new AppError("max_capacity must be at least 1", 400);
+      throw new AppError('max_capacity must be at least 1', 400);
     }
 
     return sectionRepository.create({
@@ -35,7 +38,7 @@ export const sectionService = {
 
   async getById(id) {
     const section = await sectionRepository.findById(id);
-    if (!section) throw new AppError("Section not found", 404);
+    if (!section) throw new AppError('Section not found', 404);
     return section;
   },
 
@@ -46,9 +49,8 @@ export const sectionService = {
     return {
       ...section,
       enrolled_count: enrolledCount,
-      available_seats: section.max_capacity != null
-        ? Math.max(0, section.max_capacity - enrolledCount)
-        : null, // max_capacity না দিলে unlimited ধরা হয়
+      available_seats:
+        section.max_capacity != null ? Math.max(0, section.max_capacity - enrolledCount) : null, // max_capacity না দিলে unlimited ধরা হয়
       is_full: section.max_capacity != null && enrolledCount >= section.max_capacity,
     };
   },
@@ -57,21 +59,24 @@ export const sectionService = {
     const section = await this.getById(id);
 
     if (name) {
-      const existing = await sectionRepository.findByClassAndName(section.class_id, name.trim().toUpperCase());
+      const existing = await sectionRepository.findByClassAndName(
+        section.class_id,
+        name.trim().toUpperCase(),
+      );
       if (existing && existing.id !== id) {
         throw new AppError(`Section "${name}" already exists in this class`, 409);
       }
     }
 
     if (max_capacity !== undefined && max_capacity !== null) {
-      if (max_capacity < 1) throw new AppError("max_capacity must be at least 1", 400);
+      if (max_capacity < 1) throw new AppError('max_capacity must be at least 1', 400);
 
       // capacity কমানোর সময় চেক — already enrolled student-এর চেয়ে কম করা যাবে না
       const enrolledCount = await sectionRepository.countEnrolledStudents(id);
       if (max_capacity < enrolledCount) {
         throw new AppError(
           `Cannot set max_capacity to ${max_capacity} — ${enrolledCount} students already enrolled`,
-          400
+          400,
         );
       }
     }
@@ -80,7 +85,7 @@ export const sectionService = {
       name: name?.trim().toUpperCase(),
       max_capacity,
     });
-    if (!updated) throw new AppError("Section not found", 404);
+    if (!updated) throw new AppError('Section not found', 404);
     return updated;
   },
 
@@ -89,11 +94,11 @@ export const sectionService = {
 
     const hasEnrollments = await sectionRepository.hasEnrollments(id);
     if (hasEnrollments) {
-      throw new AppError("Cannot delete section — students are enrolled in it", 400);
+      throw new AppError('Cannot delete section — students are enrolled in it', 400);
     }
 
     const deleted = await sectionRepository.softDelete(id);
-    if (!deleted) throw new AppError("Section not found", 404);
+    if (!deleted) throw new AppError('Section not found', 404);
     return deleted;
   },
 
@@ -106,11 +111,10 @@ export const sectionService = {
         return {
           ...s,
           enrolled_count: enrolledCount,
-          available_seats: s.max_capacity != null
-            ? Math.max(0, s.max_capacity - enrolledCount)
-            : null,
+          available_seats:
+            s.max_capacity != null ? Math.max(0, s.max_capacity - enrolledCount) : null,
         };
-      })
+      }),
     );
     return withOccupancy;
   },

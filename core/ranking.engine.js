@@ -1,5 +1,5 @@
-import { query, withTransaction } from "../config/db.js";
-import { AppError } from "../utils/AppError.js";
+import { query, withTransaction } from '../config/db.js';
+import { AppError } from '../utils/AppError.js';
 
 // ── Core business logic — কোনো HTTP/queue/job জানে না, শুধু calculation ──
 // এই ফাইলটা ranking.job.js কল করবে, কিন্তু controller থেকেও সরাসরি কল করা যায় (sync ছোট কাজে)
@@ -9,11 +9,11 @@ export const rankingEngine = {
   async calculateMeritList(examId) {
     const { rows } = await query(
       `SELECT * FROM student_merit_list WHERE exam_id = $1 ORDER BY rank_position ASC`,
-      [examId]
+      [examId],
     );
 
     if (!rows.length) {
-      throw new AppError("No exam results found for this exam — cannot calculate ranking", 404);
+      throw new AppError('No exam results found for this exam — cannot calculate ranking', 404);
     }
 
     return rows;
@@ -33,7 +33,7 @@ export const rankingEngine = {
          AND se.roll_number IS NULL
          AND se.deleted_at IS NULL
        ORDER BY se.created_at ASC`,
-      [classId, academicSessionId]
+      [classId, academicSessionId],
     );
 
     return rows.map((row, index) => ({

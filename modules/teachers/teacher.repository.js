@@ -1,6 +1,6 @@
-import { query, withTransaction } from "../../config/db.js";
-import { buildWhereClause } from "../../utils/queryBuilder.js";
-import { buildOrder } from "../../utils/order.js";
+import { query, withTransaction } from '../../config/db.js';
+import { buildWhereClause } from '../../utils/queryBuilder.js';
+import { buildOrder } from '../../utils/order.js';
 
 const SAFE_COLUMNS = `
   t.id, t.user_id, t.phone, t.designation, t.qualification, t.joining_date,
@@ -9,13 +9,13 @@ const SAFE_COLUMNS = `
 `;
 
 const SORTABLE_FIELDS = {
-  full_name: "u.full_name",
-  joining_date: "t.joining_date",
-  created_at: "t.created_at",
+  full_name: 'u.full_name',
+  joining_date: 't.joining_date',
+  created_at: 't.created_at',
 };
 
 const FILTER_CONFIG = {
-  searchableColumns: ["u.full_name", "u.email", "t.phone"],
+  searchableColumns: ['u.full_name', 'u.email', 't.phone'],
   filterableColumns: [],
 };
 
@@ -26,7 +26,7 @@ export const teacherRepository = {
       `INSERT INTO users (full_name, email, password, role_id, gender)
        VALUES ($1, $2, $3, $4, $5)
        RETURNING id`,
-      [full_name, email, password, role_id, gender || "MALE"]
+      [full_name, email, password, role_id, gender || 'MALE'],
     );
     return rows[0];
   },
@@ -36,7 +36,7 @@ export const teacherRepository = {
       `INSERT INTO teachers (user_id, phone, designation, qualification, joining_date)
        VALUES ($1, $2, $3, $4, $5)
        RETURNING *`,
-      [user_id, phone || null, designation || null, qualification || null, joining_date || null]
+      [user_id, phone || null, designation || null, qualification || null, joining_date || null],
     );
     return rows[0];
   },
@@ -45,8 +45,8 @@ export const teacherRepository = {
     const values = [];
     const countRef = { value: 1 };
 
-    const where = buildWhereClause(queryOptions, values, FILTER_CONFIG, countRef, "t");
-    const { sortBy, sortOrder } = buildOrder(queryOptions, SORTABLE_FIELDS, "created_at");
+    const where = buildWhereClause(queryOptions, values, FILTER_CONFIG, countRef, 't');
+    const { sortBy, sortOrder } = buildOrder(queryOptions, SORTABLE_FIELDS, 'created_at');
 
     values.push(limit, offset);
     const limitIdx = countRef.value;
@@ -59,7 +59,7 @@ export const teacherRepository = {
        ${where}
        ORDER BY ${sortBy} ${sortOrder}
        LIMIT $${limitIdx} OFFSET $${offsetIdx}`,
-      values
+      values,
     );
     return rows;
   },
@@ -67,10 +67,10 @@ export const teacherRepository = {
   async countAll(queryOptions) {
     const values = [];
     const countRef = { value: 1 };
-    const where = buildWhereClause(queryOptions, values, FILTER_CONFIG, countRef, "t");
+    const where = buildWhereClause(queryOptions, values, FILTER_CONFIG, countRef, 't');
     const { rows } = await query(
       `SELECT COUNT(*) FROM teachers t JOIN users u ON u.id = t.user_id ${where}`,
-      values
+      values,
     );
     return parseInt(rows[0].count);
   },
@@ -81,7 +81,7 @@ export const teacherRepository = {
        FROM teachers t
        JOIN users u ON u.id = t.user_id
        WHERE t.id = $1 AND t.deleted_at IS NULL`,
-      [id]
+      [id],
     );
     return rows[0] || null;
   },
@@ -89,7 +89,7 @@ export const teacherRepository = {
   async findByUserId(user_id) {
     const { rows } = await query(
       `SELECT * FROM teachers WHERE user_id = $1 AND deleted_at IS NULL`,
-      [user_id]
+      [user_id],
     );
     return rows[0] || null;
   },
@@ -109,7 +109,7 @@ export const teacherRepository = {
        JOIN academic_sessions asess ON asess.id = sa.academic_session_id
        WHERE sa.teacher_id = $1 AND sa.deleted_at IS NULL
        ORDER BY c.name, sec.name`,
-      [teacherId]
+      [teacherId],
     );
     return rows;
   },
@@ -129,10 +129,10 @@ export const teacherRepository = {
 
     params.push(id);
     const { rows } = await query(
-      `UPDATE teachers SET ${setClauses.join(", ")}, updated_at = NOW()
+      `UPDATE teachers SET ${setClauses.join(', ')}, updated_at = NOW()
        WHERE id = $${params.length} AND deleted_at IS NULL
        RETURNING *`,
-      params
+      params,
     );
     return rows[0] || null;
   },
@@ -141,7 +141,7 @@ export const teacherRepository = {
     const { rows } = await query(
       `UPDATE teachers SET deleted_at = NOW()
        WHERE id = $1 AND deleted_at IS NULL RETURNING id, user_id`,
-      [id]
+      [id],
     );
     return rows[0] || null;
   },
@@ -149,7 +149,7 @@ export const teacherRepository = {
   async hasActiveAssignments(teacherId) {
     const { rows } = await query(
       `SELECT id FROM subject_assignments WHERE teacher_id = $1 AND deleted_at IS NULL LIMIT 1`,
-      [teacherId]
+      [teacherId],
     );
     return rows.length > 0;
   },

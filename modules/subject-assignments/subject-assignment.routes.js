@@ -6,11 +6,10 @@ import { rbacMiddleware } from '../../middlewares/rbac.middleware.js';
 const router = Router();
 router.use(authMiddleware);
 
+router.post('/', rbacMiddleware('SUPER_ADMIN', 'ADMIN'), controller.assignSubject);
 
-router.post("/", rbacMiddleware("SUPER_ADMIN", "ADMIN"), controller.assignSubject);
-
-router.get("/", controller.getAssignments);
-router.put("/:id", rbacMiddleware("SUPER_ADMIN", "ADMIN"), controller.updateAssignment);
-router.delete("/:id", rbacMiddleware("SUPER_ADMIN", "ADMIN"), controller.deleteAssignment);
+router.get('/', controller.getAssignments);
+router.put('/:id', rbacMiddleware('SUPER_ADMIN', 'ADMIN'), controller.updateAssignment);
+router.delete('/:id', rbacMiddleware('SUPER_ADMIN', 'ADMIN'), controller.deleteAssignment);
 
 export default router;

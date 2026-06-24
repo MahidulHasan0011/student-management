@@ -1,4 +1,4 @@
-import redisClient from "../config/redis.js";
+import redisClient from '../config/redis.js';
 
 // সাধারণ cache wrapper — get/set/del-এর সাথে JSON parse/stringify built-in
 // roleService.getCachedPermissions ইতিমধ্যে redisClient সরাসরি ব্যবহার করে;
@@ -15,7 +15,7 @@ export const cacheService = {
   },
 
   async set(key, value, ttlSeconds) {
-    const payload = typeof value === "string" ? value : JSON.stringify(value);
+    const payload = typeof value === 'string' ? value : JSON.stringify(value);
     if (ttlSeconds) {
       await redisClient.setEx(key, ttlSeconds, payload);
     } else {

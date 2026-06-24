@@ -1,6 +1,6 @@
-import { query } from "../../config/db.js";
-import { buildWhereClause } from "../../utils/queryBuilder.js";
-import { buildOrder } from "../../utils/order.js";
+import { query } from '../../config/db.js';
+import { buildWhereClause } from '../../utils/queryBuilder.js';
+import { buildOrder } from '../../utils/order.js';
 
 const SAFE_COLUMNS = `
   s.id, s.student_code, s.date_of_birth, s.guardian_name, s.guardian_phone,
@@ -9,13 +9,13 @@ const SAFE_COLUMNS = `
 `;
 
 const SORTABLE_FIELDS = {
-  full_name: "u.full_name",
-  student_code: "s.student_code",
-  created_at: "s.created_at",
+  full_name: 'u.full_name',
+  student_code: 's.student_code',
+  created_at: 's.created_at',
 };
 
 const FILTER_CONFIG = {
-  searchableColumns: ["u.full_name", "u.email", "s.student_code", "s.guardian_name"],
+  searchableColumns: ['u.full_name', 'u.email', 's.student_code', 's.guardian_name'],
   filterableColumns: [],
 };
 
@@ -26,17 +26,27 @@ export const studentRepository = {
       `INSERT INTO users (full_name, email, password, role_id, gender)
        VALUES ($1, $2, $3, $4, $5)
        RETURNING id`,
-      [full_name, email, password, role_id, gender || "MALE"]
+      [full_name, email, password, role_id, gender || 'MALE'],
     );
     return rows[0];
   },
 
-  async createStudentProfile(client, { user_id, student_code, date_of_birth, guardian_name, guardian_phone, address }) {
+  async createStudentProfile(
+    client,
+    { user_id, student_code, date_of_birth, guardian_name, guardian_phone, address },
+  ) {
     const { rows } = await client.query(
       `INSERT INTO students (user_id, student_code, date_of_birth, guardian_name, guardian_phone, address)
        VALUES ($1, $2, $3, $4, $5, $6)
        RETURNING *`,
-      [user_id, student_code, date_of_birth || null, guardian_name || null, guardian_phone || null, address || null]
+      [
+        user_id,
+        student_code,
+        date_of_birth || null,
+        guardian_name || null,
+        guardian_phone || null,
+        address || null,
+      ],
     );
     return rows[0];
   },
@@ -45,8 +55,8 @@ export const studentRepository = {
     const values = [];
     const countRef = { value: 1 };
 
-    const where = buildWhereClause(queryOptions, values, FILTER_CONFIG, countRef, "s");
-    const { sortBy, sortOrder } = buildOrder(queryOptions, SORTABLE_FIELDS, "created_at");
+    const where = buildWhereClause(queryOptions, values, FILTER_CONFIG, countRef, 's');
+    const { sortBy, sortOrder } = buildOrder(queryOptions, SORTABLE_FIELDS, 'created_at');
 
     values.push(limit, offset);
     const limitIdx = countRef.value;
@@ -59,7 +69,7 @@ export const studentRepository = {
        ${where}
        ORDER BY ${sortBy} ${sortOrder}
        LIMIT $${limitIdx} OFFSET $${offsetIdx}`,
-      values
+      values,
     );
     return rows;
   },
@@ -67,10 +77,10 @@ export const studentRepository = {
   async countAll(queryOptions) {
     const values = [];
     const countRef = { value: 1 };
-    const where = buildWhereClause(queryOptions, values, FILTER_CONFIG, countRef, "s");
+    const where = buildWhereClause(queryOptions, values, FILTER_CONFIG, countRef, 's');
     const { rows } = await query(
       `SELECT COUNT(*) FROM students s JOIN users u ON u.id = s.user_id ${where}`,
-      values
+      values,
     );
     return parseInt(rows[0].count);
   },
@@ -81,7 +91,7 @@ export const studentRepository = {
        FROM students s
        JOIN users u ON u.id = s.user_id
        WHERE s.id = $1 AND s.deleted_at IS NULL`,
-      [id]
+      [id],
     );
     return rows[0] || null;
   },
@@ -89,7 +99,7 @@ export const studentRepository = {
   async findByStudentCode(student_code) {
     const { rows } = await query(
       `SELECT * FROM students WHERE student_code = $1 AND deleted_at IS NULL`,
-      [student_code]
+      [student_code],
     );
     return rows[0] || null;
   },
@@ -97,7 +107,7 @@ export const studentRepository = {
   async findByUserId(user_id) {
     const { rows } = await query(
       `SELECT * FROM students WHERE user_id = $1 AND deleted_at IS NULL`,
-      [user_id]
+      [user_id],
     );
     return rows[0] || null;
   },
@@ -116,13 +126,13 @@ export const studentRepository = {
        LEFT JOIN sections sec ON sec.id = se.section_id
        WHERE se.student_id = $1 AND asess.is_active = true AND se.deleted_at IS NULL
        LIMIT 1`,
-      [studentId]
+      [studentId],
     );
     return rows[0] || null;
   },
 
   async update(id, fields) {
-    const allowed = ["date_of_birth", "guardian_name", "guardian_phone", "address"];
+    const allowed = ['date_of_birth', 'guardian_name', 'guardian_phone', 'address'];
     const setClauses = [];
     const params = [];
 
@@ -136,10 +146,10 @@ export const studentRepository = {
 
     params.push(id);
     const { rows } = await query(
-      `UPDATE students SET ${setClauses.join(", ")}, updated_at = NOW()
+      `UPDATE students SET ${setClauses.join(', ')}, updated_at = NOW()
        WHERE id = $${params.length} AND deleted_at IS NULL
        RETURNING *`,
-      params
+      params,
     );
     return rows[0] || null;
   },
@@ -148,7 +158,7 @@ export const studentRepository = {
     const { rows } = await query(
       `UPDATE students SET deleted_at = NOW()
        WHERE id = $1 AND deleted_at IS NULL RETURNING id, user_id`,
-      [id]
+      [id],
     );
     return rows[0] || null;
   },
@@ -156,7 +166,7 @@ export const studentRepository = {
   async hasEnrollments(studentId) {
     const { rows } = await query(
       `SELECT id FROM student_enrollments WHERE student_id = $1 AND deleted_at IS NULL LIMIT 1`,
-      [studentId]
+      [studentId],
     );
     return rows.length > 0;
   },

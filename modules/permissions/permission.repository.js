@@ -1,24 +1,21 @@
-import { query } from "../../config/db.js";
-import { buildWhereClause } from "../../utils/queryBuilder.js";
-import { buildOrder } from "../../utils/order.js";
+import { query } from '../../config/db.js';
+import { buildWhereClause } from '../../utils/queryBuilder.js';
+import { buildOrder } from '../../utils/order.js';
 
 // sortBy=name হলে এই map থেকে আসল column name বের হবে — SQL injection ঠেকাতে
 const SORTABLE_FIELDS = {
-  name: "name",
-  created_at: "created_at",
+  name: 'name',
+  created_at: 'created_at',
 };
 
 const FILTER_CONFIG = {
-  searchableColumns: ["name"],
+  searchableColumns: ['name'],
   filterableColumns: [], // permissions-এ কোনো extra filter নেই
 };
 
 export const permissionRepository = {
   async create({ name }) {
-    const { rows } = await query(
-      `INSERT INTO permissions (name) VALUES ($1) RETURNING *`,
-      [name]
-    );
+    const { rows } = await query(`INSERT INTO permissions (name) VALUES ($1) RETURNING *`, [name]);
     return rows[0];
   },
 
@@ -28,7 +25,7 @@ export const permissionRepository = {
     const countRef = { value: 1 };
 
     const where = buildWhereClause(queryOptions, values, FILTER_CONFIG, countRef);
-    const { sortBy, sortOrder } = buildOrder(queryOptions, SORTABLE_FIELDS, "created_at");
+    const { sortBy, sortOrder } = buildOrder(queryOptions, SORTABLE_FIELDS, 'created_at');
 
     values.push(limit, offset);
     const limitIdx = countRef.value;
@@ -39,7 +36,7 @@ export const permissionRepository = {
        ${where}
        ORDER BY ${sortBy} ${sortOrder}
        LIMIT $${limitIdx} OFFSET $${offsetIdx}`,
-      values
+      values,
     );
     return rows;
   },
@@ -54,17 +51,16 @@ export const permissionRepository = {
   },
 
   async findById(id) {
-    const { rows } = await query(
-      `SELECT * FROM permissions WHERE id = $1 AND deleted_at IS NULL`,
-      [id]
-    );
+    const { rows } = await query(`SELECT * FROM permissions WHERE id = $1 AND deleted_at IS NULL`, [
+      id,
+    ]);
     return rows[0] || null;
   },
 
   async findByName(name) {
     const { rows } = await query(
       `SELECT * FROM permissions WHERE name = $1 AND deleted_at IS NULL`,
-      [name]
+      [name],
     );
     return rows[0] || null;
   },
@@ -73,7 +69,7 @@ export const permissionRepository = {
     const { rows } = await query(
       `UPDATE permissions SET name = $1, updated_at = NOW()
        WHERE id = $2 AND deleted_at IS NULL RETURNING *`,
-      [name, id]
+      [name, id],
     );
     return rows[0] || null;
   },
@@ -82,7 +78,7 @@ export const permissionRepository = {
     const { rows } = await query(
       `UPDATE permissions SET deleted_at = NOW()
        WHERE id = $1 AND deleted_at IS NULL RETURNING id`,
-      [id]
+      [id],
     );
     return rows[0] || null;
   },
@@ -90,7 +86,7 @@ export const permissionRepository = {
   async findByIds(ids) {
     const { rows } = await query(
       `SELECT id FROM permissions WHERE id = ANY($1::uuid[]) AND deleted_at IS NULL`,
-      [ids]
+      [ids],
     );
     return rows;
   },

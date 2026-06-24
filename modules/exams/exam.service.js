@@ -1,30 +1,36 @@
-import { examRepository } from "./exam.repository.js";
-import { classRepository } from "../classes/class.repository.js";
-import { academicSessionRepository } from "../academic-sessions/academic-session.repository.js";
-import { AppError } from "../../utils/AppError.js";
-import { getPagination, buildMeta } from "../../utils/pagination.js";
+import { examRepository } from './exam.repository.js';
+import { classRepository } from '../classes/class.repository.js';
+import { academicSessionRepository } from '../academic-sessions/academic-session.repository.js';
+import { AppError } from '../../utils/AppError.js';
+import { getPagination, buildMeta } from '../../utils/pagination.js';
 
-const VALID_EXAM_TYPES = ["ADMISSION", "QUIZ", "MID", "FINAL"];
+const VALID_EXAM_TYPES = ['ADMISSION', 'QUIZ', 'MID', 'FINAL'];
 
 export const examService = {
   async create({ name, class_id, academic_session_id, exam_date, exam_type }) {
-    if (!name) throw new AppError("name is required", 400);
+    if (!name) throw new AppError('name is required', 400);
 
     if (exam_type && !VALID_EXAM_TYPES.includes(exam_type)) {
-      throw new AppError(`exam_type must be one of: ${VALID_EXAM_TYPES.join(", ")}`, 400);
+      throw new AppError(`exam_type must be one of: ${VALID_EXAM_TYPES.join(', ')}`, 400);
     }
 
     if (class_id) {
       const cls = await classRepository.findById(class_id);
-      if (!cls) throw new AppError("Class not found", 404);
+      if (!cls) throw new AppError('Class not found', 404);
     }
 
     if (academic_session_id) {
       const session = await academicSessionRepository.findById(academic_session_id);
-      if (!session) throw new AppError("Academic session not found", 404);
+      if (!session) throw new AppError('Academic session not found', 404);
     }
 
-    return examRepository.create({ name: name.trim(), class_id, academic_session_id, exam_date, exam_type });
+    return examRepository.create({
+      name: name.trim(),
+      class_id,
+      academic_session_id,
+      exam_date,
+      exam_type,
+    });
   },
 
   async getAll(queryOptions) {
@@ -38,7 +44,7 @@ export const examService = {
 
   async getById(id) {
     const exam = await examRepository.findById(id);
-    if (!exam) throw new AppError("Exam not found", 404);
+    if (!exam) throw new AppError('Exam not found', 404);
     return exam;
   },
 
@@ -46,11 +52,11 @@ export const examService = {
     await this.getById(id);
 
     if (fields.exam_type && !VALID_EXAM_TYPES.includes(fields.exam_type)) {
-      throw new AppError(`exam_type must be one of: ${VALID_EXAM_TYPES.join(", ")}`, 400);
+      throw new AppError(`exam_type must be one of: ${VALID_EXAM_TYPES.join(', ')}`, 400);
     }
 
     const updated = await examRepository.update(id, fields);
-    if (!updated) throw new AppError("Exam not found", 404);
+    if (!updated) throw new AppError('Exam not found', 404);
     return updated;
   },
 
@@ -59,11 +65,11 @@ export const examService = {
 
     const hasResults = await examRepository.hasResults(id);
     if (hasResults) {
-      throw new AppError("Cannot delete exam — results already exist. Delete results first.", 400);
+      throw new AppError('Cannot delete exam — results already exist. Delete results first.', 400);
     }
 
     const deleted = await examRepository.softDelete(id);
-    if (!deleted) throw new AppError("Exam not found", 404);
+    if (!deleted) throw new AppError('Exam not found', 404);
     return deleted;
   },
 
@@ -72,7 +78,7 @@ export const examService = {
   async isResultEntryComplete(examId) {
     const exam = await this.getById(examId);
 
-    if (exam.exam_type !== "FINAL") return false; // FINAL ছাড়া কখনো ranking trigger হবে না
+    if (exam.exam_type !== 'FINAL') return false; // FINAL ছাড়া কখনো ranking trigger হবে না
     if (!exam.class_id || !exam.academic_session_id) return false; // class/session না থাকলে চেক করা যায় না
 
     const [enrolledCount, resultCount] = await Promise.all([
@@ -88,20 +94,20 @@ export const examService = {
   async publish(id) {
     const exam = await this.getById(id);
 
-    if (exam.status === "PUBLISHED") {
-      throw new AppError("Exam is already published", 400);
+    if (exam.status === 'PUBLISHED') {
+      throw new AppError('Exam is already published', 400);
     }
 
     if (!exam.class_id || !exam.academic_session_id) {
-      throw new AppError("Exam must have a class and academic session before publishing", 400);
+      throw new AppError('Exam must have a class and academic session before publishing', 400);
     }
 
     const hasResults = await examRepository.hasResults(id);
     if (!hasResults) {
-      throw new AppError("Cannot publish an exam with no results entered", 400);
+      throw new AppError('Cannot publish an exam with no results entered', 400);
     }
 
-    const updated = await examRepository.setStatus(id, "PUBLISHED");
+    const updated = await examRepository.setStatus(id, 'PUBLISHED');
     return updated;
   },
 
@@ -111,10 +117,10 @@ export const examService = {
   async unpublish(id) {
     const exam = await this.getById(id);
 
-    if (exam.status === "DRAFT") {
-      throw new AppError("Exam is already in draft status", 400);
+    if (exam.status === 'DRAFT') {
+      throw new AppError('Exam is already in draft status', 400);
     }
 
-    return examRepository.setStatus(id, "DRAFT");
+    return examRepository.setStatus(id, 'DRAFT');
   },
 };

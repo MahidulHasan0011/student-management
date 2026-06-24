@@ -1,0 +1,6 @@
+node_modules/
+business-plan/
+coverage/
+dist/
+package-lock.json
+*.sql

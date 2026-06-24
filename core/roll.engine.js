@@ -1,6 +1,6 @@
-import { withTransaction } from "../config/db.js";
-import { sectionService } from "../modules/sections/section.service.js";
-import { AppError } from "../utils/AppError.js";
+import { withTransaction } from '../config/db.js';
+import { sectionService } from '../modules/sections/section.service.js';
+import { AppError } from '../utils/AppError.js';
 
 // ── Core business logic — rank অনুযায়ী roll_number ও section_id বসায় ──
 export const rollEngine = {
@@ -8,7 +8,7 @@ export const rollEngine = {
   // section না থাকলে সরাসরি roll বসিয়ে দেয়; section থাকলে capacity মেনে বিতরণ করে
   async generateRolls({ rankedList, classId, academicSessionId, sectionId = null }) {
     if (!rankedList.length) {
-      throw new AppError("Ranked list is empty — nothing to assign", 400);
+      throw new AppError('Ranked list is empty — nothing to assign', 400);
     }
 
     if (sectionId) {
@@ -37,7 +37,7 @@ export const rollEngine = {
            SET roll_number = $1, section_id = COALESCE($2, section_id), updated_at = NOW()
            WHERE student_id = $3 AND academic_session_id = $4 AND deleted_at IS NULL
            RETURNING id, student_id, roll_number, section_id`,
-          [entry.rank_position, sectionId, entry.student_id, academicSessionId]
+          [entry.rank_position, sectionId, entry.student_id, academicSessionId],
         );
         if (rows[0]) results.push(rows[0]);
       }
@@ -69,7 +69,7 @@ export const rollEngine = {
            SET roll_number = $1, section_id = $2, updated_at = NOW()
            WHERE student_id = $3 AND academic_session_id = $4 AND deleted_at IS NULL
            RETURNING id, student_id, roll_number, section_id`,
-          [rollInSection, currentSection.id, entry.student_id, academicSessionId]
+          [rollInSection, currentSection.id, entry.student_id, academicSessionId],
         );
         if (rows[0]) results.push(rows[0]);
 

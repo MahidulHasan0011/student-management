@@ -1,18 +1,18 @@
-import { query } from "../../config/db.js";
-import { buildWhereClause } from "../../utils/queryBuilder.js";
-import { buildOrder } from "../../utils/order.js";
+import { query } from '../../config/db.js';
+import { buildWhereClause } from '../../utils/queryBuilder.js';
+import { buildOrder } from '../../utils/order.js';
 
 const SORTABLE_FIELDS = {
-  name: "name",
-  start_date: "start_date",
-  end_date: "end_date",
-  created_at: "created_at",
+  name: 'name',
+  start_date: 'start_date',
+  end_date: 'end_date',
+  created_at: 'created_at',
 };
 
 const FILTER_CONFIG = {
-  searchableColumns: ["name"],
+  searchableColumns: ['name'],
   filterableColumns: [
-    { param: "is_active", column: "is_active" }, // ?is_active=true
+    { param: 'is_active', column: 'is_active' }, // ?is_active=true
   ],
 };
 
@@ -22,7 +22,7 @@ export const academicSessionRepository = {
       `INSERT INTO academic_sessions (name, start_date, end_date, admission_test_enabled)
        VALUES ($1, $2, $3, $4)
        RETURNING *`,
-      [name, start_date || null, end_date || null, admission_test_enabled ?? true]
+      [name, start_date || null, end_date || null, admission_test_enabled ?? true],
     );
     return rows[0];
   },
@@ -33,11 +33,11 @@ export const academicSessionRepository = {
 
     const normalizedQuery = { ...queryOptions };
     if (normalizedQuery.is_active !== undefined) {
-      normalizedQuery.is_active = normalizedQuery.is_active === "true";
+      normalizedQuery.is_active = normalizedQuery.is_active === 'true';
     }
 
     const where = buildWhereClause(normalizedQuery, values, FILTER_CONFIG, countRef);
-    const { sortBy, sortOrder } = buildOrder(queryOptions, SORTABLE_FIELDS, "created_at");
+    const { sortBy, sortOrder } = buildOrder(queryOptions, SORTABLE_FIELDS, 'created_at');
 
     values.push(limit, offset);
     const limitIdx = countRef.value;
@@ -48,7 +48,7 @@ export const academicSessionRepository = {
        ${where}
        ORDER BY ${sortBy} ${sortOrder}
        LIMIT $${limitIdx} OFFSET $${offsetIdx}`,
-      values
+      values,
     );
     return rows;
   },
@@ -59,7 +59,7 @@ export const academicSessionRepository = {
 
     const normalizedQuery = { ...queryOptions };
     if (normalizedQuery.is_active !== undefined) {
-      normalizedQuery.is_active = normalizedQuery.is_active === "true";
+      normalizedQuery.is_active = normalizedQuery.is_active === 'true';
     }
 
     const where = buildWhereClause(normalizedQuery, values, FILTER_CONFIG, countRef);
@@ -70,7 +70,7 @@ export const academicSessionRepository = {
   async findById(id) {
     const { rows } = await query(
       `SELECT * FROM academic_sessions WHERE id = $1 AND deleted_at IS NULL`,
-      [id]
+      [id],
     );
     return rows[0] || null;
   },
@@ -78,7 +78,7 @@ export const academicSessionRepository = {
   async findByName(name) {
     const { rows } = await query(
       `SELECT * FROM academic_sessions WHERE name = $1 AND deleted_at IS NULL`,
-      [name]
+      [name],
     );
     return rows[0] || null;
   },
@@ -86,13 +86,13 @@ export const academicSessionRepository = {
   // একসাথে শুধু একটাই active session থাকতে পারবে
   async findActive() {
     const { rows } = await query(
-      `SELECT * FROM academic_sessions WHERE is_active = true AND deleted_at IS NULL LIMIT 1`
+      `SELECT * FROM academic_sessions WHERE is_active = true AND deleted_at IS NULL LIMIT 1`,
     );
     return rows[0] || null;
   },
 
   async update(id, fields) {
-    const allowed = ["name", "start_date", "end_date"];
+    const allowed = ['name', 'start_date', 'end_date'];
     const setClauses = [];
     const params = [];
 
@@ -106,10 +106,10 @@ export const academicSessionRepository = {
 
     params.push(id);
     const { rows } = await query(
-      `UPDATE academic_sessions SET ${setClauses.join(", ")}, updated_at = NOW()
+      `UPDATE academic_sessions SET ${setClauses.join(', ')}, updated_at = NOW()
        WHERE id = $${params.length} AND deleted_at IS NULL
        RETURNING *`,
-      params
+      params,
     );
     return rows[0] || null;
   },
@@ -118,7 +118,7 @@ export const academicSessionRepository = {
   async deactivateAll(client) {
     await client.query(
       `UPDATE academic_sessions SET is_active = false, updated_at = NOW()
-       WHERE is_active = true AND deleted_at IS NULL`
+       WHERE is_active = true AND deleted_at IS NULL`,
     );
   },
 
@@ -127,7 +127,7 @@ export const academicSessionRepository = {
       `UPDATE academic_sessions SET is_active = true, updated_at = NOW()
        WHERE id = $1 AND deleted_at IS NULL
        RETURNING *`,
-      [id]
+      [id],
     );
     return rows[0] || null;
   },
@@ -137,7 +137,7 @@ export const academicSessionRepository = {
       `UPDATE academic_sessions SET admission_test_enabled = $1, updated_at = NOW()
        WHERE id = $2 AND deleted_at IS NULL
        RETURNING id, admission_test_enabled`,
-      [admission_test_enabled, id]
+      [admission_test_enabled, id],
     );
     return rows[0] || null;
   },
@@ -146,7 +146,7 @@ export const academicSessionRepository = {
     const { rows } = await query(
       `UPDATE academic_sessions SET deleted_at = NOW()
        WHERE id = $1 AND deleted_at IS NULL RETURNING id`,
-      [id]
+      [id],
     );
     return rows[0] || null;
   },

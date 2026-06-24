@@ -1,5 +1,5 @@
-import { createWorker } from "../services/queue.service.js";
-import { rollEngine } from "../core/roll.engine.js";
+import { createWorker } from '../services/queue.service.js';
+import { rollEngine } from '../core/roll.engine.js';
 
 // ranking.job.js এই queue-তে job পাঠায় (rankedList সহ) — এখানে আসল roll_number বসানো হয়
 const processor = async (job) => {
@@ -18,4 +18,4 @@ const processor = async (job) => {
 };
 
 // "roll" নামের queue listen করে
-export const rollWorker = createWorker("roll", processor);
+export const rollWorker = createWorker('roll', processor);

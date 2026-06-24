@@ -18,20 +18,20 @@ import rolePermissionRoutes from '../../modules/role-permissions/role-permission
 const router = Router();
 
 // use routes
-router.use("/auth", authRoutes);
+router.use('/auth', authRoutes);
 router.use('/roles', roleRoutes);
 router.use('/permissions', permissionRoutes);
 router.use('/users', userRoutes);
-router.use("/students", studentRoutes);
-router.use("/academic-sessions", academicSessionRoutes);
-router.use("/teachers", teacherRoutes);
-router.use("/classes", classRoutes);
-router.use("/subjects", subjectRoutes);
-router.use("/sections", sectionRoutes);
-router.use("/assignments", assignmentRoutes);
-router.use("/enrollments", studentEnrollmentRoutes);
-router.use("/exams", examRoutes);
-router.use("/results", resultRoutes);
-router.use("/role-permissions", rolePermissionRoutes);
+router.use('/students', studentRoutes);
+router.use('/academic-sessions', academicSessionRoutes);
+router.use('/teachers', teacherRoutes);
+router.use('/classes', classRoutes);
+router.use('/subjects', subjectRoutes);
+router.use('/sections', sectionRoutes);
+router.use('/assignments', assignmentRoutes);
+router.use('/enrollments', studentEnrollmentRoutes);
+router.use('/exams', examRoutes);
+router.use('/results', resultRoutes);
+router.use('/role-permissions', rolePermissionRoutes);
 
 export default router;

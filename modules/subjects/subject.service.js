@@ -1,10 +1,10 @@
-import { subjectRepository } from "./subject.repository.js";
-import { AppError } from "../../utils/AppError.js";
-import { getPagination, buildMeta } from "../../utils/pagination.js";
+import { subjectRepository } from './subject.repository.js';
+import { AppError } from '../../utils/AppError.js';
+import { getPagination, buildMeta } from '../../utils/pagination.js';
 
 export const subjectService = {
   async create({ name, code }) {
-    if (!name) throw new AppError("name is required", 400);
+    if (!name) throw new AppError('name is required', 400);
 
     const existingName = await subjectRepository.findByName(name.trim());
     if (existingName) throw new AppError(`Subject "${name}" already exists`, 409);
@@ -31,7 +31,7 @@ export const subjectService = {
 
   async getById(id) {
     const subject = await subjectRepository.findById(id);
-    if (!subject) throw new AppError("Subject not found", 404);
+    if (!subject) throw new AppError('Subject not found', 404);
     return subject;
   },
 
@@ -40,18 +40,20 @@ export const subjectService = {
 
     if (name) {
       const existing = await subjectRepository.findByName(name.trim());
-      if (existing && existing.id !== id) throw new AppError(`Subject "${name}" already exists`, 409);
+      if (existing && existing.id !== id)
+        throw new AppError(`Subject "${name}" already exists`, 409);
     }
     if (code) {
       const existing = await subjectRepository.findByCode(code.trim().toUpperCase());
-      if (existing && existing.id !== id) throw new AppError(`Subject code "${code}" already exists`, 409);
+      if (existing && existing.id !== id)
+        throw new AppError(`Subject code "${code}" already exists`, 409);
     }
 
     const updated = await subjectRepository.update(id, {
       name: name?.trim(),
       code: code?.trim().toUpperCase(),
     });
-    if (!updated) throw new AppError("Subject not found", 404);
+    if (!updated) throw new AppError('Subject not found', 404);
     return updated;
   },
 
@@ -60,11 +62,11 @@ export const subjectService = {
 
     const isAssigned = await subjectRepository.isAssignedToTeacher(id);
     if (isAssigned) {
-      throw new AppError("Cannot delete subject — it is assigned to one or more teachers", 400);
+      throw new AppError('Cannot delete subject — it is assigned to one or more teachers', 400);
     }
 
     const deleted = await subjectRepository.softDelete(id);
-    if (!deleted) throw new AppError("Subject not found", 404);
+    if (!deleted) throw new AppError('Subject not found', 404);
     return deleted;
   },
 };

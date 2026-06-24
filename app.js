@@ -7,7 +7,7 @@ import { errorMiddleware } from './middlewares/error.middleware.js';
 
 const app = express();
 
-// Security & parsing 
+// Security & parsing
 app.use(helmet());
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
@@ -21,20 +21,17 @@ if (process.env.NODE_ENV !== 'test') {
 //Health check
 app.get('/health', (_req, res) => {
   res.json({ status: 'ok', timestamp: new Date().toISOString() });
-}); 
+});
 
 //API routes
 app.use('/api/v1', v1Router);
-
 
 //404 handler
 app.use((_req, res) => {
   res.status(404).json({ success: false, message: 'Route not found' });
 });
 
-//Global error handler 
+//Global error handler
 app.use(errorMiddleware);
-
-
 
 export default app;

@@ -1,5 +1,5 @@
-import { createClient } from "redis";
-import { env } from "./env.js";
+import { createClient } from 'redis';
+import { env } from './env.js';
 
 const redisClient = createClient({
   socket: {
@@ -9,8 +9,8 @@ const redisClient = createClient({
   password: env.REDIS_PASSWORD || undefined,
 });
 
-redisClient.on("error", (err) => console.error("Redis error:", err));
-redisClient.on("connect", () => console.log("Redis Connected"));
+redisClient.on('error', (err) => console.error('Redis error:', err));
+redisClient.on('connect', () => console.log('Redis Connected'));
 
 export const TTL = {
   ACCESS_TOKEN: 60 * 15,

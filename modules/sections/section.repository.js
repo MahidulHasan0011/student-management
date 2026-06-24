@@ -1,17 +1,17 @@
-import { query } from "../../config/db.js";
-import { buildWhereClause } from "../../utils/queryBuilder.js";
-import { buildOrder } from "../../utils/order.js";
+import { query } from '../../config/db.js';
+import { buildWhereClause } from '../../utils/queryBuilder.js';
+import { buildOrder } from '../../utils/order.js';
 
 const SORTABLE_FIELDS = {
-  name: "s.name",
-  max_capacity: "s.max_capacity",
-  created_at: "s.created_at",
+  name: 's.name',
+  max_capacity: 's.max_capacity',
+  created_at: 's.created_at',
 };
 
 const FILTER_CONFIG = {
-  searchableColumns: ["s.name"],
+  searchableColumns: ['s.name'],
   filterableColumns: [
-    { param: "class_id", column: "s.class_id" }, // ?class_id=...
+    { param: 'class_id', column: 's.class_id' }, // ?class_id=...
   ],
 };
 
@@ -21,7 +21,7 @@ export const sectionRepository = {
       `INSERT INTO sections (class_id, name, max_capacity)
        VALUES ($1, $2, $3)
        RETURNING *`,
-      [class_id, name, max_capacity ?? null]
+      [class_id, name, max_capacity ?? null],
     );
     return rows[0];
   },
@@ -30,8 +30,8 @@ export const sectionRepository = {
     const values = [];
     const countRef = { value: 1 };
 
-    const where = buildWhereClause(queryOptions, values, FILTER_CONFIG, countRef, "s");
-    const { sortBy, sortOrder } = buildOrder(queryOptions, SORTABLE_FIELDS, "created_at");
+    const where = buildWhereClause(queryOptions, values, FILTER_CONFIG, countRef, 's');
+    const { sortBy, sortOrder } = buildOrder(queryOptions, SORTABLE_FIELDS, 'created_at');
 
     values.push(limit, offset);
     const limitIdx = countRef.value;
@@ -44,7 +44,7 @@ export const sectionRepository = {
        ${where}
        ORDER BY ${sortBy} ${sortOrder}
        LIMIT $${limitIdx} OFFSET $${offsetIdx}`,
-      values
+      values,
     );
     return rows;
   },
@@ -52,10 +52,10 @@ export const sectionRepository = {
   async countAll(queryOptions) {
     const values = [];
     const countRef = { value: 1 };
-    const where = buildWhereClause(queryOptions, values, FILTER_CONFIG, countRef, "s");
+    const where = buildWhereClause(queryOptions, values, FILTER_CONFIG, countRef, 's');
     const { rows } = await query(
       `SELECT COUNT(*) FROM sections s JOIN classes c ON c.id = s.class_id ${where}`,
-      values
+      values,
     );
     return parseInt(rows[0].count);
   },
@@ -66,7 +66,7 @@ export const sectionRepository = {
        FROM sections s
        JOIN classes c ON c.id = s.class_id
        WHERE s.id = $1 AND s.deleted_at IS NULL`,
-      [id]
+      [id],
     );
     return rows[0] || null;
   },
@@ -76,7 +76,7 @@ export const sectionRepository = {
     const { rows } = await query(
       `SELECT * FROM sections
        WHERE class_id = $1 AND name = $2 AND deleted_at IS NULL`,
-      [class_id, name]
+      [class_id, name],
     );
     return rows[0] || null;
   },
@@ -87,7 +87,7 @@ export const sectionRepository = {
       `SELECT * FROM sections
        WHERE class_id = $1 AND deleted_at IS NULL
        ORDER BY name ASC`,
-      [class_id]
+      [class_id],
     );
     return rows;
   },
@@ -97,7 +97,7 @@ export const sectionRepository = {
     const { rows } = await query(
       `SELECT COUNT(*) FROM student_enrollments
        WHERE section_id = $1 AND deleted_at IS NULL`,
-      [sectionId]
+      [sectionId],
     );
     return parseInt(rows[0].count);
   },
@@ -118,10 +118,10 @@ export const sectionRepository = {
 
     params.push(id);
     const { rows } = await query(
-      `UPDATE sections SET ${setClauses.join(", ")}, updated_at = NOW()
+      `UPDATE sections SET ${setClauses.join(', ')}, updated_at = NOW()
        WHERE id = $${params.length} AND deleted_at IS NULL
        RETURNING *`,
-      params
+      params,
     );
     return rows[0] || null;
   },
@@ -130,7 +130,7 @@ export const sectionRepository = {
     const { rows } = await query(
       `UPDATE sections SET deleted_at = NOW()
        WHERE id = $1 AND deleted_at IS NULL RETURNING id`,
-      [id]
+      [id],
     );
     return rows[0] || null;
   },
@@ -138,7 +138,7 @@ export const sectionRepository = {
   async hasEnrollments(id) {
     const { rows } = await query(
       `SELECT id FROM student_enrollments WHERE section_id = $1 AND deleted_at IS NULL LIMIT 1`,
-      [id]
+      [id],
     );
     return rows.length > 0;
   },

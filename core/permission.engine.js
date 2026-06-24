@@ -1,6 +1,6 @@
-import { roleRepository } from "../modules/roles/role.repository.js";
-import { cacheService } from "../services/cache.service.js";
-import { TTL } from "../config/redis.js";
+import { roleRepository } from '../modules/roles/role.repository.js';
+import { cacheService } from '../services/cache.service.js';
+import { TTL } from '../config/redis.js';
 
 const PERM_CACHE_KEY = (roleId) => `role_permissions:${roleId}`;
 

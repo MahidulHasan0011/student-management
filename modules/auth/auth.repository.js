@@ -1,12 +1,12 @@
-import { query } from "../../config/db.js";
+import { query } from '../../config/db.js';
 export const authRepository = {
-     async findByEmail(email) {
+  async findByEmail(email) {
     const { rows } = await query(
       `SELECT u.*, r.name AS role_name
        FROM users u
        LEFT JOIN roles r ON r.id = u.role_id
        WHERE u.email = $1 AND u.deleted_at IS NULL`,
-      [email]
+      [email],
     );
     return rows[0] || null;
   },
@@ -17,10 +17,8 @@ export const authRepository = {
        FROM users u
        LEFT JOIN roles r ON r.id = u.role_id
        WHERE u.id = $1 AND u.deleted_at IS NULL`,
-      [id]
+      [id],
     );
     return rows[0] || null;
   },
-
-
-}
+};

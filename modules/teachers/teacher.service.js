@@ -1,26 +1,35 @@
-import bcrypt from "bcryptjs";
-import { teacherRepository } from "./teacher.repository.js";
-import { userRepository } from "../users/user.repository.js";
-import { roleRepository } from "../roles/role.repository.js";
-import { AppError } from "../../utils/AppError.js";
-import { getPagination, buildMeta } from "../../utils/pagination.js";
-import { withTransaction } from "../../config/db.js";
-import { env } from "../../config/env.js";
+import bcrypt from 'bcryptjs';
+import { teacherRepository } from './teacher.repository.js';
+import { userRepository } from '../users/user.repository.js';
+import { roleRepository } from '../roles/role.repository.js';
+import { AppError } from '../../utils/AppError.js';
+import { getPagination, buildMeta } from '../../utils/pagination.js';
+import { withTransaction } from '../../config/db.js';
+import { env } from '../../config/env.js';
 
 export const teacherService = {
   // একটা teacher তৈরি করা মানে user account + teacher profile — দুটো একসাথে,
   // একটা fail করলে অন্যটাও rollback হওয়া উচিত, তাই withTransaction
-  async create({ full_name, email, password, gender, phone, designation, qualification, joining_date }) {
+  async create({
+    full_name,
+    email,
+    password,
+    gender,
+    phone,
+    designation,
+    qualification,
+    joining_date,
+  }) {
     if (!full_name || !email || !password) {
-      throw new AppError("full_name, email and password are required", 400);
+      throw new AppError('full_name, email and password are required', 400);
     }
 
     const existing = await userRepository.findByEmail(email.toLowerCase());
-    if (existing) throw new AppError("Email already in use", 409);
+    if (existing) throw new AppError('Email already in use', 409);
 
-    const teacherRole = await roleRepository.findByName("TEACHER");
+    const teacherRole = await roleRepository.findByName('TEACHER');
     if (!teacherRole) {
-      throw new AppError("TEACHER role not found — run db:seed first", 500);
+      throw new AppError('TEACHER role not found — run db:seed first', 500);
     }
 
     const hashedPassword = await bcrypt.hash(password, env.BCRYPT_ROUNDS);
@@ -57,7 +66,7 @@ export const teacherService = {
 
   async getById(id) {
     const teacher = await teacherRepository.findById(id);
-    if (!teacher) throw new AppError("Teacher not found", 404);
+    if (!teacher) throw new AppError('Teacher not found', 404);
     return teacher;
   },
 
@@ -71,7 +80,7 @@ export const teacherService = {
   async update(id, fields) {
     await this.getById(id);
     const updated = await teacherRepository.update(id, fields);
-    if (!updated) throw new AppError("Teacher not found", 404);
+    if (!updated) throw new AppError('Teacher not found', 404);
     return updated;
   },
 
@@ -80,11 +89,14 @@ export const teacherService = {
 
     const hasAssignments = await teacherRepository.hasActiveAssignments(id);
     if (hasAssignments) {
-      throw new AppError("Cannot delete teacher — has active subject assignments. Remove assignments first.", 400);
+      throw new AppError(
+        'Cannot delete teacher — has active subject assignments. Remove assignments first.',
+        400,
+      );
     }
 
     const deleted = await teacherRepository.softDelete(id);
-    if (!deleted) throw new AppError("Teacher not found", 404);
+    if (!deleted) throw new AppError('Teacher not found', 404);
     return deleted;
   },
 };

@@ -1,19 +1,19 @@
-import { query } from "../../config/db.js";
-import { buildWhereClause } from "../../utils/queryBuilder.js";
-import { buildOrder } from "../../utils/order.js";
+import { query } from '../../config/db.js';
+import { buildWhereClause } from '../../utils/queryBuilder.js';
+import { buildOrder } from '../../utils/order.js';
 
 const SORTABLE_FIELDS = {
-  name: "e.name",
-  exam_date: "e.exam_date",
-  created_at: "e.created_at",
+  name: 'e.name',
+  exam_date: 'e.exam_date',
+  created_at: 'e.created_at',
 };
 
 const FILTER_CONFIG = {
-  searchableColumns: ["e.name"],
+  searchableColumns: ['e.name'],
   filterableColumns: [
-    { param: "class_id", column: "e.class_id" },
-    { param: "academic_session_id", column: "e.academic_session_id" },
-    { param: "exam_type", column: "e.exam_type" },
+    { param: 'class_id', column: 'e.class_id' },
+    { param: 'academic_session_id', column: 'e.academic_session_id' },
+    { param: 'exam_type', column: 'e.exam_type' },
   ],
 };
 
@@ -23,7 +23,13 @@ export const examRepository = {
       `INSERT INTO exams (name, class_id, academic_session_id, exam_date, exam_type)
        VALUES ($1, $2, $3, $4, $5)
        RETURNING *`,
-      [name, class_id || null, academic_session_id || null, exam_date || null, exam_type || "ADMISSION"]
+      [
+        name,
+        class_id || null,
+        academic_session_id || null,
+        exam_date || null,
+        exam_type || 'ADMISSION',
+      ],
     );
     return rows[0];
   },
@@ -32,8 +38,8 @@ export const examRepository = {
     const values = [];
     const countRef = { value: 1 };
 
-    const where = buildWhereClause(queryOptions, values, FILTER_CONFIG, countRef, "e");
-    const { sortBy, sortOrder } = buildOrder(queryOptions, SORTABLE_FIELDS, "exam_date");
+    const where = buildWhereClause(queryOptions, values, FILTER_CONFIG, countRef, 'e');
+    const { sortBy, sortOrder } = buildOrder(queryOptions, SORTABLE_FIELDS, 'exam_date');
 
     values.push(limit, offset);
     const limitIdx = countRef.value;
@@ -47,7 +53,7 @@ export const examRepository = {
        ${where}
        ORDER BY ${sortBy} ${sortOrder}
        LIMIT $${limitIdx} OFFSET $${offsetIdx}`,
-      values
+      values,
     );
     return rows;
   },
@@ -55,7 +61,7 @@ export const examRepository = {
   async countAll(queryOptions) {
     const values = [];
     const countRef = { value: 1 };
-    const where = buildWhereClause(queryOptions, values, FILTER_CONFIG, countRef, "e");
+    const where = buildWhereClause(queryOptions, values, FILTER_CONFIG, countRef, 'e');
     const { rows } = await query(`SELECT COUNT(*) FROM exams e ${where}`, values);
     return parseInt(rows[0].count);
   },
@@ -67,13 +73,13 @@ export const examRepository = {
        LEFT JOIN classes c ON c.id = e.class_id
        LEFT JOIN academic_sessions asess ON asess.id = e.academic_session_id
        WHERE e.id = $1 AND e.deleted_at IS NULL`,
-      [id]
+      [id],
     );
     return rows[0] || null;
   },
 
   async update(id, fields) {
-    const allowed = ["name", "class_id", "academic_session_id", "exam_date", "exam_type"];
+    const allowed = ['name', 'class_id', 'academic_session_id', 'exam_date', 'exam_type'];
     const setClauses = [];
     const params = [];
 
@@ -87,10 +93,10 @@ export const examRepository = {
 
     params.push(id);
     const { rows } = await query(
-      `UPDATE exams SET ${setClauses.join(", ")}, updated_at = NOW()
+      `UPDATE exams SET ${setClauses.join(', ')}, updated_at = NOW()
        WHERE id = $${params.length} AND deleted_at IS NULL
        RETURNING *`,
-      params
+      params,
     );
     return rows[0] || null;
   },
@@ -102,7 +108,7 @@ export const examRepository = {
       `UPDATE exams SET status = $1, updated_at = NOW()
        WHERE id = $2 AND deleted_at IS NULL
        RETURNING *`,
-      [status, id]
+      [status, id],
     );
     return rows[0] || null;
   },
@@ -111,7 +117,7 @@ export const examRepository = {
     const { rows } = await query(
       `UPDATE exams SET deleted_at = NOW()
        WHERE id = $1 AND deleted_at IS NULL RETURNING id`,
-      [id]
+      [id],
     );
     return rows[0] || null;
   },
@@ -125,7 +131,7 @@ export const examRepository = {
          AND deleted_at IS NULL
        ORDER BY created_at DESC
        LIMIT 1`,
-      [classId, academicSessionId, examType]
+      [classId, academicSessionId, examType],
     );
     return rows[0] || null;
   },
@@ -133,7 +139,7 @@ export const examRepository = {
   async hasResults(id) {
     const { rows } = await query(
       `SELECT id FROM exam_results WHERE exam_id = $1 AND deleted_at IS NULL LIMIT 1`,
-      [id]
+      [id],
     );
     return rows.length > 0;
   },
@@ -144,7 +150,7 @@ export const examRepository = {
     const { rows } = await query(
       `SELECT COUNT(*) FROM student_enrollments
        WHERE class_id = $1 AND academic_session_id = $2 AND deleted_at IS NULL`,
-      [classId, academicSessionId]
+      [classId, academicSessionId],
     );
     return parseInt(rows[0].count);
   },
@@ -154,7 +160,7 @@ export const examRepository = {
     const { rows } = await query(
       `SELECT COUNT(DISTINCT student_id) FROM exam_results
        WHERE exam_id = $1 AND deleted_at IS NULL`,
-      [examId]
+      [examId],
     );
     return parseInt(rows[0].count);
   },

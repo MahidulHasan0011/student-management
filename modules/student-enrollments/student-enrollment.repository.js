@@ -1,18 +1,18 @@
-import { query } from "../../config/db.js";
-import { buildWhereClause } from "../../utils/queryBuilder.js";
-import { buildOrder } from "../../utils/order.js";
+import { query } from '../../config/db.js';
+import { buildWhereClause } from '../../utils/queryBuilder.js';
+import { buildOrder } from '../../utils/order.js';
 
 const SORTABLE_FIELDS = {
-  roll_number: "se.roll_number",
-  created_at: "se.created_at",
+  roll_number: 'se.roll_number',
+  created_at: 'se.created_at',
 };
 
 const FILTER_CONFIG = {
   searchableColumns: [],
   filterableColumns: [
-    { param: "class_id", column: "se.class_id" },
-    { param: "section_id", column: "se.section_id" },
-    { param: "academic_session_id", column: "se.academic_session_id" },
+    { param: 'class_id', column: 'se.class_id' },
+    { param: 'section_id', column: 'se.section_id' },
+    { param: 'academic_session_id', column: 'se.academic_session_id' },
   ],
 };
 
@@ -22,7 +22,7 @@ export const studentEnrollmentRepository = {
       `INSERT INTO student_enrollments (student_id, class_id, section_id, academic_session_id)
        VALUES ($1, $2, $3, $4)
        RETURNING *`,
-      [student_id, class_id, section_id || null, academic_session_id]
+      [student_id, class_id, section_id || null, academic_session_id],
     );
     return rows[0];
   },
@@ -31,8 +31,8 @@ export const studentEnrollmentRepository = {
     const values = [];
     const countRef = { value: 1 };
 
-    const where = buildWhereClause(queryOptions, values, FILTER_CONFIG, countRef, "se");
-    const { sortBy, sortOrder } = buildOrder(queryOptions, SORTABLE_FIELDS, "created_at");
+    const where = buildWhereClause(queryOptions, values, FILTER_CONFIG, countRef, 'se');
+    const { sortBy, sortOrder } = buildOrder(queryOptions, SORTABLE_FIELDS, 'created_at');
 
     values.push(limit, offset);
     const limitIdx = countRef.value;
@@ -52,7 +52,7 @@ export const studentEnrollmentRepository = {
        ${where}
        ORDER BY ${sortBy} ${sortOrder}
        LIMIT $${limitIdx} OFFSET $${offsetIdx}`,
-      values
+      values,
     );
     return rows;
   },
@@ -60,11 +60,8 @@ export const studentEnrollmentRepository = {
   async countAll(queryOptions) {
     const values = [];
     const countRef = { value: 1 };
-    const where = buildWhereClause(queryOptions, values, FILTER_CONFIG, countRef, "se");
-    const { rows } = await query(
-      `SELECT COUNT(*) FROM student_enrollments se ${where}`,
-      values
-    );
+    const where = buildWhereClause(queryOptions, values, FILTER_CONFIG, countRef, 'se');
+    const { rows } = await query(`SELECT COUNT(*) FROM student_enrollments se ${where}`, values);
     return parseInt(rows[0].count);
   },
 
@@ -81,7 +78,7 @@ export const studentEnrollmentRepository = {
        LEFT JOIN sections sec ON sec.id = se.section_id
        JOIN academic_sessions asess ON asess.id = se.academic_session_id
        WHERE se.id = $1 AND se.deleted_at IS NULL`,
-      [id]
+      [id],
     );
     return rows[0] || null;
   },
@@ -91,13 +88,13 @@ export const studentEnrollmentRepository = {
     const { rows } = await query(
       `SELECT * FROM student_enrollments
        WHERE student_id = $1 AND academic_session_id = $2 AND deleted_at IS NULL`,
-      [studentId, academicSessionId]
+      [studentId, academicSessionId],
     );
     return rows[0] || null;
   },
 
   async update(id, fields) {
-    const allowed = ["class_id", "section_id", "roll_number"];
+    const allowed = ['class_id', 'section_id', 'roll_number'];
     const setClauses = [];
     const params = [];
 
@@ -111,10 +108,10 @@ export const studentEnrollmentRepository = {
 
     params.push(id);
     const { rows } = await query(
-      `UPDATE student_enrollments SET ${setClauses.join(", ")}, updated_at = NOW()
+      `UPDATE student_enrollments SET ${setClauses.join(', ')}, updated_at = NOW()
        WHERE id = $${params.length} AND deleted_at IS NULL
        RETURNING *`,
-      params
+      params,
     );
     return rows[0] || null;
   },
@@ -123,7 +120,7 @@ export const studentEnrollmentRepository = {
     const { rows } = await query(
       `UPDATE student_enrollments SET deleted_at = NOW()
        WHERE id = $1 AND deleted_at IS NULL RETURNING id`,
-      [id]
+      [id],
     );
     return rows[0] || null;
   },
