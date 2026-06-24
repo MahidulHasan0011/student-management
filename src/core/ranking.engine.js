@@ -1,39 +1,100 @@
-import { query, withTransaction } from '../config/db.js';
+import { query } from '../config/db.js';
 import { AppError } from '../utils/appError.js';
-
+import { rankingLockRepository } from '../modules/ranking-locks/ranking-lock.repository.js';
 // ── Core business logic — কোনো HTTP/queue/job জানে না, শুধু calculation ──
-// এই ফাইলটা ranking.job.js কল করবে, কিন্তু controller থেকেও সরাসরি কল করা যায় (sync ছোট কাজে)
+// এই ফাইলটা ranking.job.js কল করবে।
+//
+// Scenario 1 (admission_test_enabled = false):
+//   OLD student: QUIZ+MID+FINAL merit list rank (student_merit_list view থেকে)
+//   NEW student: admission_date/created_at অনুযায়ী FIFO rank, merit list-এর পরে শুরু
+//
+// Scenario 2 (admission_test_enabled = true):
+//   OLD ও NEW — দুই দলকেই একসাথে merge করে single merit list, score অনুযায়ী rank
+//   (OLD-এর score = QUIZ+MID+FINAL, NEW-এর score = ADMISSION)
 export const rankingEngine = {
-  // exam_id-এর জন্য merit list বের করে আনে — student_merit_list view ব্যবহার করে
-  // (database/views/student_merit_list.sql এ আগেই বানানো হয়েছে)
-  async calculateMeritList(examId) {
+  // class+session-এর OLD student-দের merit list — student_merit_list view থেকে
+  // (database/views/student_merit_list.sql — QUIZ+MID+FINAL যোগ করে, tie-break সহ rank দেয়)
+  async calculateOldStudentMeritList(classId, academicSessionId) {
     const { rows } = await query(
-      `SELECT * FROM student_merit_list WHERE exam_id = $1 ORDER BY rank_position ASC`,
-      [examId],
+      `SELECT * FROM student_merit_list
+       WHERE class_id = $1 AND academic_session_id = $2
+       ORDER BY rank_position ASC`,
+      [classId, academicSessionId]
     );
-
-    if (!rows.length) {
-      throw new AppError('No exam results found for this exam — cannot calculate ranking', 404);
-    }
-
     return rows;
   },
 
-  // class + session-এর সব ছাত্রের admission test বন্ধ থাকলে যারা admission দেয়নি
-  // তাদের ক্রমিক ভর্তির তারিখ অনুযায়ী FIFO rank দেয় (rank শুরু হয় merit list-এর পর থেকে)
+  // NEW student-দের ADMISSION exam score — Scenario 2-এ merit list-এ merge করার জন্য
+  async calculateNewStudentAdmissionScores(classId, academicSessionId) {
+    const { rows } = await query(
+      `SELECT
+         er.student_id,
+         s.student_code,
+         u.full_name AS student_name,
+         se.admission_date,
+         se.created_at AS enrollment_created_at,
+         SUM(er.marks) AS total_score,
+         0 AS final_score,
+         0 AS mid_score
+       FROM exam_results er
+       JOIN exams e ON e.id = er.exam_id
+       JOIN students s ON s.id = er.student_id
+       JOIN users u ON u.id = s.user_id
+       JOIN student_enrollments se
+         ON se.student_id = er.student_id
+         AND se.academic_session_id = e.academic_session_id
+         AND se.deleted_at IS NULL
+       WHERE e.class_id = $1
+         AND e.academic_session_id = $2
+         AND e.exam_type = 'ADMISSION'
+         AND e.status = 'PUBLISHED'
+         AND er.deleted_at IS NULL
+         AND e.deleted_at IS NULL
+         AND s.deleted_at IS NULL
+       GROUP BY er.student_id, s.student_code, u.full_name, se.admission_date, se.created_at`,
+      [classId, academicSessionId]
+    );
+    return rows;
+  },
+
+  // ── deterministic sort — document-এর ৫ ধাপের tie-breaking rule এখানে আবার apply করা হয়
+  // (Scenario 2-এ OLD+NEW merge করার পর নতুন করে rank বসাতে হয়, তাই sort logic এখানে লাগবে) ──
+  _sortAndRank(students) {
+    const sorted = [...students].sort((a, b) => {
+      if (b.total_score !== a.total_score) return b.total_score - a.total_score;
+      if (b.final_score !== a.final_score) return b.final_score - a.final_score;
+      if (b.mid_score !== a.mid_score) return b.mid_score - a.mid_score;
+
+      const aAdm = a.admission_date ? new Date(a.admission_date).getTime() : Infinity;
+      const bAdm = b.admission_date ? new Date(b.admission_date).getTime() : Infinity;
+      if (aAdm !== bAdm) return aAdm - bAdm;
+
+      const aCreated = new Date(a.enrollment_created_at).getTime();
+      const bCreated = new Date(b.enrollment_created_at).getTime();
+      if (aCreated !== bCreated) return aCreated - bCreated;
+
+      return a.student_id < b.student_id ? -1 : a.student_id > b.student_id ? 1 : 0;
+    });
+
+    return sorted.map((row, index) => ({ ...row, rank_position: index + 1 }));
+  },
+
+  // class + session-এর NEW student-দের (যাদের কোনো admission result নেই, roll_number এখনো null)
+  // admission_date/created_at অনুযায়ী FIFO rank — rank শুরু হয় merit list-এর পরের নম্বর থেকে
   async calculateFifoRanking(classId, academicSessionId, startRank) {
     const { rows } = await query(
       `SELECT
          se.student_id,
          se.id AS enrollment_id,
+         se.admission_date,
          se.created_at
        FROM student_enrollments se
        WHERE se.class_id = $1
          AND se.academic_session_id = $2
          AND se.roll_number IS NULL
          AND se.deleted_at IS NULL
-       ORDER BY se.created_at ASC`,
-      [classId, academicSessionId],
+       ORDER BY se.admission_date ASC, se.created_at ASC`,
+      [classId, academicSessionId]
     );
 
     return rows.map((row, index) => ({
@@ -42,19 +103,43 @@ export const rankingEngine = {
     }));
   },
 
-  // merit list rank + FIFO rank — দুটো মিলিয়ে roll.engine.js-কে দেওয়ার জন্য
-  // admission_test_enabled অনুযায়ী কোন rank ব্যবহার হবে তা ঠিক করে
-  async buildCombinedRanking({ examId, classId, academicSessionId, admissionTestEnabled }) {
-    if (admissionTestEnabled) {
-      // admission test চালু থাকলে সবাই (নতুন+পুরাতন) একসাথে merit list-এ rank পায়
-      return this.calculateMeritList(examId);
+  // ── মূল entry point — Scenario 1/2 অনুযায়ী সঠিক ranking তৈরি করে roll.engine.js-কে পাঠায় ──
+  // গুরুত্বপূর্ণ rule: ranking/roll শুধুমাত্র FINAL exam publish হলেই চলবে (caller আগেই চেক করে আসে)
+  //
+  // allowWhenLocked = true হলে lock check skip হয় — এটা শুধু RECALCULATE_RANKING manual
+  // flow ব্যবহার করবে (ধাপ ৬), যেখানে admin আগেই explicit unlock করে এই flow চালু করেছেন।
+  // স্বাভাবিক auto-trigger এই flag কখনো true পাঠাবে না।
+  async buildCombinedRanking({ classId, academicSessionId, admissionTestEnabled, allowWhenLocked = false }) {
+    if (!allowWhenLocked) {
+      const locked = await rankingLockRepository.isLocked(classId, academicSessionId);
+      if (locked) {
+        throw new AppError(
+          "Ranking is locked for this class & session. An administrator must unlock it before recalculating.",
+          409
+        );
+      }
     }
 
-    // admission test বন্ধ — পুরাতনরা merit list থেকে rank পায়, নতুনরা FIFO
-    const meritList = await this.calculateMeritList(examId).catch(() => []);
-    const nextRank = meritList.length + 1;
-    const fifoList = await this.calculateFifoRanking(classId, academicSessionId, nextRank);
+    const oldMeritList = await this.calculateOldStudentMeritList(classId, academicSessionId);
 
-    return [...meritList, ...fifoList];
+    if (!admissionTestEnabled) {
+      // ── Scenario 1 ── OLD ranked, NEW FIFO পরে
+      if (!oldMeritList.length) {
+        throw new AppError("No published FINAL results found for this class — cannot calculate ranking", 404);
+      }
+      const nextRank = oldMeritList.length + 1;
+      const fifoList = await this.calculateFifoRanking(classId, academicSessionId, nextRank);
+      return [...oldMeritList, ...fifoList];
+    }
+
+    // ── Scenario 2 ── OLD + NEW merge করে single merit list, score দিয়ে rank
+    const newAdmissionScores = await this.calculateNewStudentAdmissionScores(classId, academicSessionId);
+
+    const combined = [...oldMeritList, ...newAdmissionScores];
+    if (!combined.length) {
+      throw new AppError("No published results found (FINAL or ADMISSION) — cannot calculate ranking", 404);
+    }
+
+    return this._sortAndRank(combined);
   },
 };

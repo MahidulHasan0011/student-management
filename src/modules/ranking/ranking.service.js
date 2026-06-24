@@ -1,73 +1,64 @@
-import { rankingRepository } from './ranking.repository.js';
-import { classRepository } from '../classes/class.repository.js';
 import { academicSessionRepository } from '../academic-sessions/academic-session.repository.js';
-import { AppError } from '../../utils/appError.js';
+import { classRepository } from '../classes/class.repository.js';
+import { examRepository } from '../exams/exam.repository.js';
+import { rankingLockRepository } from '../ranking-locks/ranking-lock.repository.js';
+import { AppError } from '../../utils/AppError.js';
 import { enqueueRankingJob } from '../../queues/ranking.queue.js';
 
 export const rankingService = {
-  // Manual trigger — admin POST /ranking/trigger { class_id, academic_session_id, section_id? }
-  // Validation chain (requirements §5.6 + §5.7):
-  //   1. class + session exist
-  //   2. একটা FINAL exam class+session-এর জন্য PUBLISHED হতে হবে
-  //   3. session-এর admission_test_enabled = true হলে ADMISSION exam-ও PUBLISHED হতে হবে (Scenario 2)
-  //   4. ranking_locks.is_locked = true থাকলে block (manual recalculate এর জন্য আলাদা endpoint লাগবে — §7.4)
-  async trigger({ class_id, academic_session_id, section_id }) {
-    if (!class_id || !academic_session_id) {
-      throw new AppError('class_id and academic_session_id are required', 400);
+  // admin "Generate Roll" বাটনে ক্লিক করলে এটা কল হয় — queue-তে job পাঠিয়ে সাথে সাথে রেসপন্স দেয়,
+  // আসল ভারী calculation ব্যাকগ্রাউন্ডে worker (jobs/ranking.job.js) করে।
+  //
+  // triggeredBy: logged-in user-এর id — audit trail-এর জন্য, ranking_locks.locked_by-তে যাবে
+  async triggerRankingAndRoll({ classId, academicSessionId, sectionId, triggeredBy }) {
+    if (!classId || !academicSessionId) {
+      throw new AppError("classId and academicSessionId are required", 400);
     }
 
-    const cls = await classRepository.findById(class_id);
-    if (!cls) throw new AppError('Class not found', 404);
+    const cls = await classRepository.findById(classId);
+    if (!cls) throw new AppError("Class not found", 404);
 
-    const session = await academicSessionRepository.findById(academic_session_id);
-    if (!session) throw new AppError('Academic session not found', 404);
+    const session = await academicSessionRepository.findById(academicSessionId);
+    if (!session) throw new AppError("Academic session not found", 404);
 
-    const finalExam = await rankingRepository.findPublishedFinalExam({
-      classId: class_id,
-      academicSessionId: academic_session_id,
-    });
-    if (!finalExam) {
-      throw new AppError('No PUBLISHED FINAL exam found for this class + academic session', 409);
-    }
-
-    if (session.admission_test_enabled) {
-      const admissionExam = await rankingRepository.findPublishedAdmissionExam({
-        classId: class_id,
-        academicSessionId: academic_session_id,
-      });
-      if (!admissionExam) {
-        throw new AppError(
-          'admission_test_enabled is true but no PUBLISHED ADMISSION exam exists for this class + session',
-          409,
-        );
-      }
-    }
-
-    const lock = await rankingRepository.getLock({
-      classId: class_id,
-      academicSessionId: academic_session_id,
-    });
-    if (lock?.is_locked) {
+    // ── ranking_locked চেক — আগে থেকে rank generate হয়ে থাকলে normal trigger আটকে যাবে ──
+    // (RECALCULATE_RANKING আলাদা endpoint, যেটা প্রথমে explicit unlock করে — ধাপ ৬)
+    const locked = await rankingLockRepository.isLocked(classId, academicSessionId);
+    if (locked) {
       throw new AppError(
-        'Ranking is locked for this class + session. Use the recalculate flow to override.',
-        409,
+        "Ranking is already locked for this class & session. Use the recalculate endpoint to regenerate.",
+        409
       );
     }
 
+    // FINAL exam খুঁজে PUBLISHED কিনা যাচাই করো — Scenario 1 ও 2 দুটোতেই FINAL লাগবে
+    const finalExam = await examRepository.findByClassSessionAndType(classId, academicSessionId, "FINAL");
+    if (!finalExam) {
+      throw new AppError("No FINAL exam found for this class and session", 404);
+    }
+    if (finalExam.status !== "PUBLISHED") {
+      throw new AppError("FINAL exam results must be published before generating ranking", 400);
+    }
+
+    // Scenario 2 (admission_test_enabled = true) হলে ADMISSION exam-ও PUBLISHED হতে হবে
+    if (session.admission_test_enabled) {
+      const admissionExam = await examRepository.findByClassSessionAndType(classId, academicSessionId, "ADMISSION");
+      if (!admissionExam) {
+        throw new AppError("Admission test is enabled but no ADMISSION exam found for this class", 404);
+      }
+      if (admissionExam.status !== "PUBLISHED") {
+        throw new AppError("ADMISSION exam results must be published before generating ranking", 400);
+      }
+    }
+
     const job = await enqueueRankingJob({
-      examId: finalExam.id,
-      classId: class_id,
-      academicSessionId: academic_session_id,
-      admissionTestEnabled: !!session.admission_test_enabled,
-      sectionId: section_id || null,
+      classId,
+      academicSessionId,
+      sectionId: sectionId || null,
+      admissionTestEnabled: session.admission_test_enabled,
+      triggeredBy: triggeredBy || null,
     });
 
-    return {
-      job_id: job.id,
-      exam_id: finalExam.id,
-      class_id,
-      academic_session_id,
-      admission_test_enabled: !!session.admission_test_enabled,
-    };
+    return { jobId: job.id, status: "queued" };
   },
 };

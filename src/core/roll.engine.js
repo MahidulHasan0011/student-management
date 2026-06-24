@@ -1,30 +1,38 @@
 import { withTransaction } from '../config/db.js';
 import { sectionService } from '../modules/sections/section.service.js';
+import { rankingLockRepository } from '../modules/ranking-locks/ranking-lock.repository.js';
 import { AppError } from '../utils/appError.js';
 
 // ── Core business logic — rank অনুযায়ী roll_number ও section_id বসায় ──
 export const rollEngine = {
   // rankedList = [{ student_id, rank_position }, ...] — ranking.engine থেকে আসে
   // section না থাকলে সরাসরি roll বসিয়ে দেয়; section থাকলে capacity মেনে বিতরণ করে
-  async generateRolls({ rankedList, classId, academicSessionId, sectionId = null }) {
+  //
+  // lockedBy: যে admin/system trigger করেছে তার user id — ranking_locks.locked_by-তে যাবে (audit trail)
+  async generateRolls({ rankedList, classId, academicSessionId, sectionId = null, lockedBy = null }) {
     if (!rankedList.length) {
-      throw new AppError('Ranked list is empty — nothing to assign', 400);
+      throw new AppError("Ranked list is empty — nothing to assign", 400);
     }
 
+    let results;
     if (sectionId) {
       // single section নির্দিষ্ট থাকলে — সরাসরি rank = roll
-      return this._assignDirectRoll(rankedList, classId, academicSessionId, sectionId);
+      results = await this._assignDirectRoll(rankedList, classId, academicSessionId, sectionId);
+    } else {
+      // class-এ একাধিক section থাকলে capacity অনুযায়ী ভাগ করে assign করতে হবে
+      const sections = await sectionService.getSectionsForDistribution(classId);
+
+      results = !sections.length
+        ? await this._assignDirectRoll(rankedList, classId, academicSessionId, null) // section-ই নেই
+        : await this._assignWithSectionDistribution(rankedList, classId, academicSessionId, sections);
     }
 
-    // class-এ একাধিক section থাকলে capacity অনুযায়ী ভাগ করে assign করতে হবে
-    const sections = await sectionService.getSectionsForDistribution(classId);
+    // ── roll generate সফল হলে এই class+session-এর ranking lock করে দেওয়া হয় ──
+    // document rule: "After rank generation: ranking_locked = true" —
+    // এর পর থেকে আর কোনো automatic recalculation চলবে না, যতক্ষণ না admin manually unlock করেন
+    await rankingLockRepository.lock(classId, academicSessionId, lockedBy);
 
-    if (!sections.length) {
-      // section-ই নেই — সরাসরি class-এ roll বসাও
-      return this._assignDirectRoll(rankedList, classId, academicSessionId, null);
-    }
-
-    return this._assignWithSectionDistribution(rankedList, classId, academicSessionId, sections);
+    return results;
   },
 
   // section ছাড়া বা single section-এ সরাসরি rank=roll বসানো
@@ -37,7 +45,7 @@ export const rollEngine = {
            SET roll_number = $1, section_id = COALESCE($2, section_id), updated_at = NOW()
            WHERE student_id = $3 AND academic_session_id = $4 AND deleted_at IS NULL
            RETURNING id, student_id, roll_number, section_id`,
-          [entry.rank_position, sectionId, entry.student_id, academicSessionId],
+          [entry.rank_position, sectionId, entry.student_id, academicSessionId]
         );
         if (rows[0]) results.push(rows[0]);
       }
@@ -69,7 +77,7 @@ export const rollEngine = {
            SET roll_number = $1, section_id = $2, updated_at = NOW()
            WHERE student_id = $3 AND academic_session_id = $4 AND deleted_at IS NULL
            RETURNING id, student_id, roll_number, section_id`,
-          [rollInSection, currentSection.id, entry.student_id, academicSessionId],
+          [rollInSection, currentSection.id, entry.student_id, academicSessionId]
         );
         if (rows[0]) results.push(rows[0]);
 

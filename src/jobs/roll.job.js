@@ -3,19 +3,20 @@ import { rollEngine } from '../core/roll.engine.js';
 
 // ranking.job.js এই queue-তে job পাঠায় (rankedList সহ) — এখানে আসল roll_number বসানো হয়
 const processor = async (job) => {
-  const { rankedList, classId, academicSessionId, sectionId } = job.data;
-
+  const { rankedList, classId, academicSessionId, sectionId, lockedBy } = job.data;
+ 
   console.log(`[roll.job] assigning rolls for class=${classId} session=${academicSessionId}`);
-
+ 
   const results = await rollEngine.generateRolls({
     rankedList,
     classId,
     academicSessionId,
     sectionId,
+    lockedBy,
   });
-
+ 
   return { assignedCount: results.length };
 };
-
+ 
 // "roll" নামের queue listen করে
-export const rollWorker = createWorker('roll', processor);
+export const rollWorker = createWorker("roll", processor);
