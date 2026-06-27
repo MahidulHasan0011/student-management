@@ -6,6 +6,10 @@ import redisClient from './config/redis.js';
 // Redis connect — top-level await works because package.json has "type": "module"
 await redisClient.connect();
 
+// BullMQ worker চালু করো (একই process-এ) — না করলে job enqueue হলেও কেউ process করবে না।
+// production-এ চাইলে এই import সরিয়ে আলাদা worker process-এ চালানো যায়।
+await import('./jobs/index.js');
+
 const server = app.listen(env.PORT, () => {
   console.log(`\n Server running on port ${env.PORT} [${env.NODE_ENV}]`);
   console.log(` Health: http://localhost:${env.PORT}/health`);

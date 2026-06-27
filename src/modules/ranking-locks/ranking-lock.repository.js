@@ -17,8 +17,10 @@ export const rankingLockRepository = {
   },
 
   // লক row না থাকলে তৈরি করে lock দেয়, থাকলে আপডেট করে — upsert pattern
-  async lock(classId, academicSessionId, lockedBy) {
-    const { rows } = await query(
+  // client পাঠালে roll.engine-এর চলমান transaction-এর অংশ হয় (roll+history+lock atomic)
+  async lock(classId, academicSessionId, lockedBy, client = null) {
+    const exec = client ? client.query.bind(client) : query;
+    const { rows } = await exec(
       `INSERT INTO ranking_locks (class_id, academic_session_id, is_locked, locked_at, locked_by)
        VALUES ($1, $2, true, NOW(), $3)
        ON CONFLICT (class_id, academic_session_id)
@@ -29,8 +31,9 @@ export const rankingLockRepository = {
     return rows[0];
   },
 
-  async unlock(classId, academicSessionId) {
-    const { rows } = await query(
+  async unlock(classId, academicSessionId, client = null) {
+    const exec = client ? client.query.bind(client) : query;
+    const { rows } = await exec(
       `INSERT INTO ranking_locks (class_id, academic_session_id, is_locked, locked_at, locked_by)
        VALUES ($1, $2, false, NULL, NULL)
        ON CONFLICT (class_id, academic_session_id)

@@ -3,6 +3,7 @@ import { classRepository } from '../classes/class.repository.js';
 import { academicSessionRepository } from '../academic-sessions/academic-session.repository.js';
 import { AppError } from '../../utils/appError.js';
 import { getPagination, buildMeta } from '../../utils/pagination.js';
+import { rankingService } from '../ranking/ranking.service.js';
 
 const VALID_EXAM_TYPES = ['ADMISSION', 'UNIT_TEST', 'MIDTERM', 'FINAL'];
 
@@ -108,6 +109,18 @@ export const examService = {
     }
 
     const updated = await examRepository.setStatus(id, 'PUBLISHED');
+
+    // ── Auto-trigger ──
+    // FINAL বা ADMISSION publish হলে ranking চলার শর্ত পূরণ হয়েছে কিনা ranking module নিজে যাচাই করবে।
+    // এটা কখনো throw করে না (publish সফল হয়েছে, ranking আলাদা concern) — শর্ত না মিললে চুপচাপ skip হয়।
+    if (exam.exam_type === 'FINAL' || exam.exam_type === 'ADMISSION') {
+      await rankingService.autoTriggerAfterPublish({
+        classId: exam.class_id,
+        academicSessionId: exam.academic_session_id,
+        examType: exam.exam_type,
+      });
+    }
+
     return updated;
   },
 

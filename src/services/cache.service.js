@@ -28,8 +28,13 @@ export const cacheService = {
   },
 
   // pattern দিয়ে একসাথে অনেক key invalidate করতে — যেমন সব role-এর cache clear
+  // KEYS পুরো Redis block করে দেয় (production-এ বিপজ্জনক); তাই SCAN দিয়ে batch-এ ঘুরে delete করি
   async delByPattern(pattern) {
-    const keys = await redisClient.keys(pattern);
-    if (keys.length) await redisClient.del(keys);
+    let cursor = 0; // node-redis v4 cursor সংখ্যা হিসেবে আসে, শেষ হলে 0-তে ফিরে আসে
+    do {
+      const reply = await redisClient.scan(cursor, { MATCH: pattern, COUNT: 100 });
+      cursor = reply.cursor;
+      if (reply.keys.length) await redisClient.del(reply.keys);
+    } while (cursor !== 0);
   },
 };

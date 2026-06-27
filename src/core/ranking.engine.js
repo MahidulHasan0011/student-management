@@ -60,10 +60,16 @@ export const rankingEngine = {
   // ── deterministic sort — document-এর ৫ ধাপের tie-breaking rule এখানে আবার apply করা হয়
   // (Scenario 2-এ OLD+NEW merge করার পর নতুন করে rank বসাতে হয়, তাই sort logic এখানে লাগবে) ──
   _sortAndRank(students) {
+    // Postgres numeric/SUM string হিসেবে আসে — তুলনার আগে Number()-এ আনা জরুরি,
+    // আর merit-view "midterm_score" দেয় কিন্তু admission rows "mid_score" — দুটোই handle
+    const num = (v) => Number(v) || 0;
+    const finalOf = (r) => num(r.final_score);
+    const midOf = (r) => num(r.mid_score ?? r.midterm_score);
+
     const sorted = [...students].sort((a, b) => {
-      if (b.total_score !== a.total_score) return b.total_score - a.total_score;
-      if (b.final_score !== a.final_score) return b.final_score - a.final_score;
-      if (b.mid_score !== a.mid_score) return b.mid_score - a.mid_score;
+      if (num(b.total_score) !== num(a.total_score)) return num(b.total_score) - num(a.total_score);
+      if (finalOf(b) !== finalOf(a)) return finalOf(b) - finalOf(a);
+      if (midOf(b) !== midOf(a)) return midOf(b) - midOf(a);
 
       const aAdm = a.admission_date ? new Date(a.admission_date).getTime() : Infinity;
       const bAdm = b.admission_date ? new Date(b.admission_date).getTime() : Infinity;
@@ -97,8 +103,10 @@ export const rankingEngine = {
       [classId, academicSessionId]
     );
 
+    // FIFO student-দের কোনো exam score নেই → total_score = 0 (history snapshot-এ লাগবে)
     return rows.map((row, index) => ({
       ...row,
+      total_score: 0,
       rank_position: startRank + index,
     }));
   },
