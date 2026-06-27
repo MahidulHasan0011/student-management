@@ -9,10 +9,10 @@ import teacherRoutes from '../../modules/teachers/teacher.routes.js';
 import classRoutes from '../../modules/classes/class.routes.js';
 import subjectRoutes from '../../modules/subjects/subject.routes.js';
 import sectionRoutes from '../../modules/sections/section.routes.js';
-import assignmentRoutes from '../../modules/subject-assignments/subject-assignment.routes.js';
+import SubjectassignmentRoutes from '../../modules/subject-assignments/subject-assignment.routes.js';
 import studentEnrollmentRoutes from '../../modules/student-enrollments/student-enrollment.routes.js';
 import examRoutes from '../../modules/exams/exam.routes.js';
-import resultRoutes from '../../modules/results/result.routes.js';
+import examResultRoutes from '../../modules/exam-results/exam-result.routes.js';
 import rolePermissionRoutes from '../../modules/role-permissions/role-permission.routes.js';
 import rankingRoutes from '../../modules/ranking/ranking.routes.js';
 
@@ -29,10 +29,10 @@ router.use('/teachers', teacherRoutes);
 router.use('/classes', classRoutes);
 router.use('/subjects', subjectRoutes);
 router.use('/sections', sectionRoutes);
-router.use('/assignments', assignmentRoutes);
+router.use('/assignments', SubjectassignmentRoutes);
 router.use('/enrollments', studentEnrollmentRoutes);
 router.use('/exams', examRoutes);
-router.use('/results', resultRoutes);
+router.use('/results', examResultRoutes);
 router.use('/role-permissions', rolePermissionRoutes);
 router.use('/ranking', rankingRoutes);
 

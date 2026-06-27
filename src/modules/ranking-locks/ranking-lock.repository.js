@@ -6,7 +6,7 @@ export const rankingLockRepository = {
     const { rows } = await query(
       `SELECT * FROM ranking_locks
        WHERE class_id = $1 AND academic_session_id = $2`,
-      [classId, academicSessionId]
+      [classId, academicSessionId],
     );
     return rows[0] || null;
   },
@@ -26,7 +26,7 @@ export const rankingLockRepository = {
        ON CONFLICT (class_id, academic_session_id)
        DO UPDATE SET is_locked = true, locked_at = NOW(), locked_by = $3, updated_at = NOW()
        RETURNING *`,
-      [classId, academicSessionId, lockedBy || null]
+      [classId, academicSessionId, lockedBy || null],
     );
     return rows[0];
   },
@@ -39,7 +39,7 @@ export const rankingLockRepository = {
        ON CONFLICT (class_id, academic_session_id)
        DO UPDATE SET is_locked = false, locked_at = NULL, locked_by = NULL, updated_at = NOW()
        RETURNING *`,
-      [classId, academicSessionId]
+      [classId, academicSessionId],
     );
     return rows[0];
   },

@@ -1,99 +1,140 @@
-const subjectAssignmentsRepository = require('./subject-assignment.repository');
-const { buildWhereClause } = require('../../utils/queryBuilder');
-const { buildPagination, buildPaginationMeta } = require('../../utils/pagination');
-const { buildOrder } = require('../../utils/order');
+import { subjectAssignmentRepository } from './subject-assignment.repository.js';
+import { teacherRepository } from '../teachers/teacher.repository.js';
+import { classRepository } from '../classes/class.repository.js';
+import { sectionRepository } from '../sections/section.repository.js';
+import { subjectRepository } from '../subjects/subject.repository.js';
+import { academicSessionRepository } from '../academic-sessions/academic-session.repository.js';
+import { AppError } from '../../utils/AppError.js';
+import { getPagination, buildMeta } from '../../utils/pagination.js';
 
-const assignSubject = async (data) => {
-  const result = await subjectAssignmentsRepository.assignSubject(data);
-  return result;
-};
+export const subjectAssignmentService = {
+  async create({ teacher_id, class_id, section_id, subject_id, academic_session_id, assigned_by }) {
+    if (!teacher_id || !class_id || !subject_id || !academic_session_id) {
+      throw new AppError(
+        'teacher_id, class_id, subject_id and academic_session_id are required',
+        400,
+      );
+    }
 
-const getAssignments = async (queryOptions) => {
-  //pagination
-  const { page, limit, offset } = buildPagination(queryOptions);
-  //sorting
-  const { sortBy, sortOrder } = buildOrder(queryOptions, {
-    created_at: 'sa.created_at',
-    teacher_name: 'u.full_name',
-    teacher_email: 'u.email',
-    class_name: 'c.name',
-    section_name: 's.name',
-    subject_name: 'sub.name',
-    session_name: 'ac.name',
-  });
-  const values = [];
-  const countRef = { value: 1 };
-  const config = {
-    searchableColumns: ['u.full_name', 'u.email', 'c.name', 's.name', 'sub.name', 'ac.name'],
+    const teacher = await teacherRepository.findById(teacher_id);
+    if (!teacher) throw new AppError('Teacher not found', 404);
 
-    filterableColumns: [
-      'sa.teacher_id',
-      'sa.class_id',
-      'sa.section_id',
-      'sa.subject_id',
-      'sa.academic_session_id',
-    ],
-  };
-  const whereClause = buildWhereClause(queryOptions, values, config, countRef, 'sa');
-  const hasSearch = Boolean(queryOptions.search);
+    const cls = await classRepository.findById(class_id);
+    if (!cls) throw new AppError('Class not found', 404);
 
-  // Service receive parameter
-  const [{ rows, filteredCount }, totalRecords] = await Promise.all([
-    subjectAssignmentsRepository.getAssignments({
-      whereClause,
-      sortBy,
-      sortOrder,
-      values,
-      limit,
-      offset,
-      countRef,
-      hasSearch, //  repository knows about count query
-    }),
-    subjectAssignmentsRepository.globalCount(),
-  ]);
+    const subject = await subjectRepository.findById(subject_id);
+    if (!subject) throw new AppError('Subject not found', 404);
 
-  const hasFilters = Boolean(
-    queryOptions.search ||
-    queryOptions.teacher_id ||
-    queryOptions.class_id ||
-    queryOptions.section_id ||
-    queryOptions.subject_id ||
-    queryOptions.academic_session_id,
-  );
+    const session = await academicSessionRepository.findById(academic_session_id);
+    if (!session) throw new AppError('Academic session not found', 404);
 
-  return {
-    data: rows,
+    // ── class-এ section আছে কিনা — student_enrollment-এর মতোই rule এখানেও প্রযোজ্য ──
+    const classSections = await sectionRepository.findByClassId(class_id);
+    const classHasSections = classSections.length > 0;
 
-    message: hasFilters
-      ? `Showing ${filteredCount} matching assignments (${totalRecords} total)`
-      : `Showing all ${totalRecords} assignments`,
+    if (classHasSections) {
+      if (!section_id) {
+        throw new AppError('This class has sections — section_id is required', 400);
+      }
+      const validSection = classSections.find((s) => s.id === section_id);
+      if (!validSection) {
+        throw new AppError('section_id does not belong to the given class', 400);
+      }
+    } else if (section_id) {
+      throw new AppError('This class has no sections — section_id should not be provided', 400);
+    }
 
-    meta: {
-      totalRecords,
-      filteredCount,
-      hasFilters,
-    },
+    const finalSectionId = classHasSections ? section_id : null;
 
-    pagination: buildPaginationMeta(filteredCount, page, limit),
-  };
-};
+    // ── duplicate check — DB-র unique constraint-এর আগেই স্পষ্ট error দেওয়া ──
+    const existing = await subjectAssignmentRepository.findExact({
+      teacher_id,
+      class_id,
+      section_id: finalSectionId,
+      subject_id,
+      academic_session_id,
+    });
+    if (existing) {
+      throw new AppError(
+        'This teacher is already assigned to this exact class/section/subject/session',
+        409,
+      );
+    }
 
-const updateAssignment = async (id, data) => {
-  const result = await subjectAssignmentsRepository.updateAssignment(id, data);
-  if (!result) return null;
-  return result;
-};
+    // ── একই slot-এ অন্য teacher আগে থেকে assigned থাকলে সতর্ক করা (block না, শুধু জানিয়ে দেওয়া) ──
+    // স্কুলে কখনো কখনো একই বিষয় দুইজন শিক্ষক ভাগাভাগি করে পড়ান, তাই hard-block না করে info দেওয়া হলো
+    const otherTeachers = await subjectAssignmentRepository.findOtherTeacherForSlot({
+      class_id,
+      section_id: finalSectionId,
+      subject_id,
+      academic_session_id,
+    });
 
-// DELETE
-const deleteAssignment = async (id) => {
-  const result = await subjectAssignmentsRepository.deleteAssignment(id);
-  if (!result) return null;
-  return result;
-};
+    const created = await subjectAssignmentRepository.create({
+      teacher_id,
+      class_id,
+      section_id: finalSectionId,
+      subject_id,
+      academic_session_id,
+      assigned_by,
+    });
 
-module.exports = {
-  assignSubject,
-  getAssignments,
-  updateAssignment,
-  deleteAssignment,
+    return { ...created, other_teachers_on_same_slot: otherTeachers.length };
+  },
+
+  async getAll(queryOptions) {
+    const { page, limit, offset } = getPagination(queryOptions);
+    const [data, total] = await Promise.all([
+      subjectAssignmentRepository.findAll(queryOptions, { limit, offset }),
+      subjectAssignmentRepository.countAll(queryOptions),
+    ]);
+    return { data, meta: buildMeta({ total, page, limit }) };
+  },
+
+  async getById(id) {
+    const assignment = await subjectAssignmentRepository.findById(id);
+    if (!assignment) throw new AppError('Subject assignment not found', 404);
+    return assignment;
+  },
+
+  async getByTeacher(teacherId) {
+    const teacher = await teacherRepository.findById(teacherId);
+    if (!teacher) throw new AppError('Teacher not found', 404);
+    return subjectAssignmentRepository.findByTeacherId(teacherId);
+  },
+
+  // assignment বদলানো মানে মূলত teacher reassign করা — অন্য field বদলালে নতুন assignment বানানোই ভালো,
+  // কিন্তু flexibility-র জন্য আংশিক update সাপোর্ট করা হলো
+  async update(id, fields) {
+    const assignment = await this.getById(id);
+
+    if (fields.teacher_id) {
+      const teacher = await teacherRepository.findById(fields.teacher_id);
+      if (!teacher) throw new AppError('Teacher not found', 404);
+    }
+
+    // duplicate চেক — বদলানো ফিল্ডসহ চূড়ান্ত combination যদি অন্য কোনো assignment-এর সাথে মিলে যায়
+    const merged = { ...assignment, ...fields };
+    const existing = await subjectAssignmentRepository.findExact({
+      teacher_id: merged.teacher_id,
+      class_id: merged.class_id,
+      section_id: merged.section_id,
+      subject_id: merged.subject_id,
+      academic_session_id: merged.academic_session_id,
+    });
+    if (existing && existing.id !== id) {
+      throw new AppError('Another assignment already exists with this exact combination', 409);
+    }
+
+    const updated = await subjectAssignmentRepository.update(id, fields);
+    if (!updated) throw new AppError('Subject assignment not found', 404);
+    return updated;
+  },
+
+  async delete(id) {
+    await this.getById(id);
+    const deleted = await subjectAssignmentRepository.softDelete(id);
+    if (!deleted) throw new AppError('Subject assignment not found', 404);
+    return deleted;
+  },
 };

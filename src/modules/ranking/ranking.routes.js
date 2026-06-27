@@ -7,9 +7,21 @@ const router = Router();
 router.use(authMiddleware);
 
 // ── Read ──
-router.get('/:classId/:academicSessionId', rbacMiddleware('RANKING_READ'), rankingController.getRanking);
-router.get('/:classId/:academicSessionId/history', rbacMiddleware('RANKING_READ'), rankingController.getHistory);
-router.get('/:classId/:academicSessionId/audit', rbacMiddleware('RANKING_READ'), rankingController.getAuditLog);
+router.get(
+  '/:classId/:academicSessionId',
+  rbacMiddleware('RANKING_READ'),
+  rankingController.getRanking,
+);
+router.get(
+  '/:classId/:academicSessionId/history',
+  rbacMiddleware('RANKING_READ'),
+  rankingController.getHistory,
+);
+router.get(
+  '/:classId/:academicSessionId/audit',
+  rbacMiddleware('RANKING_READ'),
+  rankingController.getAuditLog,
+);
 
 // ── Generate (manual, প্রথমবার) ──
 router.post('/generate-roll', rbacMiddleware('RANKING_GENERATE'), rankingController.generateRoll);

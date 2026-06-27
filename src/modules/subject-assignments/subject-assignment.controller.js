@@ -1,59 +1,66 @@
-const service = require('./subject-assignment.service');
-const sendResponse = require('../../utils/response');
+import { subjectAssignmentService } from './subject-assignment.service.js';
+import { successResponse } from '../../utils/response.js';
 
-const assignSubject = async (req, res, next) => {
-  try {
-    const data = await service.assignSubject(req.body);
-
-    return sendResponse(res, 201, 'Subject assigned successfully', data);
-  } catch (err) {
-    next(err);
-  }
-};
-
-const getAssignments = async (req, res, next) => {
-  try {
-    const result = await service.getAssignments(req.query);
-
-    return sendResponse(res, 200, result.message, {
-      data: result.data,
-      meta: result.meta,
-      pagination: result.pagination,
-    });
-  } catch (err) {
-    next(err);
-  }
-};
-
-const updateAssignment = async (req, res, next) => {
-  try {
-    const data = await service.updateAssignment(req.params, req.body);
-    if (!data) {
-      return sendResponse(res, 404, 'Assignment not found');
+export const subjectAssignmentController = {
+  async create(req, res, next) {
+    try {
+      const data = await subjectAssignmentService.create({
+        ...req.body,
+        assigned_by: req.user.userId, // auth.middleware.js থেকে আসা logged-in admin
+      });
+      return successResponse(res, {
+        message: 'Subject assigned to teacher',
+        data,
+        statusCode: 201,
+      });
+    } catch (err) {
+      next(err);
     }
+  },
 
-    return sendResponse(res, 200, 'Assignment updated', data);
-  } catch (err) {
-    next(err);
-  }
-};
-
-const deleteAssignment = async (req, res, next) => {
-  try {
-    const data = await service.deleteAssignment(req.params);
-    if (!data) {
-      return sendResponse(res, 404, 'Assignment not found');
+  async getAll(req, res, next) {
+    try {
+      const { data, meta } = await subjectAssignmentService.getAll(req.query);
+      return successResponse(res, { message: 'Subject assignments fetched', data, meta });
+    } catch (err) {
+      next(err);
     }
+  },
 
-    return sendResponse(res, 200, 'Assignment deleted', data);
-  } catch (err) {
-    next(err);
-  }
-};
+  async getById(req, res, next) {
+    try {
+      const data = await subjectAssignmentService.getById(req.params.id);
+      return successResponse(res, { message: 'Subject assignment fetched', data });
+    } catch (err) {
+      next(err);
+    }
+  },
 
-module.exports = {
-  assignSubject,
-  getAssignments,
-  updateAssignment,
-  deleteAssignment,
+  // GET /subject-assignments/teacher/:teacherId
+  async getByTeacher(req, res, next) {
+    try {
+      const data = await subjectAssignmentService.getByTeacher(req.params.teacherId);
+      return successResponse(res, { message: "Teacher's assignments fetched", data });
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async update(req, res, next) {
+    try {
+      const data = await subjectAssignmentService.update(req.params.id, req.body);
+      return successResponse(res, { message: 'Subject assignment updated', data });
+    } catch (err) {
+      next(err);
+    }
+  },
+
+  async delete(req, res, next) {
+    try {
+      await subjectAssignmentService.delete(req.params.id);
+      return successResponse(res, { message: 'Subject assignment deleted' });
+    } catch (err) {
+      next(err);
+    }
+  },
 };

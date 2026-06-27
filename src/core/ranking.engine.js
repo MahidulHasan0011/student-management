@@ -19,7 +19,7 @@ export const rankingEngine = {
       `SELECT * FROM student_merit_list
        WHERE class_id = $1 AND academic_session_id = $2
        ORDER BY rank_position ASC`,
-      [classId, academicSessionId]
+      [classId, academicSessionId],
     );
     return rows;
   },
@@ -52,7 +52,7 @@ export const rankingEngine = {
          AND e.deleted_at IS NULL
          AND s.deleted_at IS NULL
        GROUP BY er.student_id, s.student_code, u.full_name, se.admission_date, se.created_at`,
-      [classId, academicSessionId]
+      [classId, academicSessionId],
     );
     return rows;
   },
@@ -100,7 +100,7 @@ export const rankingEngine = {
          AND se.roll_number IS NULL
          AND se.deleted_at IS NULL
        ORDER BY se.admission_date ASC, se.created_at ASC`,
-      [classId, academicSessionId]
+      [classId, academicSessionId],
     );
 
     // FIFO student-দের কোনো exam score নেই → total_score = 0 (history snapshot-এ লাগবে)
@@ -117,13 +117,18 @@ export const rankingEngine = {
   // allowWhenLocked = true হলে lock check skip হয় — এটা শুধু RECALCULATE_RANKING manual
   // flow ব্যবহার করবে (ধাপ ৬), যেখানে admin আগেই explicit unlock করে এই flow চালু করেছেন।
   // স্বাভাবিক auto-trigger এই flag কখনো true পাঠাবে না।
-  async buildCombinedRanking({ classId, academicSessionId, admissionTestEnabled, allowWhenLocked = false }) {
+  async buildCombinedRanking({
+    classId,
+    academicSessionId,
+    admissionTestEnabled,
+    allowWhenLocked = false,
+  }) {
     if (!allowWhenLocked) {
       const locked = await rankingLockRepository.isLocked(classId, academicSessionId);
       if (locked) {
         throw new AppError(
-          "Ranking is locked for this class & session. An administrator must unlock it before recalculating.",
-          409
+          'Ranking is locked for this class & session. An administrator must unlock it before recalculating.',
+          409,
         );
       }
     }
@@ -133,7 +138,10 @@ export const rankingEngine = {
     if (!admissionTestEnabled) {
       // ── Scenario 1 ── OLD ranked, NEW FIFO পরে
       if (!oldMeritList.length) {
-        throw new AppError("No published FINAL results found for this class — cannot calculate ranking", 404);
+        throw new AppError(
+          'No published FINAL results found for this class — cannot calculate ranking',
+          404,
+        );
       }
       const nextRank = oldMeritList.length + 1;
       const fifoList = await this.calculateFifoRanking(classId, academicSessionId, nextRank);
@@ -141,11 +149,17 @@ export const rankingEngine = {
     }
 
     // ── Scenario 2 ── OLD + NEW merge করে single merit list, score দিয়ে rank
-    const newAdmissionScores = await this.calculateNewStudentAdmissionScores(classId, academicSessionId);
+    const newAdmissionScores = await this.calculateNewStudentAdmissionScores(
+      classId,
+      academicSessionId,
+    );
 
     const combined = [...oldMeritList, ...newAdmissionScores];
     if (!combined.length) {
-      throw new AppError("No published results found (FINAL or ADMISSION) — cannot calculate ranking", 404);
+      throw new AppError(
+        'No published results found (FINAL or ADMISSION) — cannot calculate ranking',
+        404,
+      );
     }
 
     return this._sortAndRank(combined);
