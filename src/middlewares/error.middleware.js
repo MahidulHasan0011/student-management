@@ -1,4 +1,5 @@
 import { errorResponse } from '../utils/response.js';
+import { errorLogService } from '../modules/error-logs/error-log.service.js';
 
 export const errorMiddleware = (err, req, res, next) => {
   if (err.isOperational) {
@@ -24,6 +25,9 @@ export const errorMiddleware = (err, req, res, next) => {
     return errorResponse(res, { message: `Field "${err.column}" is required`, statusCode: 400 });
   }
 
+  // এখানে পৌঁছানো মানে unexpected error (operational নয়, কোনো known DB code-ও নয়) → DB-তে log করো
+  // fire-and-forget: log সফল হওয়ার জন্য response আটকে রাখি না; log service নিজেই error swallow করে
   console.error('UNHANDLED ERROR:', err);
+  errorLogService.log(err, req);
   return errorResponse(res, { message: 'Internal server error', statusCode: 500 });
 };
