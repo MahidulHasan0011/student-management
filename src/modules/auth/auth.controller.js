@@ -1,13 +1,10 @@
 import { authService } from './auth.service.js';
-import { successResponse, errorResponse } from '../../utils/response.js';
+import { successResponse } from '../../utils/response.js';
 
 export const authController = {
   async login(req, res, next) {
     try {
       const { email, password } = req.body;
-      if (!email || !password) {
-        return errorResponse(res, { message: 'Email and password are required', statusCode: 400 });
-      }
       const data = await authService.login({ email, password });
       return successResponse(res, { message: 'Login successful', data });
     } catch (err) {

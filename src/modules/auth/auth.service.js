@@ -15,6 +15,12 @@ const signRefresh = (payload) =>
 
 export const authService = {
   async login({ email, password }) {
+    // type guard — garbage payload (object/number) দিলে .toLowerCase()/bcrypt crash না করে clean 401
+    // valid-কিন্তু-ভুল আর garbage আলাদা না করাই নিরাপদ (user enumeration কমায়)
+    if (typeof email !== 'string' || !email.trim() || typeof password !== 'string' || !password) {
+      throw new AppError('Invalid email or password', 401);
+    }
+
     const user = await authRepository.findByEmail(email.toLowerCase());
     if (!user) throw new AppError('Invalid email or password', 401);
     if (!user.is_active) throw new AppError('Account is deactivated', 403);
@@ -33,7 +39,9 @@ export const authService = {
   },
 
   async refresh(refreshToken) {
-    if (!refreshToken) throw new AppError('Refresh token required', 401);
+    if (typeof refreshToken !== 'string' || !refreshToken) {
+      throw new AppError('Refresh token required', 401);
+    }
 
     let decoded;
     try {
