@@ -9,7 +9,7 @@ const SORTABLE_FIELDS = {
 
 const FILTER_CONFIG = {
   searchableColumns: ['message', 'path'],
-  filterableColumns: ['status_code', 'method', 'is_operational', 'user_id'],
+  filterableColumns: ['status_code', 'user_id', 'method', 'is_operational'],
 };
 
 export const errorLogRepository = {
