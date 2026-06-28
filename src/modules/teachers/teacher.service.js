@@ -6,6 +6,7 @@ import { AppError } from '../../utils/appError.js';
 import { getPagination, buildMeta } from '../../utils/pagination.js';
 import { withTransaction } from '../../config/db.js';
 import { env } from '../../config/env.js';
+import { assertString, assertEnum, assertDate, GENDERS } from '../../utils/validators.js';
 
 export const teacherService = {
   // একটা teacher তৈরি করা মানে user account + teacher profile — দুটো একসাথে,
@@ -20,11 +21,18 @@ export const teacherService = {
     qualification,
     joining_date,
   }) {
-    if (!full_name || !email || !password) {
-      throw new AppError('full_name, email and password are required', 400);
-    }
+    full_name = assertString(full_name, 'full_name', { max: 100 });
+    email = assertString(email, 'email', { max: 100 });
+    password = assertString(password, 'password', { min: 6 });
+    gender = assertEnum(gender, 'gender', GENDERS, { required: false });
+    phone = assertString(phone, 'phone', { required: false, max: 20 });
+    designation = assertString(designation, 'designation', { required: false, max: 100 });
+    qualification = assertString(qualification, 'qualification', { required: false });
+    joining_date = assertDate(joining_date, 'joining_date', { required: false });
 
-    const existing = await userRepository.findByEmail(email.toLowerCase());
+    const email_lc = email.toLowerCase();
+
+    const existing = await userRepository.findByEmail(email_lc);
     if (existing) throw new AppError('Email already in use', 409);
 
     const teacherRole = await roleRepository.findByName('TEACHER');
@@ -36,8 +44,8 @@ export const teacherService = {
 
     return withTransaction(async (client) => {
       const user = await teacherRepository.createUser(client, {
-        full_name: full_name.trim(),
-        email: email.toLowerCase().trim(),
+        full_name,
+        email: email_lc,
         password: hashedPassword,
         role_id: teacherRole.id,
         gender,
@@ -51,7 +59,7 @@ export const teacherService = {
         joining_date,
       });
 
-      return { ...teacher, full_name: full_name.trim(), email: email.toLowerCase().trim() };
+      return { ...teacher, full_name, email: email_lc };
     });
   },
 
@@ -79,6 +87,15 @@ export const teacherService = {
 
   async update(id, fields) {
     await this.getById(id);
+
+    fields.phone = assertString(fields.phone, 'phone', { required: false, max: 20 });
+    fields.designation = assertString(fields.designation, 'designation', {
+      required: false,
+      max: 100,
+    });
+    fields.qualification = assertString(fields.qualification, 'qualification', { required: false });
+    fields.joining_date = assertDate(fields.joining_date, 'joining_date', { required: false });
+
     const updated = await teacherRepository.update(id, fields);
     if (!updated) throw new AppError('Teacher not found', 404);
     return updated;

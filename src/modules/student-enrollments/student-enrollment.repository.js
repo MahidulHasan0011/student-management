@@ -94,7 +94,8 @@ export const studentEnrollmentRepository = {
   },
 
   async update(id, fields) {
-    const allowed = ['class_id', 'section_id', 'roll_number'];
+    // roll_number ইচ্ছাকৃতভাবে বাদ — শুধু ranking/roll engine (raw SQL) এটা বসায়, CRUD update নয়
+    const allowed = ['class_id', 'section_id'];
     const setClauses = [];
     const params = [];
 

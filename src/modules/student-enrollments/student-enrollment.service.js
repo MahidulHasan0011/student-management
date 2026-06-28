@@ -5,14 +5,18 @@ import { sectionRepository } from '../sections/section.repository.js';
 import { academicSessionRepository } from '../academic-sessions/academic-session.repository.js';
 import { AppError } from '../../utils/appError.js';
 import { getPagination, buildMeta } from '../../utils/pagination.js';
+import { assertUuid, assertEnum, ENROLLMENT_TYPES } from '../../utils/validators.js';
 
 export const studentEnrollmentService = {
   // student_id, class_id, academic_session_id আবশ্যক — section_id ঐচ্ছিক
   // (class-এ section থাকলে section_id দিতেই হবে, না থাকলে দেওয়ার দরকার নেই)
-  async create({ student_id, class_id, section_id, academic_session_id }) {
-    if (!student_id || !class_id || !academic_session_id) {
-      throw new AppError('student_id, class_id and academic_session_id are required', 400);
-    }
+  async create({ student_id, class_id, section_id, academic_session_id, enrollment_type }) {
+    student_id = assertUuid(student_id, 'student_id');
+    class_id = assertUuid(class_id, 'class_id');
+    academic_session_id = assertUuid(academic_session_id, 'academic_session_id');
+    section_id = assertUuid(section_id, 'section_id', { required: false });
+    // enrollment_type create-এ persist হয় না (repo নেয় না) — তবু input এলে validate করি
+    assertEnum(enrollment_type, 'enrollment_type', ENROLLMENT_TYPES, { required: false });
 
     const student = await studentRepository.findById(student_id);
     if (!student) throw new AppError('Student not found', 404);
@@ -87,8 +91,12 @@ export const studentEnrollmentService = {
   },
 
   // section পরিবর্তন (transfer) — capacity আবার চেক হবে নতুন section-এর জন্য
+  // roll_number এখানে বদলানো যায় না — ranking/roll engine-ই authoritative (core/roll.engine.js)
   async update(id, { class_id, section_id }) {
     const enrollment = await this.getById(id);
+
+    class_id = assertUuid(class_id, 'class_id', { required: false });
+    section_id = assertUuid(section_id, 'section_id', { required: false });
 
     const targetClassId = class_id || enrollment.class_id;
 

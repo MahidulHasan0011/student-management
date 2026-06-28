@@ -6,12 +6,14 @@ import { calculateGrade } from '../../utils/grade.js';
 import { AppError } from '../../utils/AppError.js';
 import { getPagination, buildMeta } from '../../utils/pagination.js';
 import { withTransaction } from '../../config/db.js';
+import { assertUuid, assertNumber, assertArray } from '../../utils/validators.js';
 
 export const examResultService = {
   async create({ exam_id, student_id, subject_id, marks }) {
-    if (!exam_id || !student_id || !subject_id || marks === undefined) {
-      throw new AppError('exam_id, student_id, subject_id and marks are required', 400);
-    }
+    exam_id = assertUuid(exam_id, 'exam_id');
+    student_id = assertUuid(student_id, 'student_id');
+    subject_id = assertUuid(subject_id, 'subject_id');
+    marks = assertNumber(marks, 'marks', { min: 0, max: 100 });
 
     const exam = await examRepository.findById(exam_id);
     if (!exam) throw new AppError('Exam not found', 404);
@@ -26,10 +28,6 @@ export const examResultService = {
 
     const subject = await subjectRepository.findById(subject_id);
     if (!subject) throw new AppError('Subject not found', 404);
-
-    if (marks < 0 || marks > 100) {
-      throw new AppError('marks must be between 0 and 100', 400);
-    }
 
     const existing = await examResultRepository.findByExamStudentSubject(
       exam_id,
@@ -50,9 +48,8 @@ export const examResultService = {
   // একসাথে অনেক ছাত্রের marks entry — teacher সাধারণত এভাবেই কাজ করেন (একটা exam, একটা subject, ক্লাসের সবাই)
   // entries = [{ student_id, subject_id, marks }, ...]
   async bulkCreate(examId, entries) {
-    if (!Array.isArray(entries) || !entries.length) {
-      throw new AppError('entries must be a non-empty array', 400);
-    }
+    examId = assertUuid(examId, 'examId');
+    entries = assertArray(entries, 'entries');
 
     const exam = await examRepository.findById(examId);
     if (!exam) throw new AppError('Exam not found', 404);
@@ -62,12 +59,9 @@ export const examResultService = {
     }
 
     for (const entry of entries) {
-      if (!entry.student_id || !entry.subject_id || entry.marks === undefined) {
-        throw new AppError('Each entry needs student_id, subject_id and marks', 400);
-      }
-      if (entry.marks < 0 || entry.marks > 100) {
-        throw new AppError(`Invalid marks (${entry.marks}) for student ${entry.student_id}`, 400);
-      }
+      entry.student_id = assertUuid(entry.student_id, 'student_id');
+      entry.subject_id = assertUuid(entry.subject_id, 'subject_id');
+      entry.marks = assertNumber(entry.marks, 'marks', { min: 0, max: 100 });
     }
 
     const enrichedEntries = entries.map((e) => ({
@@ -124,8 +118,7 @@ export const examResultService = {
       throw new AppError('This exam is published — unpublish it first to modify results', 400);
     }
 
-    if (marks === undefined) throw new AppError('marks is required', 400);
-    if (marks < 0 || marks > 100) throw new AppError('marks must be between 0 and 100', 400);
+    marks = assertNumber(marks, 'marks', { min: 0, max: 100 });
 
     const grade = calculateGrade(marks);
     const updated = await examResultRepository.update(id, { marks, grade });

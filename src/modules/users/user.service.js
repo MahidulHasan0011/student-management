@@ -4,14 +4,17 @@ import { roleRepository } from '../roles/role.repository.js';
 import { AppError } from '../../utils/appError.js';
 import { getPagination, buildMeta } from '../../utils/pagination.js';
 import { env } from '../../config/env.js';
+import { assertString, assertUuid, assertEnum, GENDERS } from '../../utils/validators.js';
 
 export const userService = {
   async create({ full_name, email, password, role_id, gender }) {
-    if (!full_name || !email || !password || !role_id) {
-      throw new AppError('full_name, email, password and role_id are required', 400);
-    }
+    full_name = assertString(full_name, 'full_name', { max: 100 });
+    email = assertString(email, 'email', { max: 100 }).toLowerCase();
+    password = assertString(password, 'password', { min: 6 });
+    role_id = assertUuid(role_id, 'role_id');
+    gender = assertEnum(gender, 'gender', GENDERS, { required: false });
 
-    const existing = await userRepository.findByEmail(email.toLowerCase());
+    const existing = await userRepository.findByEmail(email);
     if (existing) throw new AppError('Email already in use', 409);
 
     const role = await roleRepository.findById(role_id);
@@ -20,8 +23,8 @@ export const userService = {
     const hashedPassword = await bcrypt.hash(password, env.BCRYPT_ROUNDS);
 
     return userRepository.create({
-      full_name: full_name.trim(),
-      email: email.toLowerCase().trim(),
+      full_name,
+      email,
       password: hashedPassword,
       role_id,
       gender,
@@ -46,13 +49,22 @@ export const userService = {
   async update(id, fields) {
     await this.getById(id);
 
-    if (fields.email) {
-      const existing = await userRepository.findByEmail(fields.email.toLowerCase());
-      if (existing && existing.id !== id) throw new AppError('Email already in use', 409);
-      fields.email = fields.email.toLowerCase().trim();
+    if (fields.full_name !== undefined) {
+      fields.full_name = assertString(fields.full_name, 'full_name', { max: 100 });
     }
 
-    if (fields.role_id) {
+    if (fields.gender !== undefined) {
+      fields.gender = assertEnum(fields.gender, 'gender', GENDERS, { required: false });
+    }
+
+    if (fields.email !== undefined) {
+      fields.email = assertString(fields.email, 'email', { max: 100 }).toLowerCase();
+      const existing = await userRepository.findByEmail(fields.email);
+      if (existing && existing.id !== id) throw new AppError('Email already in use', 409);
+    }
+
+    if (fields.role_id !== undefined) {
+      fields.role_id = assertUuid(fields.role_id, 'role_id');
       const role = await roleRepository.findById(fields.role_id);
       if (!role) throw new AppError('Role not found', 404);
     }
@@ -63,19 +75,14 @@ export const userService = {
   },
 
   async changePassword(id, { currentPassword, newPassword }) {
-    if (!currentPassword || !newPassword) {
-      throw new AppError('currentPassword and newPassword are required', 400);
-    }
+    currentPassword = assertString(currentPassword, 'currentPassword');
+    newPassword = assertString(newPassword, 'newPassword', { min: 6 });
 
     const user = await userRepository.findWithPassword(id);
     if (!user) throw new AppError('User not found', 404);
 
     const isMatch = await bcrypt.compare(currentPassword, user.password);
     if (!isMatch) throw new AppError('Current password is incorrect', 400);
-
-    if (newPassword.length < 6) {
-      throw new AppError('New password must be at least 6 characters', 400);
-    }
 
     const hashed = await bcrypt.hash(newPassword, env.BCRYPT_ROUNDS);
     await userRepository.updatePassword(id, hashed);

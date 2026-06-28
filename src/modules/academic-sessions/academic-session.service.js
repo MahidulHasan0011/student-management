@@ -2,47 +2,26 @@ import { academicSessionRepository } from './academic-session.repository.js';
 import { AppError } from '../../utils/appError.js';
 import { getPagination, buildMeta } from '../../utils/pagination.js';
 import { withTransaction } from '../../config/db.js';
-
-// ── ছোট ইনপুট validators (library ছাড়া, সব AppError 400 দেয়) ──────────
-// name: string হতে হবে, খালি নয়, varchar(50)-এর মধ্যে
-function validateName(name) {
-  if (typeof name !== 'string' || !name.trim()) {
-    throw new AppError('name is required and must be a non-empty string', 400);
-  }
-  if (name.trim().length > 50) {
-    throw new AppError('name too long (max 50 characters)', 400);
-  }
-}
-
-// date: দিলে string ও parse-যোগ্য হতে হবে (number পাঠালে Date.parse ভুলভাবে মেনে নেয়, তাই typeof check)
-function validateDate(value, field) {
-  if (value === undefined || value === null) return;
-  if (typeof value !== 'string' || Number.isNaN(Date.parse(value))) {
-    throw new AppError(`${field} is invalid (use YYYY-MM-DD)`, 400);
-  }
-}
-
-function validateDateOrder(start_date, end_date) {
-  if (start_date && end_date && new Date(start_date) >= new Date(end_date)) {
-    throw new AppError('start_date must be before end_date', 400);
-  }
-}
+import {
+  assertString,
+  assertDate,
+  assertDateOrder,
+  assertBoolean,
+} from '../../utils/validators.js';
 
 export const academicSessionService = {
   async create({ name, start_date, end_date, admission_test_enabled }) {
-    validateName(name);
-    validateDate(start_date, 'start_date');
-    validateDate(end_date, 'end_date');
-    validateDateOrder(start_date, end_date);
-    if (admission_test_enabled !== undefined && typeof admission_test_enabled !== 'boolean') {
-      throw new AppError('admission_test_enabled must be a boolean', 400);
-    }
+    name = assertString(name, 'name', { max: 50 });
+    assertDate(start_date, 'start_date', { required: false });
+    assertDate(end_date, 'end_date', { required: false });
+    assertDateOrder(start_date, end_date);
+    assertBoolean(admission_test_enabled, 'admission_test_enabled', { required: false });
 
-    const existing = await academicSessionRepository.findByName(name.trim());
+    const existing = await academicSessionRepository.findByName(name);
     if (existing) throw new AppError(`Session "${name}" already exists`, 409);
 
     return academicSessionRepository.create({
-      name: name.trim(),
+      name,
       start_date,
       end_date,
       admission_test_enabled,
@@ -74,16 +53,16 @@ export const academicSessionService = {
     await this.getById(id);
 
     if (fields.name !== undefined) {
-      validateName(fields.name);
-      const existing = await academicSessionRepository.findByName(fields.name.trim());
+      fields.name = assertString(fields.name, 'name', { max: 50 });
+      const existing = await academicSessionRepository.findByName(fields.name);
       if (existing && existing.id !== id) {
         throw new AppError(`Session "${fields.name}" already exists`, 409);
       }
     }
 
-    validateDate(fields.start_date, 'start_date');
-    validateDate(fields.end_date, 'end_date');
-    validateDateOrder(fields.start_date, fields.end_date);
+    assertDate(fields.start_date, 'start_date', { required: false });
+    assertDate(fields.end_date, 'end_date', { required: false });
+    assertDateOrder(fields.start_date, fields.end_date);
 
     const updated = await academicSessionRepository.update(id, fields);
     if (!updated) throw new AppError('Academic session not found', 404);

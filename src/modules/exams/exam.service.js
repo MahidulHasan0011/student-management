@@ -4,16 +4,23 @@ import { academicSessionRepository } from '../academic-sessions/academic-session
 import { AppError } from '../../utils/appError.js';
 import { getPagination, buildMeta } from '../../utils/pagination.js';
 import { rankingService } from '../ranking/ranking.service.js';
-
-const VALID_EXAM_TYPES = ['ADMISSION', 'UNIT_TEST', 'MIDTERM', 'FINAL'];
+import {
+  assertString,
+  assertUuid,
+  assertDate,
+  assertEnum,
+  EXAM_TYPES,
+} from '../../utils/validators.js';
 
 export const examService = {
   async create({ name, class_id, academic_session_id, exam_date, exam_type }) {
-    if (!name) throw new AppError('name is required', 400);
-
-    if (exam_type && !VALID_EXAM_TYPES.includes(exam_type)) {
-      throw new AppError(`exam_type must be one of: ${VALID_EXAM_TYPES.join(', ')}`, 400);
-    }
+    name = assertString(name, 'name', { max: 100 });
+    class_id = assertUuid(class_id, 'class_id', { required: false });
+    academic_session_id = assertUuid(academic_session_id, 'academic_session_id', {
+      required: false,
+    });
+    exam_date = assertDate(exam_date, 'exam_date', { required: false });
+    exam_type = assertEnum(exam_type, 'exam_type', EXAM_TYPES, { required: false });
 
     if (class_id) {
       const cls = await classRepository.findById(class_id);
@@ -26,7 +33,7 @@ export const examService = {
     }
 
     return examRepository.create({
-      name: name.trim(),
+      name,
       class_id,
       academic_session_id,
       exam_date,
@@ -52,8 +59,22 @@ export const examService = {
   async update(id, fields) {
     await this.getById(id);
 
-    if (fields.exam_type && !VALID_EXAM_TYPES.includes(fields.exam_type)) {
-      throw new AppError(`exam_type must be one of: ${VALID_EXAM_TYPES.join(', ')}`, 400);
+    if (fields.name !== undefined) {
+      fields.name = assertString(fields.name, 'name', { max: 100 });
+    }
+    if (fields.class_id !== undefined) {
+      fields.class_id = assertUuid(fields.class_id, 'class_id', { required: false });
+    }
+    if (fields.academic_session_id !== undefined) {
+      fields.academic_session_id = assertUuid(fields.academic_session_id, 'academic_session_id', {
+        required: false,
+      });
+    }
+    if (fields.exam_date !== undefined) {
+      fields.exam_date = assertDate(fields.exam_date, 'exam_date', { required: false });
+    }
+    if (fields.exam_type !== undefined) {
+      fields.exam_type = assertEnum(fields.exam_type, 'exam_type', EXAM_TYPES, { required: false });
     }
 
     const updated = await examRepository.update(id, fields);

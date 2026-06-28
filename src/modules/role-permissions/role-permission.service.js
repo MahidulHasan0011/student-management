@@ -3,10 +3,12 @@ import { roleRepository } from '../roles/role.repository.js';
 import { permissionRepository } from '../permissions/permission.repository.js';
 import { AppError } from '../../utils/appError.js';
 import { permissionEngine } from '../../core/permission.engine.js';
+import { assertUuid, assertArray } from '../../utils/validators.js';
 
 export const rolePermissionService = {
   // role-এর সব permission লিস্ট দেখাও
   async getByRole(roleId) {
+    roleId = assertUuid(roleId, 'roleId');
     const role = await roleRepository.findById(roleId);
     if (!role) throw new AppError('Role not found', 404);
     return rolePermissionRepository.findByRoleId(roleId);
@@ -14,6 +16,7 @@ export const rolePermissionService = {
 
   // একটা permission কোন কোন role-এ আছে দেখাও
   async getByPermission(permissionId) {
+    permissionId = assertUuid(permissionId, 'permissionId');
     const permission = await permissionRepository.findById(permissionId);
     if (!permission) throw new AppError('Permission not found', 404);
     return rolePermissionRepository.findByPermissionId(permissionId);
@@ -21,6 +24,9 @@ export const rolePermissionService = {
 
   // ── একটা মাত্র permission একটা role-এ assign করা ──
   async assign(roleId, permissionId) {
+    roleId = assertUuid(roleId, 'roleId');
+    permissionId = assertUuid(permissionId, 'permissionId');
+
     const role = await roleRepository.findById(roleId);
     if (!role) throw new AppError('Role not found', 404);
 
@@ -44,6 +50,9 @@ export const rolePermissionService = {
 
   // ── একটা মাত্র permission একটা role থেকে সরিয়ে দেওয়া ──
   async revoke(roleId, permissionId) {
+    roleId = assertUuid(roleId, 'roleId');
+    permissionId = assertUuid(permissionId, 'permissionId');
+
     const role = await roleRepository.findById(roleId);
     if (!role) throw new AppError('Role not found', 404);
 
@@ -57,6 +66,9 @@ export const rolePermissionService = {
   // একসাথে একাধিক permission assign — bulk হলে loop-এ assign() কল করি
   // (duplicate বা invalid id থাকলেও বাকিগুলো চলতে থাকবে, ব্যর্থ হওয়াগুলো রিপোর্ট হবে)
   async assignBulk(roleId, permissionIds) {
+    roleId = assertUuid(roleId, 'roleId');
+    permissionIds = assertArray(permissionIds, 'permissionIds');
+
     const role = await roleRepository.findById(roleId);
     if (!role) throw new AppError('Role not found', 404);
 

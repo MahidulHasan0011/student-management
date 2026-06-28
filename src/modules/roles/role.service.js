@@ -3,13 +3,14 @@ import { permissionRepository } from '../permissions/permission.repository.js';
 import { AppError } from '../../utils/appError.js';
 import { getPagination, buildMeta } from '../../utils/pagination.js';
 import { permissionEngine } from '../../core/permission.engine.js';
+import { assertString } from '../../utils/validators.js';
 
 export const roleService = {
   async create({ name }) {
-    if (!name) throw new AppError('name is required', 400);
-    const existing = await roleRepository.findByName(name.toUpperCase());
+    name = assertString(name, 'name', { max: 50 }).toUpperCase();
+    const existing = await roleRepository.findByName(name);
     if (existing) throw new AppError(`Role "${name}" already exists`, 409);
-    return roleRepository.create({ name: name.toUpperCase() });
+    return roleRepository.create({ name });
   },
 
   async getAll(queryOptions) {
@@ -29,11 +30,11 @@ export const roleService = {
 
   async update(id, { name }) {
     await this.getById(id);
-    if (name) {
-      const existing = await roleRepository.findByName(name.toUpperCase());
-      if (existing && existing.id !== id) throw new AppError(`Role "${name}" already exists`, 409);
-    }
-    const updated = await roleRepository.update(id, { name: name.toUpperCase() });
+    // name হলো roles-এর একমাত্র updatable + NOT NULL কলাম, তাই update-এও required
+    name = assertString(name, 'name', { max: 50 }).toUpperCase();
+    const existing = await roleRepository.findByName(name);
+    if (existing && existing.id !== id) throw new AppError(`Role "${name}" already exists`, 409);
+    const updated = await roleRepository.update(id, { name });
     if (!updated) throw new AppError('Role not found', 404);
     return updated;
   },

@@ -1,13 +1,14 @@
 import { permissionRepository } from './permission.repository.js';
 import { AppError } from '../../utils/appError.js';
 import { getPagination, buildMeta } from '../../utils/pagination.js';
+import { assertString } from '../../utils/validators.js';
 
 export const permissionService = {
   async create({ name }) {
-    if (!name) throw new AppError('name is required', 400);
-    const existing = await permissionRepository.findByName(name.toUpperCase());
+    name = assertString(name, 'name', { max: 100 }).toUpperCase();
+    const existing = await permissionRepository.findByName(name);
     if (existing) throw new AppError(`Permission "${name}" already exists`, 409);
-    return permissionRepository.create({ name: name.toUpperCase() });
+    return permissionRepository.create({ name });
   },
 
   async getAll(queryOptions) {
@@ -29,12 +30,12 @@ export const permissionService = {
 
   async update(id, { name }) {
     await this.getById(id);
-    if (name) {
-      const existing = await permissionRepository.findByName(name.toUpperCase());
-      if (existing && existing.id !== id)
-        throw new AppError(`Permission "${name}" already exists`, 409);
-    }
-    const updated = await permissionRepository.update(id, { name: name.toUpperCase() });
+    // name হলো permissions-এর একমাত্র updatable + NOT NULL কলাম, তাই update-এও required
+    name = assertString(name, 'name', { max: 100 }).toUpperCase();
+    const existing = await permissionRepository.findByName(name);
+    if (existing && existing.id !== id)
+      throw new AppError(`Permission "${name}" already exists`, 409);
+    const updated = await permissionRepository.update(id, { name });
     if (!updated) throw new AppError('Permission not found', 404);
     return updated;
   },

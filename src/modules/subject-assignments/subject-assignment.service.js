@@ -6,15 +6,16 @@ import { subjectRepository } from '../subjects/subject.repository.js';
 import { academicSessionRepository } from '../academic-sessions/academic-session.repository.js';
 import { AppError } from '../../utils/AppError.js';
 import { getPagination, buildMeta } from '../../utils/pagination.js';
+import { assertUuid } from '../../utils/validators.js';
 
 export const subjectAssignmentService = {
   async create({ teacher_id, class_id, section_id, subject_id, academic_session_id, assigned_by }) {
-    if (!teacher_id || !class_id || !subject_id || !academic_session_id) {
-      throw new AppError(
-        'teacher_id, class_id, subject_id and academic_session_id are required',
-        400,
-      );
-    }
+    teacher_id = assertUuid(teacher_id, 'teacher_id');
+    class_id = assertUuid(class_id, 'class_id');
+    subject_id = assertUuid(subject_id, 'subject_id');
+    academic_session_id = assertUuid(academic_session_id, 'academic_session_id');
+    section_id = assertUuid(section_id, 'section_id', { required: false });
+    assigned_by = assertUuid(assigned_by, 'assigned_by', { required: false });
 
     const teacher = await teacherRepository.findById(teacher_id);
     if (!teacher) throw new AppError('Teacher not found', 404);
@@ -107,6 +108,27 @@ export const subjectAssignmentService = {
   // কিন্তু flexibility-র জন্য আংশিক update সাপোর্ট করা হলো
   async update(id, fields) {
     const assignment = await this.getById(id);
+
+    // শুধু provided field-ই validate করি — undefined লিখে দিলে নিচের merged spread-এ
+    // assignment-এর মান মুছে যেত, তাই present থাকলেই reassign করি
+    if (fields.teacher_id !== undefined) {
+      fields.teacher_id = assertUuid(fields.teacher_id, 'teacher_id');
+    }
+    if (fields.class_id !== undefined) {
+      fields.class_id = assertUuid(fields.class_id, 'class_id');
+    }
+    if (fields.section_id !== undefined && fields.section_id !== null) {
+      fields.section_id = assertUuid(fields.section_id, 'section_id');
+    }
+    if (fields.subject_id !== undefined) {
+      fields.subject_id = assertUuid(fields.subject_id, 'subject_id');
+    }
+    if (fields.academic_session_id !== undefined) {
+      fields.academic_session_id = assertUuid(fields.academic_session_id, 'academic_session_id');
+    }
+    if (fields.assigned_by !== undefined && fields.assigned_by !== null) {
+      fields.assigned_by = assertUuid(fields.assigned_by, 'assigned_by');
+    }
 
     if (fields.teacher_id) {
       const teacher = await teacherRepository.findById(fields.teacher_id);

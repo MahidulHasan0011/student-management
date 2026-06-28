@@ -6,6 +6,7 @@ import { AppError } from '../../utils/appError.js';
 import { getPagination, buildMeta } from '../../utils/pagination.js';
 import { withTransaction, query } from '../../config/db.js';
 import { env } from '../../config/env.js';
+import { assertString, assertEnum, assertDate, GENDERS } from '../../utils/validators.js';
 
 // student_code ফরম্যাট: STU-2026-001 (বছর + ক্রমিক নম্বর)
 const generateStudentCode = async (client) => {
@@ -29,11 +30,18 @@ export const studentService = {
     guardian_phone,
     address,
   }) {
-    if (!full_name || !email || !password) {
-      throw new AppError('full_name, email and password are required', 400);
-    }
+    full_name = assertString(full_name, 'full_name', { max: 100 });
+    email = assertString(email, 'email', { max: 100 });
+    password = assertString(password, 'password', { min: 6 });
+    gender = assertEnum(gender, 'gender', GENDERS, { required: false });
+    date_of_birth = assertDate(date_of_birth, 'date_of_birth', { required: false });
+    guardian_name = assertString(guardian_name, 'guardian_name', { required: false, max: 100 });
+    guardian_phone = assertString(guardian_phone, 'guardian_phone', { required: false, max: 20 });
+    address = assertString(address, 'address', { required: false });
 
-    const existing = await userRepository.findByEmail(email.toLowerCase());
+    const email_lc = email.toLowerCase();
+
+    const existing = await userRepository.findByEmail(email_lc);
     if (existing) throw new AppError('Email already in use', 409);
 
     const studentRole = await roleRepository.findByName('STUDENT');
@@ -45,8 +53,8 @@ export const studentService = {
 
     return withTransaction(async (client) => {
       const user = await studentRepository.createUser(client, {
-        full_name: full_name.trim(),
-        email: email.toLowerCase().trim(),
+        full_name,
+        email: email_lc,
         password: hashedPassword,
         role_id: studentRole.id,
         gender,
@@ -63,7 +71,7 @@ export const studentService = {
         address,
       });
 
-      return { ...student, full_name: full_name.trim(), email: email.toLowerCase().trim() };
+      return { ...student, full_name, email: email_lc };
     });
   },
 
@@ -91,6 +99,18 @@ export const studentService = {
 
   async update(id, fields) {
     await this.getById(id);
+
+    fields.date_of_birth = assertDate(fields.date_of_birth, 'date_of_birth', { required: false });
+    fields.guardian_name = assertString(fields.guardian_name, 'guardian_name', {
+      required: false,
+      max: 100,
+    });
+    fields.guardian_phone = assertString(fields.guardian_phone, 'guardian_phone', {
+      required: false,
+      max: 20,
+    });
+    fields.address = assertString(fields.address, 'address', { required: false });
+
     const updated = await studentRepository.update(id, fields);
     if (!updated) throw new AppError('Student not found', 404);
     return updated;

@@ -1,22 +1,24 @@
 import { subjectRepository } from './subject.repository.js';
 import { AppError } from '../../utils/appError.js';
 import { getPagination, buildMeta } from '../../utils/pagination.js';
+import { assertString } from '../../utils/validators.js';
 
 export const subjectService = {
   async create({ name, code }) {
-    if (!name) throw new AppError('name is required', 400);
+    name = assertString(name, 'name', { max: 100 });
+    code = assertString(code, 'code', { required: false, max: 20 })?.toUpperCase();
 
-    const existingName = await subjectRepository.findByName(name.trim());
+    const existingName = await subjectRepository.findByName(name);
     if (existingName) throw new AppError(`Subject "${name}" already exists`, 409);
 
     if (code) {
-      const existingCode = await subjectRepository.findByCode(code.trim().toUpperCase());
+      const existingCode = await subjectRepository.findByCode(code);
       if (existingCode) throw new AppError(`Subject code "${code}" already exists`, 409);
     }
 
     return subjectRepository.create({
-      name: name.trim(),
-      code: code?.trim().toUpperCase(),
+      name,
+      code,
     });
   },
 
@@ -38,20 +40,23 @@ export const subjectService = {
   async update(id, { name, code }) {
     await this.getById(id);
 
+    name = assertString(name, 'name', { required: false, max: 100 });
+    code = assertString(code, 'code', { required: false, max: 20 })?.toUpperCase();
+
     if (name) {
-      const existing = await subjectRepository.findByName(name.trim());
+      const existing = await subjectRepository.findByName(name);
       if (existing && existing.id !== id)
         throw new AppError(`Subject "${name}" already exists`, 409);
     }
     if (code) {
-      const existing = await subjectRepository.findByCode(code.trim().toUpperCase());
+      const existing = await subjectRepository.findByCode(code);
       if (existing && existing.id !== id)
         throw new AppError(`Subject code "${code}" already exists`, 409);
     }
 
     const updated = await subjectRepository.update(id, {
-      name: name?.trim(),
-      code: code?.trim().toUpperCase(),
+      name,
+      code,
     });
     if (!updated) throw new AppError('Subject not found', 404);
     return updated;

@@ -6,6 +6,7 @@ import { AppError } from '../../utils/appError.js';
 import { enqueueRankingJob } from '../../queues/ranking.queue.js';
 import { rankingRepository } from './ranking.repository.js';
 import { cacheService } from '../../services/cache.service.js';
+import { assertUuid } from '../../utils/validators.js';
 
 const CURRENT_TTL = 60 * 60; // current ranking cache 1 ঘন্টা
 const currentKey = (classId, sessionId) => `ranking:current:${classId}:${sessionId}`;
@@ -64,6 +65,11 @@ const checkResultsReady = async (
 export const rankingService = {
   // ── Manual "Generate Roll" বাটন (ধাপ: একবারই, locked থাকলে আটকাবে) ──
   async triggerRankingAndRoll({ classId, academicSessionId, sectionId, triggeredBy }) {
+    classId = assertUuid(classId, 'classId');
+    academicSessionId = assertUuid(academicSessionId, 'academicSessionId');
+    sectionId = assertUuid(sectionId, 'sectionId', { required: false });
+    triggeredBy = assertUuid(triggeredBy, 'triggeredBy', { required: false });
+
     const { session } = await loadClassAndSession(classId, academicSessionId);
 
     const locked = await rankingLockRepository.isLocked(classId, academicSessionId);
@@ -147,6 +153,11 @@ export const rankingService = {
   // ── RECALCULATE_RANKING (admin only) ──
   // ১. unlock → ২.৩.৪. job allowWhenLocked:true দিয়ে recalc+regenerate+history → ৫. job শেষে আবার lock
   async recalculate({ classId, academicSessionId, sectionId, triggeredBy }) {
+    classId = assertUuid(classId, 'classId');
+    academicSessionId = assertUuid(academicSessionId, 'academicSessionId');
+    sectionId = assertUuid(sectionId, 'sectionId', { required: false });
+    triggeredBy = assertUuid(triggeredBy, 'triggeredBy', { required: false });
+
     const { session } = await loadClassAndSession(classId, academicSessionId);
 
     await checkResultsReady(classId, academicSessionId, session.admission_test_enabled, true);
@@ -185,6 +196,10 @@ export const rankingService = {
 
   // ── শুধু unlock (regenerate ছাড়া) — admin ম্যানুয়ালি edit করতে চাইলে ──
   async unlock({ classId, academicSessionId, triggeredBy }) {
+    classId = assertUuid(classId, 'classId');
+    academicSessionId = assertUuid(academicSessionId, 'academicSessionId');
+    triggeredBy = assertUuid(triggeredBy, 'triggeredBy', { required: false });
+
     await loadClassAndSession(classId, academicSessionId);
     const result = await rankingLockRepository.unlock(classId, academicSessionId);
     await rankingRepository.logAudit({
@@ -199,6 +214,9 @@ export const rankingService = {
 
   // ── Read: current ranking (cache-first) ──
   async getRanking(classId, academicSessionId) {
+    classId = assertUuid(classId, 'classId');
+    academicSessionId = assertUuid(academicSessionId, 'academicSessionId');
+
     await loadClassAndSession(classId, academicSessionId);
 
     const key = currentKey(classId, academicSessionId);
@@ -211,6 +229,9 @@ export const rankingService = {
   },
 
   async getHistory(classId, academicSessionId, version) {
+    classId = assertUuid(classId, 'classId');
+    academicSessionId = assertUuid(academicSessionId, 'academicSessionId');
+
     await loadClassAndSession(classId, academicSessionId);
     const v = version != null && version !== '' ? Number(version) : null;
     const [snapshots, versions] = await Promise.all([
@@ -221,6 +242,9 @@ export const rankingService = {
   },
 
   async getAuditLog(classId, academicSessionId) {
+    classId = assertUuid(classId, 'classId');
+    academicSessionId = assertUuid(academicSessionId, 'academicSessionId');
+
     await loadClassAndSession(classId, academicSessionId);
     return rankingRepository.getAuditLog(classId, academicSessionId);
   },

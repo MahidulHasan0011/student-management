@@ -1,15 +1,16 @@
 import { classRepository } from './class.repository.js';
 import { AppError } from '../../utils/appError.js';
 import { getPagination, buildMeta } from '../../utils/pagination.js';
+import { assertString } from '../../utils/validators.js';
 
 export const classService = {
   async create({ name }) {
-    if (!name) throw new AppError('name is required', 400);
+    name = assertString(name, 'name', { max: 50 });
 
-    const existing = await classRepository.findByName(name.trim());
+    const existing = await classRepository.findByName(name);
     if (existing) throw new AppError(`Class "${name}" already exists`, 409);
 
-    return classRepository.create({ name: name.trim() });
+    return classRepository.create({ name });
   },
 
   async getAll(queryOptions) {
@@ -36,11 +37,13 @@ export const classService = {
 
   async update(id, { name }) {
     await this.getById(id);
-    if (name) {
-      const existing = await classRepository.findByName(name.trim());
-      if (existing && existing.id !== id) throw new AppError(`Class "${name}" already exists`, 409);
-    }
-    const updated = await classRepository.update(id, { name: name?.trim() });
+    // name হলো classes-এর একমাত্র updatable + NOT NULL কলাম, তাই update-এও required
+    name = assertString(name, 'name', { max: 50 });
+
+    const existing = await classRepository.findByName(name);
+    if (existing && existing.id !== id) throw new AppError(`Class "${name}" already exists`, 409);
+
+    const updated = await classRepository.update(id, { name });
     if (!updated) throw new AppError('Class not found', 404);
     return updated;
   },

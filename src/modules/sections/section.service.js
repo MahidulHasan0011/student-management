@@ -2,27 +2,23 @@ import { sectionRepository } from './section.repository.js';
 import { classRepository } from '../classes/class.repository.js';
 import { AppError } from '../../utils/appError.js';
 import { getPagination, buildMeta } from '../../utils/pagination.js';
+import { assertString, assertUuid, assertInteger } from '../../utils/validators.js';
 
 export const sectionService = {
   async create({ class_id, name, max_capacity }) {
-    if (!class_id || !name) throw new AppError('class_id and name are required', 400);
+    class_id = assertUuid(class_id, 'class_id');
+    name = assertString(name, 'name', { max: 20 }).toUpperCase();
+    max_capacity = assertInteger(max_capacity, 'max_capacity', { required: false, min: 1 });
 
     const cls = await classRepository.findById(class_id);
     if (!cls) throw new AppError('Class not found', 404);
 
-    const existing = await sectionRepository.findByClassAndName(
-      class_id,
-      name.trim().toUpperCase(),
-    );
+    const existing = await sectionRepository.findByClassAndName(class_id, name);
     if (existing) throw new AppError(`Section "${name}" already exists in this class`, 409);
-
-    if (max_capacity !== undefined && max_capacity !== null && max_capacity < 1) {
-      throw new AppError('max_capacity must be at least 1', 400);
-    }
 
     return sectionRepository.create({
       class_id,
-      name: name.trim().toUpperCase(),
+      name,
       max_capacity,
     });
   },
@@ -58,19 +54,17 @@ export const sectionService = {
   async update(id, { name, max_capacity }) {
     const section = await this.getById(id);
 
+    name = assertString(name, 'name', { required: false, max: 20 })?.toUpperCase();
+    max_capacity = assertInteger(max_capacity, 'max_capacity', { required: false, min: 1 });
+
     if (name) {
-      const existing = await sectionRepository.findByClassAndName(
-        section.class_id,
-        name.trim().toUpperCase(),
-      );
+      const existing = await sectionRepository.findByClassAndName(section.class_id, name);
       if (existing && existing.id !== id) {
         throw new AppError(`Section "${name}" already exists in this class`, 409);
       }
     }
 
-    if (max_capacity !== undefined && max_capacity !== null) {
-      if (max_capacity < 1) throw new AppError('max_capacity must be at least 1', 400);
-
+    if (max_capacity !== undefined) {
       // capacity কমানোর সময় চেক — already enrolled student-এর চেয়ে কম করা যাবে না
       const enrolledCount = await sectionRepository.countEnrolledStudents(id);
       if (max_capacity < enrolledCount) {
@@ -82,7 +76,7 @@ export const sectionService = {
     }
 
     const updated = await sectionRepository.update(id, {
-      name: name?.trim().toUpperCase(),
+      name,
       max_capacity,
     });
     if (!updated) throw new AppError('Section not found', 404);
