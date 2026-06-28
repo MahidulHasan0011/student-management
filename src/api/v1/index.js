@@ -16,6 +16,7 @@ import examResultRoutes from '../../modules/exam-results/exam-result.routes.js';
 import rolePermissionRoutes from '../../modules/role-permissions/role-permission.routes.js';
 import rankingRoutes from '../../modules/ranking/ranking.routes.js';
 import errorLogRoutes from '../../modules/error-logs/error-log.routes.js';
+import uploadRoutes from '../../modules/uploads/upload.routes.js';
 
 const router = Router();
 
@@ -37,5 +38,6 @@ router.use('/results', examResultRoutes);
 router.use('/role-permissions', rolePermissionRoutes);
 router.use('/ranking', rankingRoutes);
 router.use('/error-logs', errorLogRoutes);
+router.use('/uploads', uploadRoutes);
 
 export default router;

@@ -6,10 +6,10 @@ import { rbacMiddleware } from '../../middlewares/rbac.middleware.js';
 const router = Router();
 router.use(authMiddleware);
 
-// error log-এ stack trace ও request context থাকে — তাই শুধু SUPER_ADMIN দেখতে/মুছতে পারবে
-router.get('/', rbacMiddleware('SUPER_ADMIN'), errorLogController.getAll);
-router.get('/:id', rbacMiddleware('SUPER_ADMIN'), errorLogController.getById);
-router.delete('/', rbacMiddleware('SUPER_ADMIN'), errorLogController.clear); // ?before=ISODate দিলে শুধু পুরনোগুলো
-router.delete('/:id', rbacMiddleware('SUPER_ADMIN'), errorLogController.delete);
+// error log-এ stack trace ও request context থাকে — তাই শুধু SUPER_ADMIN-কে এই permission দেওয়া হয় (seed.sql)
+router.get('/', rbacMiddleware('ERROR_LOG_READ'), errorLogController.getAll);
+router.get('/:id', rbacMiddleware('ERROR_LOG_READ'), errorLogController.getById);
+router.delete('/', rbacMiddleware('ERROR_LOG_DELETE'), errorLogController.clear); // ?before=ISODate দিলে শুধু পুরনোগুলো
+router.delete('/:id', rbacMiddleware('ERROR_LOG_DELETE'), errorLogController.delete);
 
 export default router;

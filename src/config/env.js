@@ -15,4 +15,19 @@ export const env = {
   REDIS_PORT: parseInt(process.env.REDIS_PORT) || 6379,
   REDIS_PASSWORD: process.env.REDIS_PASSWORD || '',
   BCRYPT_ROUNDS: parseInt(process.env.BCRYPT_ROUNDS) || 12,
+
+  // ── Object storage (S3-compatible: AWS S3 বা Cloudflare R2) ──────────────
+  // R2 ব্যবহার করলে STORAGE_ENDPOINT = https://<account_id>.r2.cloudflarestorage.com
+  // আর STORAGE_REGION = 'auto' দিন। খাঁটি AWS S3 হলে STORAGE_ENDPOINT খালি রাখুন।
+  STORAGE_PROVIDER: process.env.STORAGE_PROVIDER || 's3', // 's3' | 'r2' (শুধু লগ/ডকুমেন্টেশনের জন্য)
+  STORAGE_ENDPOINT: process.env.STORAGE_ENDPOINT || '', // R2/MinIO-র custom endpoint; AWS হলে খালি
+  STORAGE_REGION: process.env.STORAGE_REGION || 'us-east-1',
+  STORAGE_BUCKET: process.env.STORAGE_BUCKET || '',
+  STORAGE_ACCESS_KEY: process.env.STORAGE_ACCESS_KEY || '',
+  STORAGE_SECRET_KEY: process.env.STORAGE_SECRET_KEY || '',
+  // presigned PUT/GET URL কত সেকেন্ড বৈধ থাকবে
+  STORAGE_UPLOAD_URL_TTL: parseInt(process.env.STORAGE_UPLOAD_URL_TTL) || 300, // 5 min
+  STORAGE_DOWNLOAD_URL_TTL: parseInt(process.env.STORAGE_DOWNLOAD_URL_TTL) || 300, // 5 min
+  // path-style দরকার হলে (MinIO/কিছু R2 সেটআপ) true; AWS virtual-hosted হলে false
+  STORAGE_FORCE_PATH_STYLE: process.env.STORAGE_FORCE_PATH_STYLE === 'true',
 };

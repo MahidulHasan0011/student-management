@@ -1,0 +1,106 @@
+import { AppError } from '../../utils/appError.js';
+import {
+  assertString,
+  assertInteger,
+  assertUuid,
+  assertEnum,
+  assertArray,
+} from '../../utils/validators.js';
+import {
+  UPLOAD_CATEGORIES,
+  UPLOAD_STATUS,
+  normalizeExt,
+  resolveFileType,
+  isGroupAllowedForCategory,
+} from './upload.constants.js';
+
+const STATUSES = Object.values(UPLOAD_STATUS);
+
+// filename থেকে extension বের করি (শেষ ডটের পরের অংশ)
+const extFromName = (name) => {
+  const i = name.lastIndexOf('.');
+  return i >= 0 ? name.slice(i + 1) : '';
+};
+
+export const uploadValidation = {
+  /**
+   * POST /uploads/generate-url এর body যাচাই করে normalized object ফেরত দেয়।
+   * এখানেই হয়: extension + MIME consistency, category policy, size limit।
+   */
+  generateUrl(body = {}) {
+    const original_name = assertString(body.original_name, 'original_name', { max: 255 });
+    const category = assertEnum(body.category, 'category', UPLOAD_CATEGORIES);
+    const file_size = assertInteger(body.file_size, 'file_size', { min: 1 });
+    const mime_type = assertString(body.mime_type, 'mime_type', { max: 127 });
+
+    const ext = normalizeExt(extFromName(original_name));
+    if (!ext) throw new AppError('original_name must include a file extension', 400);
+
+    // ext + MIME একসাথে যাচাই — কোন গ্রুপে পড়ে (spoof ঠেকায়)
+    const resolved = resolveFileType(ext, mime_type);
+    if (!resolved) {
+      throw new AppError(`Unsupported or mismatched file type: .${ext} (${mime_type})`, 400);
+    }
+
+    // এই category-তে এই গ্রুপ allowed কিনা
+    if (!isGroupAllowedForCategory(category, resolved.group)) {
+      throw new AppError(`${resolved.group} files are not allowed for category ${category}`, 400);
+    }
+
+    // size limit (গ্রুপভিত্তিক)
+    if (file_size > resolved.maxBytes) {
+      const limitMb = Math.round(resolved.maxBytes / (1024 * 1024));
+      throw new AppError(`File too large — max ${limitMb}MB for ${resolved.group}`, 400);
+    }
+
+    // ঐচ্ছিক polymorphic link
+    const related_type = assertString(body.related_type, 'related_type', {
+      required: false,
+      max: 50,
+    });
+    const related_id = assertUuid(body.related_id, 'related_id', { required: false });
+
+    return {
+      original_name,
+      category,
+      mime_type: resolved.mime,
+      extension: resolved.ext,
+      file_size,
+      group: resolved.group,
+      related_type,
+      related_id,
+    };
+  },
+
+  /** POST /uploads/confirm */
+  confirm(body = {}) {
+    return {
+      upload_id: assertUuid(body.upload_id, 'upload_id'),
+      // client চাইলে নিজের হিসাব করা checksum পাঠাতে পারে (ঐচ্ছিক)
+      checksum: assertString(body.checksum, 'checksum', { required: false, max: 128 }),
+    };
+  },
+
+  /** GET /uploads list query → normalized filters (page/limit pagination util সামলাবে) */
+  listQuery(query = {}) {
+    return {
+      category: assertEnum(query.category, 'category', UPLOAD_CATEGORIES, { required: false }),
+      status: assertEnum(query.status, 'status', STATUSES, { required: false }),
+      uploaded_by: assertUuid(query.uploaded_by, 'uploaded_by', { required: false }),
+      related_type: assertString(query.related_type, 'related_type', { required: false, max: 50 }),
+      related_id: assertUuid(query.related_id, 'related_id', { required: false }),
+      search: assertString(query.search, 'search', { required: false, max: 255 }),
+    };
+  },
+
+  /** :id param */
+  id(params = {}) {
+    return assertUuid(params.id, 'id');
+  },
+
+  /** bulk operation body { ids: [...] } */
+  bulkIds(body = {}) {
+    const ids = assertArray(body.ids, 'ids', { min: 1, max: 100 });
+    return ids.map((id, i) => assertUuid(id, `ids[${i}]`));
+  },
+};
