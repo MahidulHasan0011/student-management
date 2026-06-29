@@ -16,10 +16,11 @@ export const env = {
   REDIS_PASSWORD: process.env.REDIS_PASSWORD || '',
   BCRYPT_ROUNDS: parseInt(process.env.BCRYPT_ROUNDS) || 12,
 
-  // ── Object storage (S3-compatible: AWS S3 বা Cloudflare R2) ──────────────
-  // R2 ব্যবহার করলে STORAGE_ENDPOINT = https://<account_id>.r2.cloudflarestorage.com
-  // আর STORAGE_REGION = 'auto' দিন। খাঁটি AWS S3 হলে STORAGE_ENDPOINT খালি রাখুন।
-  STORAGE_PROVIDER: process.env.STORAGE_PROVIDER || 's3', // 's3' | 'r2' (শুধু লগ/ডকুমেন্টেশনের জন্য)
+  // ── Object storage (S3-compatible: AWS S3 / Cloudflare R2 / MinIO) ───────
+  // R2   : STORAGE_ENDPOINT = https://<account_id>.r2.cloudflarestorage.com, REGION = 'auto'
+  // MinIO: STORAGE_ENDPOINT = http://localhost:9000, FORCE_PATH_STYLE = true, REGION = us-east-1
+  // AWS  : STORAGE_ENDPOINT খালি রাখুন, REGION = প্রকৃত region
+  STORAGE_PROVIDER: process.env.STORAGE_PROVIDER || 's3', // 's3' | 'r2' | 'minio' (শুধু লগ/ডকুমেন্টেশনের জন্য)
   STORAGE_ENDPOINT: process.env.STORAGE_ENDPOINT || '', // R2/MinIO-র custom endpoint; AWS হলে খালি
   STORAGE_REGION: process.env.STORAGE_REGION || 'us-east-1',
   STORAGE_BUCKET: process.env.STORAGE_BUCKET || '',
