@@ -168,4 +168,75 @@ AUTH refresh service
 // "আবার login করো" client-কে দুটোই পাঠাও
 
 
+
+
 presign url :https://www.awesomescreenshot.com/image/61498598?key=2bff9c26d696abbb4ab630656bb4ed43
+
+** MinIO
+Step 1: Docker Install করুন
+যদি Docker না থাকে তাহলে আগে Docker Desktop install করুন।
+
+Windows এ:
+Docker Desktop install
+WSL2 Enable
+Docker চালু করুন
+চেক করুন: docker --version
+
+
+Step 2: MinIO Run করুন
+CMD অথবা PowerShell এ
+
+docker run -d --name minio ^
+-p 9000:9000 ^
+-p 9001:9001 ^
+-e MINIO_ROOT_USER=minioadmin ^
+-e MINIO_ROOT_PASSWORD=minioadmin ^
+-v minio_data:/data ^
+quay.io/minio/minio server /data --console-address ":9001"
+
+
+Linux/Mac হলে
+docker run -d --name minio \
+-p 9000:9000 \
+-p 9001:9001 \
+-e MINIO_ROOT_USER=minioadmin \
+-e MINIO_ROOT_PASSWORD=minioadmin \
+-v minio_data:/data \
+quay.io/minio/minio server /data --console-address ":9001"
+
+
+Step 3: MinIO Console Open করুন
+Browser এ যান : http://localhost:9001
+
+Login
+
+Username:
+minioadmin
+
+Password:
+minioadmin
+
+
+Step 4: Bucket Create করুন
+Console থেকে
+
+Buckets
+↓
+Create Bucket
+↓
+school-erp
+
+Bucket name : school-erp
+
+
+Step 5: আপনার .env Update করুন
+
+STORAGE_PROVIDER=minio
+STORAGE_ENDPOINT=http://localhost:9000
+STORAGE_REGION=us-east-1
+STORAGE_BUCKET=school-erp
+STORAGE_ACCESS_KEY=minioadmin
+STORAGE_SECRET_KEY=minioadmin
+STORAGE_FORCE_PATH_STYLE=true
+STORAGE_UPLOAD_URL_TTL=300
+STORAGE_DOWNLOAD_URL_TTL=300
