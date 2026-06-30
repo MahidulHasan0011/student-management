@@ -326,7 +326,7 @@ npm run db:seed           default roles/permissions/super-admin
 npm run dev
 ```
 
-ডিফল্ট সুপার অ্যাডমিন: admin@school.com / Admin@1234 (লগইন করেই পাসওয়ার্ড বদলে নিতে হবে)
+ডিফল্ট সুপার অ্যাডমিন: admin@school.com / Password@123 (লগইন করেই পাসওয়ার্ড বদলে নিতে হবে)
 
 ---
 

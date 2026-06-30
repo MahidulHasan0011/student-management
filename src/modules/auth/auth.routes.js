@@ -21,7 +21,7 @@ const router = Router();
  *             required: [email, password]
  *             properties:
  *               email: { type: string, format: email, example: admin@school.com }
- *               password: { type: string, format: password, example: 'Admin@123' }
+ *               password: { type: string, format: password, example: 'Password@123' }
  *     responses:
  *       200:
  *         description: লগইন সফল
