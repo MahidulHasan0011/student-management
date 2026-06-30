@@ -15,6 +15,8 @@ export const env = {
   REDIS_PORT: parseInt(process.env.REDIS_PORT) || 6379,
   REDIS_PASSWORD: process.env.REDIS_PASSWORD || '',
   BCRYPT_ROUNDS: parseInt(process.env.BCRYPT_ROUNDS) || 12,
+  // DB connection pool size — টেস্টে অনেক worker একসাথে চললে ছোট রাখা হয় (DB_POOL_MAX)
+  DB_POOL_MAX: parseInt(process.env.DB_POOL_MAX) || 20,
 
   // ── Object storage (S3-compatible: AWS S3 / Cloudflare R2 / MinIO) ───────
   // R2   : STORAGE_ENDPOINT = https://<account_id>.r2.cloudflarestorage.com, REGION = 'auto'
