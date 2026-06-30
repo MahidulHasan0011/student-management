@@ -173,29 +173,29 @@ WHERE name IN ('SESSION_READ');
 -- =============================================================================
 -- STEP 4: USERS
 -- Default password for all: Password@123
--- bcrypt hash: $2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi
+-- bcrypt hash: $2a$12$WMMeHjHJLnX4BXg.9tyNmO.ZaFj7dfhAb.YeQ0.IFtnF4pCEIxZbS
 -- =============================================================================
 
 INSERT INTO public.users (id, full_name, email, password, role_id, is_active, gender) VALUES
-    ('a0000000-0000-0000-0000-000000000001', 'System Super Admin',  'superadmin@school.com',        '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', '00000000-0000-0000-0000-000000000001', TRUE, 'MALE'),
-    ('a0000000-0000-0000-0000-000000000002', 'Karim Admin',          'admin@school.com',             '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', '00000000-0000-0000-0000-000000000002', TRUE, 'MALE'),
-    ('a0000000-0000-0000-0000-000000000003', 'Rohim Uddin',          'rohim@school.com',             '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', '00000000-0000-0000-0000-000000000003', TRUE, 'MALE'),
-    ('a0000000-0000-0000-0000-000000000004', 'Sumaiya Akter',        'sumaiya@school.com',           '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', '00000000-0000-0000-0000-000000000003', TRUE, 'FEMALE'),
-    ('a0000000-0000-0000-0000-000000000005', 'Jamal Hossain',        'jamal@school.com',             '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', '00000000-0000-0000-0000-000000000003', TRUE, 'MALE'),
-    ('a0000000-0000-0000-0000-000000000006', 'Nasrin Begum',         'nasrin@school.com',            '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', '00000000-0000-0000-0000-000000000003', TRUE, 'FEMALE'),
-    ('a0000000-0000-0000-0000-000000000007', 'Faruk Ahmed',          'faruk@school.com',             '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', '00000000-0000-0000-0000-000000000003', TRUE, 'MALE'),
-    ('a0000000-0000-0000-0000-000000000008', 'Roksana Islam',        'roksana@school.com',           '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', '00000000-0000-0000-0000-000000000003', TRUE, 'FEMALE'),
-    ('a0000000-0000-0000-0000-000000000009', 'Rahim Accountant',     'accountant@school.com',        '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', '00000000-0000-0000-0000-000000000005', TRUE, 'MALE'),
-    ('a0000000-0000-0000-0000-000000000010', 'Arif Hasan',           'arif@student.school.com',      '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', '00000000-0000-0000-0000-000000000004', TRUE, 'MALE'),
-    ('a0000000-0000-0000-0000-000000000011', 'Mitu Akter',           'mitu@student.school.com',      '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', '00000000-0000-0000-0000-000000000004', TRUE, 'FEMALE'),
-    ('a0000000-0000-0000-0000-000000000012', 'Sabbir Rahman',        'sabbir@student.school.com',    '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', '00000000-0000-0000-0000-000000000004', TRUE, 'MALE'),
-    ('a0000000-0000-0000-0000-000000000013', 'Tania Sultana',        'tania@student.school.com',     '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', '00000000-0000-0000-0000-000000000004', TRUE, 'FEMALE'),
-    ('a0000000-0000-0000-0000-000000000014', 'Nabil Islam',          'nabil@student.school.com',     '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', '00000000-0000-0000-0000-000000000004', TRUE, 'MALE'),
-    ('a0000000-0000-0000-0000-000000000015', 'Sadia Islam',          'sadia@student.school.com',     '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', '00000000-0000-0000-0000-000000000004', TRUE, 'FEMALE'),
-    ('a0000000-0000-0000-0000-000000000016', 'Rakib Hossain',        'rakib@student.school.com',     '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', '00000000-0000-0000-0000-000000000004', TRUE, 'MALE'),
-    ('a0000000-0000-0000-0000-000000000017', 'Nusrat Jahan',         'nusrat@student.school.com',    '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', '00000000-0000-0000-0000-000000000004', TRUE, 'FEMALE'),
-    ('a0000000-0000-0000-0000-000000000018', 'Imran Khan',           'imran@student.school.com',     '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', '00000000-0000-0000-0000-000000000004', TRUE, 'MALE'),
-    ('a0000000-0000-0000-0000-000000000019', 'Puja Das',             'puja@student.school.com',      '$2b$10$92IXUNpkjO0rOQ5byMi.Ye4oKoEa3Ro9llC/.og/at2.uheWG/igi', '00000000-0000-0000-0000-000000000004', TRUE, 'FEMALE');
+    ('a0000000-0000-0000-0000-000000000001', 'System Super Admin',  'superadmin@school.com',        '$2a$12$WMMeHjHJLnX4BXg.9tyNmO.ZaFj7dfhAb.YeQ0.IFtnF4pCEIxZbS', '00000000-0000-0000-0000-000000000001', TRUE, 'MALE'),
+    ('a0000000-0000-0000-0000-000000000002', 'Karim Admin',          'admin@school.com',             '$2a$12$WMMeHjHJLnX4BXg.9tyNmO.ZaFj7dfhAb.YeQ0.IFtnF4pCEIxZbS', '00000000-0000-0000-0000-000000000002', TRUE, 'MALE'),
+    ('a0000000-0000-0000-0000-000000000003', 'Rohim Uddin',          'rohim@school.com',             '$2a$12$WMMeHjHJLnX4BXg.9tyNmO.ZaFj7dfhAb.YeQ0.IFtnF4pCEIxZbS', '00000000-0000-0000-0000-000000000003', TRUE, 'MALE'),
+    ('a0000000-0000-0000-0000-000000000004', 'Sumaiya Akter',        'sumaiya@school.com',           '$2a$12$WMMeHjHJLnX4BXg.9tyNmO.ZaFj7dfhAb.YeQ0.IFtnF4pCEIxZbS', '00000000-0000-0000-0000-000000000003', TRUE, 'FEMALE'),
+    ('a0000000-0000-0000-0000-000000000005', 'Jamal Hossain',        'jamal@school.com',             '$2a$12$WMMeHjHJLnX4BXg.9tyNmO.ZaFj7dfhAb.YeQ0.IFtnF4pCEIxZbS', '00000000-0000-0000-0000-000000000003', TRUE, 'MALE'),
+    ('a0000000-0000-0000-0000-000000000006', 'Nasrin Begum',         'nasrin@school.com',            '$2a$12$WMMeHjHJLnX4BXg.9tyNmO.ZaFj7dfhAb.YeQ0.IFtnF4pCEIxZbS', '00000000-0000-0000-0000-000000000003', TRUE, 'FEMALE'),
+    ('a0000000-0000-0000-0000-000000000007', 'Faruk Ahmed',          'faruk@school.com',             '$2a$12$WMMeHjHJLnX4BXg.9tyNmO.ZaFj7dfhAb.YeQ0.IFtnF4pCEIxZbS', '00000000-0000-0000-0000-000000000003', TRUE, 'MALE'),
+    ('a0000000-0000-0000-0000-000000000008', 'Roksana Islam',        'roksana@school.com',           '$2a$12$WMMeHjHJLnX4BXg.9tyNmO.ZaFj7dfhAb.YeQ0.IFtnF4pCEIxZbS', '00000000-0000-0000-0000-000000000003', TRUE, 'FEMALE'),
+    ('a0000000-0000-0000-0000-000000000009', 'Rahim Accountant',     'accountant@school.com',        '$2a$12$WMMeHjHJLnX4BXg.9tyNmO.ZaFj7dfhAb.YeQ0.IFtnF4pCEIxZbS', '00000000-0000-0000-0000-000000000005', TRUE, 'MALE'),
+    ('a0000000-0000-0000-0000-000000000010', 'Arif Hasan',           'arif@student.school.com',      '$2a$12$WMMeHjHJLnX4BXg.9tyNmO.ZaFj7dfhAb.YeQ0.IFtnF4pCEIxZbS', '00000000-0000-0000-0000-000000000004', TRUE, 'MALE'),
+    ('a0000000-0000-0000-0000-000000000011', 'Mitu Akter',           'mitu@student.school.com',      '$2a$12$WMMeHjHJLnX4BXg.9tyNmO.ZaFj7dfhAb.YeQ0.IFtnF4pCEIxZbS', '00000000-0000-0000-0000-000000000004', TRUE, 'FEMALE'),
+    ('a0000000-0000-0000-0000-000000000012', 'Sabbir Rahman',        'sabbir@student.school.com',    '$2a$12$WMMeHjHJLnX4BXg.9tyNmO.ZaFj7dfhAb.YeQ0.IFtnF4pCEIxZbS', '00000000-0000-0000-0000-000000000004', TRUE, 'MALE'),
+    ('a0000000-0000-0000-0000-000000000013', 'Tania Sultana',        'tania@student.school.com',     '$2a$12$WMMeHjHJLnX4BXg.9tyNmO.ZaFj7dfhAb.YeQ0.IFtnF4pCEIxZbS', '00000000-0000-0000-0000-000000000004', TRUE, 'FEMALE'),
+    ('a0000000-0000-0000-0000-000000000014', 'Nabil Islam',          'nabil@student.school.com',     '$2a$12$WMMeHjHJLnX4BXg.9tyNmO.ZaFj7dfhAb.YeQ0.IFtnF4pCEIxZbS', '00000000-0000-0000-0000-000000000004', TRUE, 'MALE'),
+    ('a0000000-0000-0000-0000-000000000015', 'Sadia Islam',          'sadia@student.school.com',     '$2a$12$WMMeHjHJLnX4BXg.9tyNmO.ZaFj7dfhAb.YeQ0.IFtnF4pCEIxZbS', '00000000-0000-0000-0000-000000000004', TRUE, 'FEMALE'),
+    ('a0000000-0000-0000-0000-000000000016', 'Rakib Hossain',        'rakib@student.school.com',     '$2a$12$WMMeHjHJLnX4BXg.9tyNmO.ZaFj7dfhAb.YeQ0.IFtnF4pCEIxZbS', '00000000-0000-0000-0000-000000000004', TRUE, 'MALE'),
+    ('a0000000-0000-0000-0000-000000000017', 'Nusrat Jahan',         'nusrat@student.school.com',    '$2a$12$WMMeHjHJLnX4BXg.9tyNmO.ZaFj7dfhAb.YeQ0.IFtnF4pCEIxZbS', '00000000-0000-0000-0000-000000000004', TRUE, 'FEMALE'),
+    ('a0000000-0000-0000-0000-000000000018', 'Imran Khan',           'imran@student.school.com',     '$2a$12$WMMeHjHJLnX4BXg.9tyNmO.ZaFj7dfhAb.YeQ0.IFtnF4pCEIxZbS', '00000000-0000-0000-0000-000000000004', TRUE, 'MALE'),
+    ('a0000000-0000-0000-0000-000000000019', 'Puja Das',             'puja@student.school.com',      '$2a$12$WMMeHjHJLnX4BXg.9tyNmO.ZaFj7dfhAb.YeQ0.IFtnF4pCEIxZbS', '00000000-0000-0000-0000-000000000004', TRUE, 'FEMALE');
 
 
 -- =============================================================================

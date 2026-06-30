@@ -2,7 +2,9 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import morgan from 'morgan';
+import swaggerUi from 'swagger-ui-express';
 import v1Router from './api/v1/index.js';
+import { swaggerSpec } from './config/swagger.js';
 import { errorMiddleware } from './middlewares/error.middleware.js';
 
 const app = express();
@@ -12,6 +14,17 @@ app.use(helmet());
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
+
+// API docs (Swagger UI) — ব্রাউজ: /api/docs , raw spec: /api/docs.json
+app.get('/api/docs.json', (_req, res) => res.json(swaggerSpec));
+app.use(
+  '/api/docs',
+  swaggerUi.serve,
+  swaggerUi.setup(swaggerSpec, {
+    customSiteTitle: 'Student Management API Docs',
+    swaggerOptions: { persistAuthorization: true },
+  }),
+);
 
 //Logging
 if (process.env.NODE_ENV !== 'test') {
