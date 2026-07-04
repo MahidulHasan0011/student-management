@@ -10,7 +10,7 @@ const processor = async (job) => {
     admissionTestEnabled,
     sectionId,
     triggeredBy,
-    allowWhenLocked,
+    allowWhenLocked
   } = job.data;
 
   console.log(`[ranking.job] processing class=${classId} session=${academicSessionId}`);
