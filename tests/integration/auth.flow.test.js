@@ -1,15 +1,15 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import request from 'supertest';
 
-// ── DB + Redis লাগে এমন পূর্ণ ফ্লো টেস্ট ──
-// ডিফল্টভাবে skip — কারণ live Postgres + Redis + seed ডেটা লাগে।
-// চালাতে:  TEST_INTEGRATION=1 npm test
-// আগে নিশ্চিত করুন:  npm run db:fresh  (seed করা admin ইউজার থাকতে হবে)
+// ── Full flow test that requires DB + Redis ──
+// Skipped by default — because it needs a live Postgres + Redis + seed data.
+// To run:  TEST_INTEGRATION=1 npm test
+// First make sure:  npm run db:fresh  (a seeded admin user must exist)
 const RUN = process.env.TEST_INTEGRATION === '1';
 
-// seed.sql-এ থাকা super_admin/admin ক্রেডেনশিয়াল এখানে দিন (env দিয়ে override করা যায়)
+// provide the super_admin/admin credentials from seed.sql here (can be overridden via env)
 const ADMIN_EMAIL = process.env.TEST_ADMIN_EMAIL || 'admin@school.com';
-const ADMIN_PASSWORD = process.env.TEST_ADMIN_PASSWORD || 'Password@123'; // seed.sql ডিফল্ট
+const ADMIN_PASSWORD = process.env.TEST_ADMIN_PASSWORD || 'Password@123'; // seed.sql default
 
 describe.skipIf(!RUN)('auth flow (DB + Redis)', () => {
   let app;
@@ -40,7 +40,7 @@ describe.skipIf(!RUN)('auth flow (DB + Redis)', () => {
     refreshToken = res.body.data.refreshToken;
   });
 
-  it('GET /auth/me টোকেন দিয়ে কাজ করে', async () => {
+  it('GET /auth/me works with token', async () => {
     const res = await request(app)
       .get('/api/v1/auth/me')
       .set('Authorization', `Bearer ${accessToken}`);
@@ -48,13 +48,13 @@ describe.skipIf(!RUN)('auth flow (DB + Redis)', () => {
     expect(res.body.data.email).toBe(ADMIN_EMAIL.toLowerCase());
   });
 
-  it('refresh → নতুন টোকেন জোড়া', async () => {
+  it('refresh → new token pair', async () => {
     const res = await request(app).post('/api/v1/auth/refresh').send({ refreshToken });
     expect(res.status).toBe(200);
     expect(res.body.data.accessToken).toBeTruthy();
   });
 
-  it('ভুল পাসওয়ার্ড → 401', async () => {
+  it('wrong password → 401', async () => {
     const res = await request(app)
       .post('/api/v1/auth/login')
       .send({ email: ADMIN_EMAIL, password: 'wrong-password' });

@@ -2,7 +2,7 @@ import { createWorker } from '../services/queue.service.js';
 import { rankingEngine } from '../core/ranking.engine.js';
 import { enqueueRollJob } from '../queues/roll.queue.js';
 
-// queue থেকে job আসলে এই processor চলে — আসল calculation core/ranking.engine.js করে
+// This processor runs when a job arrives from the queue — the actual calculation is done by core/ranking.engine.js
 const processor = async (job) => {
   const {
     classId,
@@ -19,10 +19,10 @@ const processor = async (job) => {
     classId,
     academicSessionId,
     admissionTestEnabled,
-    allowWhenLocked, // RECALCULATE_RANKING flow থেকে আসলে true থাকবে (ধাপ ৬)
+    allowWhenLocked, // true when it comes from the RECALCULATE_RANKING flow (step 6)
   });
 
-  // ranking শেষ — পরের ধাপ roll.queue-তে পাঠাও (sequential chain), lockedBy-ও সাথে যাচ্ছে
+  // ranking done — send the next step to roll.queue (sequential chain), passing lockedBy along too
   await enqueueRollJob({
     rankedList,
     classId,
@@ -34,5 +34,5 @@ const processor = async (job) => {
   return { rankedCount: rankedList.length };
 };
 
-// "ranking" নামের queue listen করে — server.js বা একটা আলাদা worker process এটা start করবে
+// Listens to the queue named "ranking" — started by server.js or a separate worker process
 export const rankingWorker = createWorker('ranking', processor);

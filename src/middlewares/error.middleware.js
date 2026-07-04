@@ -25,8 +25,8 @@ export const errorMiddleware = (err, req, res, next) => {
     return errorResponse(res, { message: `Field "${err.column}" is required`, statusCode: 400 });
   }
 
-  // এখানে পৌঁছানো মানে unexpected error (operational নয়, কোনো known DB code-ও নয়) → DB-তে log করো
-  // fire-and-forget: log সফল হওয়ার জন্য response আটকে রাখি না; log service নিজেই error swallow করে
+  // Reaching here means an unexpected error (not operational, not a known DB code) → log it to the DB
+  // fire-and-forget: we don't hold the response waiting for the log to succeed; the log service swallows its own errors
   console.error('UNHANDLED ERROR:', err);
   errorLogService.log(err, req);
   return errorResponse(res, { message: 'Internal server error', statusCode: 500 });

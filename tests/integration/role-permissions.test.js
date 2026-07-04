@@ -2,31 +2,31 @@ import request from 'supertest';
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { RUN, API, uniq, connect, disconnect, get, post, del } from './_helpers.js';
 
-// role-permission write-ops ROLE_UPDATE + role CREATE/DELETE দরকার — শুধু SUPER_ADMIN-এ আছে।
+// role-permission write-ops need ROLE_UPDATE + role CREATE/DELETE — only SUPER_ADMIN has them.
 async function superAdminToken(app) {
   const res = await request(app)
     .post(`${API}/auth/login`)
     .send({ email: 'superadmin@school.com', password: 'Password@123' });
   const token = res.body?.data?.accessToken;
-  if (!token) throw new Error(`Super-admin login ব্যর্থ (status ${res.status})`);
+  if (!token) throw new Error(`Super-admin login failed (status ${res.status})`);
   return token;
 }
 
 describe.skipIf(!RUN)('Role-Permissions API (integration)', () => {
   let app, token;
-  let roleId; // টেস্টের জন্য বানানো fresh role
-  let permissionId; // assign/revoke করার জন্য আসল permission
+  let roleId; // fresh role created for the test
+  let permissionId; // real permission to assign/revoke
 
   beforeAll(async () => {
     ({ app } = await connect());
     token = await superAdminToken(app);
 
-    // fresh role বানাই — যাতে seed role-এর state নষ্ট না হয়
+    // create a fresh role — so the seed role's state is not corrupted
     const roleRes = await post(app, token, '/roles', { name: uniq('RPROLE') });
     expect([200, 201]).toContain(roleRes.status);
     roleId = roleRes.body.data.id;
 
-    // নিজস্ব permission বানাই — sibling suite-এর সাথে race এড়াতে
+    // create our own permission — to avoid a race with a sibling suite
     const permRes = await post(app, token, '/permissions', { name: uniq('RPPERM') });
     expect([200, 201]).toContain(permRes.status);
     permissionId = permRes.body.data.id;
@@ -34,7 +34,7 @@ describe.skipIf(!RUN)('Role-Permissions API (integration)', () => {
   });
 
   afterAll(async () => {
-    // cleanup — বানানো role + permission মুছে দিই
+    // cleanup — delete the created role + permission
     if (roleId) await del(app, token, `/roles/${roleId}`);
     if (permissionId) await del(app, token, `/permissions/${permissionId}`);
     await disconnect();
@@ -47,7 +47,7 @@ describe.skipIf(!RUN)('Role-Permissions API (integration)', () => {
     expect(Array.isArray(res.body.data)).toBe(true);
   });
 
-  it('GET /role-permissions টোকেন ছাড়া → 401', async () => {
+  it('GET /role-permissions without token → 401', async () => {
     const res = await get(app, 'invalid-token', `/role-permissions/role/${roleId}`);
     expect(res.status).toBe(401);
   });
@@ -59,17 +59,17 @@ describe.skipIf(!RUN)('Role-Permissions API (integration)', () => {
     expect(res.body.data).toHaveProperty('id');
   });
 
-  it('POST /role-permissions আবার একই → 409', async () => {
+  it('POST /role-permissions same again → 409', async () => {
     const res = await post(app, token, '/role-permissions', { roleId, permissionId });
     expect(res.status).toBe(409);
   });
 
-  it('POST /role-permissions অসম্পূর্ণ body → 400', async () => {
+  it('POST /role-permissions incomplete body → 400', async () => {
     const res = await post(app, token, '/role-permissions', { roleId });
     expect(res.status).toBe(400);
   });
 
-  it('GET /role-permissions/role/{roleId} → assign করা permission দেখা যায়', async () => {
+  it('GET /role-permissions/role/{roleId} → the assigned permission is visible', async () => {
     const res = await get(app, token, `/role-permissions/role/${roleId}`);
     expect(res.status).toBe(200);
     const ids = res.body.data.map((rp) => rp.permission_id || rp.permissionId);
@@ -82,7 +82,7 @@ describe.skipIf(!RUN)('Role-Permissions API (integration)', () => {
     expect(res.body.success).toBe(true);
   });
 
-  it('DELETE /role-permissions আবার (assign নেই) → 404', async () => {
+  it('DELETE /role-permissions again (no assignment) → 404', async () => {
     const res = await del(app, token, '/role-permissions').send({ roleId, permissionId });
     expect(res.status).toBe(404);
   });

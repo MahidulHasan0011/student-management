@@ -15,22 +15,22 @@ export const env = {
   REDIS_PORT: parseInt(process.env.REDIS_PORT) || 6379,
   REDIS_PASSWORD: process.env.REDIS_PASSWORD || '',
   BCRYPT_ROUNDS: parseInt(process.env.BCRYPT_ROUNDS) || 12,
-  // DB connection pool size — টেস্টে অনেক worker একসাথে চললে ছোট রাখা হয় (DB_POOL_MAX)
+  // DB connection pool size — kept small when many workers run at once during tests (DB_POOL_MAX)
   DB_POOL_MAX: parseInt(process.env.DB_POOL_MAX) || 20,
 
   // ── Object storage (S3-compatible: AWS S3 / Cloudflare R2 / MinIO) ───────
   // R2   : STORAGE_ENDPOINT = https://<account_id>.r2.cloudflarestorage.com, REGION = 'auto'
   // MinIO: STORAGE_ENDPOINT = http://localhost:9000, FORCE_PATH_STYLE = true, REGION = us-east-1
-  // AWS  : STORAGE_ENDPOINT খালি রাখুন, REGION = প্রকৃত region
-  STORAGE_PROVIDER: process.env.STORAGE_PROVIDER || 's3', // 's3' | 'r2' | 'minio' (শুধু লগ/ডকুমেন্টেশনের জন্য)
-  STORAGE_ENDPOINT: process.env.STORAGE_ENDPOINT || '', // R2/MinIO-র custom endpoint; AWS হলে খালি
+  // AWS  : leave STORAGE_ENDPOINT empty, REGION = the actual region
+  STORAGE_PROVIDER: process.env.STORAGE_PROVIDER || 's3', // 's3' | 'r2' | 'minio' (for logging/documentation only)
+  STORAGE_ENDPOINT: process.env.STORAGE_ENDPOINT || '', // custom endpoint for R2/MinIO; empty for AWS
   STORAGE_REGION: process.env.STORAGE_REGION || 'us-east-1',
   STORAGE_BUCKET: process.env.STORAGE_BUCKET || '',
   STORAGE_ACCESS_KEY: process.env.STORAGE_ACCESS_KEY || '',
   STORAGE_SECRET_KEY: process.env.STORAGE_SECRET_KEY || '',
-  // presigned PUT/GET URL কত সেকেন্ড বৈধ থাকবে
+  // how many seconds the presigned PUT/GET URL stays valid
   STORAGE_UPLOAD_URL_TTL: parseInt(process.env.STORAGE_UPLOAD_URL_TTL) || 300, // 5 min
   STORAGE_DOWNLOAD_URL_TTL: parseInt(process.env.STORAGE_DOWNLOAD_URL_TTL) || 300, // 5 min
-  // path-style দরকার হলে (MinIO/কিছু R2 সেটআপ) true; AWS virtual-hosted হলে false
+  // true if path-style is needed (MinIO/some R2 setups); false for AWS virtual-hosted
   STORAGE_FORCE_PATH_STYLE: process.env.STORAGE_FORCE_PATH_STYLE === 'true',
 };

@@ -1,19 +1,19 @@
 import { query } from '../config/db.js';
 import { AppError } from '../utils/appError.js';
 import { rankingLockRepository } from '../modules/ranking-locks/ranking-lock.repository.js';
-// ── Core business logic — কোনো HTTP/queue/job জানে না, শুধু calculation ──
-// এই ফাইলটা ranking.job.js কল করবে।
+// ── Core business logic — knows nothing about HTTP/queue/job, just calculation ──
+// This file is called by ranking.job.js.
 //
 // Scenario 1 (admission_test_enabled = false):
-//   OLD student: QUIZ+MID+FINAL merit list rank (student_merit_list view থেকে)
-//   NEW student: admission_date/created_at অনুযায়ী FIFO rank, merit list-এর পরে শুরু
+//   OLD student: QUIZ+MID+FINAL merit list rank (from the student_merit_list view)
+//   NEW student: FIFO rank by admission_date/created_at, starting after the merit list
 //
 // Scenario 2 (admission_test_enabled = true):
-//   OLD ও NEW — দুই দলকেই একসাথে merge করে single merit list, score অনুযায়ী rank
-//   (OLD-এর score = QUIZ+MID+FINAL, NEW-এর score = ADMISSION)
+//   OLD and NEW — both groups merged into a single merit list, ranked by score
+//   (OLD score = QUIZ+MID+FINAL, NEW score = ADMISSION)
 export const rankingEngine = {
-  // class+session-এর OLD student-দের merit list — student_merit_list view থেকে
-  // (database/views/student_merit_list.sql — QUIZ+MID+FINAL যোগ করে, tie-break সহ rank দেয়)
+  // Merit list of OLD students for a class+session — from the student_merit_list view
+  // (database/views/student_merit_list.sql — sums QUIZ+MID+FINAL and ranks with tie-breaking)
   async calculateOldStudentMeritList(classId, academicSessionId) {
     const { rows } = await query(
       `SELECT * FROM student_merit_list
@@ -24,7 +24,7 @@ export const rankingEngine = {
     return rows;
   },
 
-  // NEW student-দের ADMISSION exam score — Scenario 2-এ merit list-এ merge করার জন্য
+  // ADMISSION exam scores of NEW students — for merging into the merit list in Scenario 2
   async calculateNewStudentAdmissionScores(classId, academicSessionId) {
     const { rows } = await query(
       `SELECT
@@ -57,11 +57,11 @@ export const rankingEngine = {
     return rows;
   },
 
-  // ── deterministic sort — document-এর ৫ ধাপের tie-breaking rule এখানে আবার apply করা হয়
-  // (Scenario 2-এ OLD+NEW merge করার পর নতুন করে rank বসাতে হয়, তাই sort logic এখানে লাগবে) ──
+  // ── deterministic sort — the document's 5-step tie-breaking rule is re-applied here
+  // (in Scenario 2, ranks must be re-assigned after merging OLD+NEW, so the sort logic is needed here) ──
   _sortAndRank(students) {
-    // Postgres numeric/SUM string হিসেবে আসে — তুলনার আগে Number()-এ আনা জরুরি,
-    // আর merit-view "midterm_score" দেয় কিন্তু admission rows "mid_score" — দুটোই handle
+    // Postgres numeric/SUM comes as a string — it must be passed through Number() before comparing,
+    // and the merit-view gives "midterm_score" while admission rows give "mid_score" — handle both
     const num = (v) => Number(v) || 0;
     const finalOf = (r) => num(r.final_score);
     const midOf = (r) => num(r.mid_score ?? r.midterm_score);
@@ -85,8 +85,8 @@ export const rankingEngine = {
     return sorted.map((row, index) => ({ ...row, rank_position: index + 1 }));
   },
 
-  // class + session-এর NEW student-দের (যাদের কোনো admission result নেই, roll_number এখনো null)
-  // admission_date/created_at অনুযায়ী FIFO rank — rank শুরু হয় merit list-এর পরের নম্বর থেকে
+  // FIFO rank by admission_date/created_at for NEW students of a class + session
+  // (those with no admission result, roll_number still null) — rank starts from the number after the merit list
   async calculateFifoRanking(classId, academicSessionId, startRank) {
     const { rows } = await query(
       `SELECT
@@ -103,7 +103,7 @@ export const rankingEngine = {
       [classId, academicSessionId],
     );
 
-    // FIFO student-দের কোনো exam score নেই → total_score = 0 (history snapshot-এ লাগবে)
+    // FIFO students have no exam score → total_score = 0 (needed for the history snapshot)
     return rows.map((row, index) => ({
       ...row,
       total_score: 0,
@@ -111,12 +111,12 @@ export const rankingEngine = {
     }));
   },
 
-  // ── মূল entry point — Scenario 1/2 অনুযায়ী সঠিক ranking তৈরি করে roll.engine.js-কে পাঠায় ──
-  // গুরুত্বপূর্ণ rule: ranking/roll শুধুমাত্র FINAL exam publish হলেই চলবে (caller আগেই চেক করে আসে)
+  // ── main entry point — builds the correct ranking per Scenario 1/2 and passes it to roll.engine.js ──
+  // important rule: ranking/roll only runs once the FINAL exam is published (the caller checks this beforehand)
   //
-  // allowWhenLocked = true হলে lock check skip হয় — এটা শুধু RECALCULATE_RANKING manual
-  // flow ব্যবহার করবে (ধাপ ৬), যেখানে admin আগেই explicit unlock করে এই flow চালু করেছেন।
-  // স্বাভাবিক auto-trigger এই flag কখনো true পাঠাবে না।
+  // when allowWhenLocked = true the lock check is skipped — only the RECALCULATE_RANKING manual
+  // flow uses this (step 6), where the admin has already explicitly unlocked and started this flow.
+  // The normal auto-trigger never passes this flag as true.
   async buildCombinedRanking({
     classId,
     academicSessionId,
@@ -136,7 +136,7 @@ export const rankingEngine = {
     const oldMeritList = await this.calculateOldStudentMeritList(classId, academicSessionId);
 
     if (!admissionTestEnabled) {
-      // ── Scenario 1 ── OLD ranked, NEW FIFO পরে
+      // ── Scenario 1 ── OLD ranked, NEW FIFO afterwards
       if (!oldMeritList.length) {
         throw new AppError(
           'No published FINAL results found for this class — cannot calculate ranking',
@@ -148,7 +148,7 @@ export const rankingEngine = {
       return [...oldMeritList, ...fifoList];
     }
 
-    // ── Scenario 2 ── OLD + NEW merge করে single merit list, score দিয়ে rank
+    // ── Scenario 2 ── merge OLD + NEW into a single merit list, ranked by score
     const newAdmissionScores = await this.calculateNewStudentAdmissionScores(
       classId,
       academicSessionId,

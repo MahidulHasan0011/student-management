@@ -1,32 +1,32 @@
 import { defineConfig } from 'vitest/config';
 import { config as loadEnv } from 'dotenv';
 
-// config লোড হওয়ার সময় (Node context) .env পড়ে নিই — এই মানগুলো নিচে test.env-এ
-// inject হয়, ফলে টেস্ট ফাইলের টপ-লেভেল কোডেও (যেমন process.env.TEST_INTEGRATION)
-// পাওয়া যায়। named import — default-interop undefined সমস্যা এড়াতে (single-file run-এও স্থিতিশীল)।
+// Read .env while the config loads (Node context) — these values are injected into test.env
+// below, so they're also available in top-level test-file code (e.g. process.env.TEST_INTEGRATION).
+// named import — to avoid the default-interop undefined issue (stable even on a single-file run).
 const fileEnv = (loadEnv?.() || {}).parsed || {};
 
 export default defineConfig({
   test: {
-    // describe/it/expect গ্লোবাল — import ছাড়াই ব্যবহার করা যাবে
+    // describe/it/expect globals — usable without importing
     globals: true,
     environment: 'node',
     include: ['tests/**/*.test.js'],
-    // app import করলে db pool connect চেষ্টা করে; DB না থাকলে hang এড়াতে fork pool
+    // importing app tries to connect the db pool; use a fork pool to avoid a hang when the DB is absent
     pool: 'forks',
-    // concurrency সীমিত — Postgres connection limit (hosted-এ প্রায়ই ১৫) যেন না ছাড়ায়।
-    // সর্বোচ্চ সংযোগ ≈ maxWorkers × DB_POOL_MAX = 2 × 4 = 8
+    // limited concurrency — so it doesn't exceed the Postgres connection limit (often 15 on hosted).
+    // max connections ≈ maxWorkers × DB_POOL_MAX = 2 × 4 = 8
     maxWorkers: 2,
     minWorkers: 1,
     testTimeout: 20000,
     env: {
-      // .env-এর সব মান (TEST_INTEGRATION, TEST_ADMIN_*, DATABASE_URL, REDIS_* ...)
+      // all values from .env (TEST_INTEGRATION, TEST_ADMIN_*, DATABASE_URL, REDIS_* ...)
       ...fileEnv,
-      // টেস্টের জন্য জোর করে predictable মান — .env-এর উপরে অগ্রাধিকার পায়
+      // forced predictable values for tests — take priority over .env
       NODE_ENV: 'test',
       JWT_ACCESS_SECRET: 'test_access_secret',
       JWT_REFRESH_SECRET: 'test_refresh_secret',
-      DB_POOL_MAX: '4', // টেস্টে ছোট pool — parallel worker × pool যেন connection limit না ছাড়ায়
+      DB_POOL_MAX: '4', // small pool in tests — so parallel workers × pool doesn't exceed the connection limit
     },
     coverage: {
       provider: 'v8',

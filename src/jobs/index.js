@@ -1,7 +1,7 @@
 // ── Worker bootstrap ──
-// এই ফাইল import করলেই ranking + roll worker চালু হয়ে queue listen করা শুরু করে।
-// server.js এটা import করে (একই process), অথবা চাইলে আলাদা worker process-এ
-// `node src/jobs/index.js` দিয়েও চালানো যায় (production-এ API থেকে আলাদা scale করতে)।
+// Importing this file starts the ranking + roll workers and they begin listening to the queue.
+// server.js imports it (same process), or if preferred it can be run as a separate worker process
+// via `node src/jobs/index.js` (to scale independently from the API in production).
 import { rankingWorker } from './ranking.job.js';
 import { rollWorker } from './roll.job.js';
 

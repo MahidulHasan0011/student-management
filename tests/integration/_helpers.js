@@ -1,13 +1,13 @@
 // ─────────────────────────────────────────────────────────────────────────
-// Integration test helpers — সব module-test ফাইল এটা ব্যবহার করে।
+// Integration test helpers — used by every module-test file.
 //
-// চালানোর শর্ত (নাহলে সব suite skip হবে):
-//   1. Postgres + Redis চালু
-//   2. npm run db:fresh  (seed করা — নিচের SEED.* UUID গুলো এখান থেকেই আসে)
+// Prerequisites to run (otherwise all suites are skipped):
+//   1. Postgres + Redis running
+//   2. npm run db:fresh  (seeded — the SEED.* UUIDs below come from here)
 //   3. TEST_INTEGRATION=1 npm run test:integration
 //
-// প্রতিটি test ফাইল আলাদা worker process-এ চলে (vitest forks), তাই app/redis/pool
-// per-file singleton — connect() beforeAll-এ, disconnect() afterAll-এ।
+// Each test file runs in a separate worker process (vitest forks), so app/redis/pool
+// are per-file singletons — connect() in beforeAll, disconnect() in afterAll.
 // ─────────────────────────────────────────────────────────────────────────
 import request from 'supertest';
 
@@ -18,7 +18,7 @@ export const ADMIN_PASSWORD = process.env.TEST_ADMIN_PASSWORD || 'Password@123';
 
 export const API = '/api/v1';
 
-// seed.sql-এর fixed UUID — db:fresh করলে গ্যারান্টিড থাকবে
+// fixed UUIDs from seed.sql — guaranteed to exist after db:fresh
 export const SEED = {
   roles: {
     superAdmin: '00000000-0000-0000-0000-000000000001',
@@ -79,11 +79,11 @@ export const SEED = {
   },
 };
 
-// টেস্টের মধ্যে unique নাম/কোড/ইমেইল বানাতে — duplicate/unique-constraint এড়াতে
+// generates unique names/codes/emails within tests — to avoid duplicate/unique-constraint errors
 let _seq = 0;
 export const uniq = (prefix = 'T') => `${prefix}_${Date.now().toString(36)}_${_seq++}`;
 
-// app + admin token নিয়ে আসে; redis connect করে। beforeAll-এ কল করুন।
+// fetches app + admin token; connects redis. Call this in beforeAll.
 export async function connect() {
   const redis = (await import('../../src/config/redis.js')).default;
   if (!redis.isOpen) await redis.connect();
@@ -96,13 +96,13 @@ export async function connect() {
   const token = res.body?.data?.accessToken;
   if (!token) {
     throw new Error(
-      `Admin login ব্যর্থ (status ${res.status}). db:fresh করেছেন তো? credential: ${ADMIN_EMAIL} / ${ADMIN_PASSWORD}`,
+      `Admin login failed (status ${res.status}). Did you run db:fresh? credentials: ${ADMIN_EMAIL} / ${ADMIN_PASSWORD}`,
     );
   }
   return { app, token, redis };
 }
 
-// redis + db pool বন্ধ করে — afterAll-এ কল করুন (worker পরিষ্কারভাবে exit করতে)।
+// closes redis + db pool — call this in afterAll (so the worker exits cleanly).
 export async function disconnect() {
   try {
     const redis = (await import('../../src/config/redis.js')).default;
@@ -118,7 +118,7 @@ export async function disconnect() {
   }
 }
 
-// supertest helper — Bearer header বসিয়ে দেয়।  await get(app, token, '/students')
+// supertest helper — sets the Bearer header.  await get(app, token, '/students')
 export const get = (app, token, path) =>
   request(app).get(`${API}${path}`).set('Authorization', `Bearer ${token}`);
 export const post = (app, token, path, body) =>

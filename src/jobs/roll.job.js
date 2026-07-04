@@ -2,8 +2,8 @@ import { createWorker } from '../services/queue.service.js';
 import { rollEngine } from '../core/roll.engine.js';
 import { cacheService } from '../services/cache.service.js';
 
-// ranking.job.js এই queue-তে job পাঠায় (rankedList সহ) — এখানে আসল roll_number বসানো হয়,
-// history সংরক্ষণ হয় এবং ranking lock হয় (সব roll.engine একটাই transaction-এ করে)
+// ranking.job.js sends jobs to this queue (with rankedList) — here the actual roll_number is assigned,
+// history is saved, and the ranking is locked (roll.engine does it all in a single transaction)
 const processor = async (job) => {
   const { rankedList, classId, academicSessionId, sectionId, lockedBy } = job.data;
 
@@ -17,11 +17,11 @@ const processor = async (job) => {
     lockedBy,
   });
 
-  // নতুন snapshot তৈরি হয়েছে → stale current-ranking cache সরিয়ে দাও
+  // a new snapshot was created → remove the stale current-ranking cache
   await cacheService.del(`ranking:current:${classId}:${academicSessionId}`);
 
   return { assignedCount: results.length, version };
 };
 
-// "roll" নামের queue listen করে
+// Listens to the queue named "roll"
 export const rollWorker = createWorker('roll', processor);

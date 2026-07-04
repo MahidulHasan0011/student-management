@@ -1,10 +1,10 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { RUN, SEED, uniq, connect, disconnect, get, post, patch, del } from './_helpers.js';
 
-// টেমপ্লেট ফাইল — বাকি module-test এই প্যাটার্নই অনুসরণ করে।
+// template file — the rest of the module tests follow this pattern.
 describe.skipIf(!RUN)('Students API (integration)', () => {
   let app, token;
-  let createdId; // lifecycle জুড়ে তৈরি করা student-এর id
+  let createdId; // id of the student created across the lifecycle
 
   beforeAll(async () => {
     ({ app, token } = await connect());
@@ -21,12 +21,12 @@ describe.skipIf(!RUN)('Students API (integration)', () => {
     expect(res.body.meta).toHaveProperty('total');
   });
 
-  it('GET /students টোকেন ছাড়া → 401', async () => {
+  it('GET /students without token → 401', async () => {
     const res = await get(app, 'invalid-token', '/students');
     expect(res.status).toBe(401);
   });
 
-  it('POST /students → 201 নতুন student তৈরি', async () => {
+  it('POST /students → 201 create new student', async () => {
     const email = `${uniq('student')}@test.school.com`;
     const res = await post(app, token, '/students', {
       full_name: 'Test Student',
@@ -45,7 +45,7 @@ describe.skipIf(!RUN)('Students API (integration)', () => {
     createdId = res.body.data.id;
   });
 
-  it('POST /students ডুপ্লিকেট email → 409', async () => {
+  it('POST /students duplicate email → 409', async () => {
     const email = `${uniq('dup')}@test.school.com`;
     const body = { full_name: 'Dup', email, password: 'Password@123' };
     await post(app, token, '/students', body);
@@ -53,25 +53,25 @@ describe.skipIf(!RUN)('Students API (integration)', () => {
     expect(res.status).toBe(409);
   });
 
-  it('POST /students অসম্পূর্ণ body → 400', async () => {
+  it('POST /students incomplete body → 400', async () => {
     const res = await post(app, token, '/students', { full_name: 'No Email' });
     expect(res.status).toBe(400);
   });
 
-  it('GET /students/{id} → 200 সদ্য তৈরি student', async () => {
+  it('GET /students/{id} → 200 just-created student', async () => {
     expect(createdId).toBeTruthy();
     const res = await get(app, token, `/students/${createdId}`);
     expect(res.status).toBe(200);
     expect(res.body.data.id).toBe(createdId);
   });
 
-  it('GET /students/{id}/enrollment → 200 (enrollment null হতে পারে)', async () => {
+  it('GET /students/{id}/enrollment → 200 (enrollment may be null)', async () => {
     const res = await get(app, token, `/students/${SEED.students.s1}/enrollment`);
     expect(res.status).toBe(200);
     expect(res.body.data).toHaveProperty('current_enrollment');
   });
 
-  it('PATCH /students/{id} → 200 আপডেট', async () => {
+  it('PATCH /students/{id} → 200 update', async () => {
     const res = await patch(app, token, `/students/${createdId}`, {
       guardian_name: 'Updated Guardian',
       address: 'Updated Address',
@@ -80,12 +80,12 @@ describe.skipIf(!RUN)('Students API (integration)', () => {
     expect(res.body.data.guardian_name).toBe('Updated Guardian');
   });
 
-  it('GET অস্তিত্বহীন id → 404', async () => {
+  it('GET nonexistent id → 404', async () => {
     const res = await get(app, token, '/students/00000000-0000-0000-0000-0000000000ff');
     expect(res.status).toBe(404);
   });
 
-  it('DELETE /students/{id} → 200 (enrollment নেই বলে মুছবে)', async () => {
+  it('DELETE /students/{id} → 200 (deletes because there is no enrollment)', async () => {
     const res = await del(app, token, `/students/${createdId}`);
     expect(res.status).toBe(200);
   });

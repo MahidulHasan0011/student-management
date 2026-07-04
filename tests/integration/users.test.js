@@ -3,7 +3,7 @@ import { RUN, SEED, uniq, connect, disconnect, get, post, patch, del } from './_
 
 describe.skipIf(!RUN)('Users API (integration)', () => {
   let app, token;
-  let createdId; // lifecycle জুড়ে তৈরি করা user-এর id
+  let createdId; // id of the user created across the lifecycle
 
   beforeAll(async () => {
     ({ app, token } = await connect());
@@ -20,12 +20,12 @@ describe.skipIf(!RUN)('Users API (integration)', () => {
     expect(res.body.meta).toHaveProperty('total');
   });
 
-  it('GET /users টোকেন ছাড়া → 401', async () => {
+  it('GET /users without token → 401', async () => {
     const res = await get(app, 'invalid-token', '/users');
     expect(res.status).toBe(401);
   });
 
-  it('POST /users → 201 নতুন user তৈরি', async () => {
+  it('POST /users → 201 create new user', async () => {
     const email = `${uniq('user')}@test.school.com`;
     const res = await post(app, token, '/users', {
       full_name: 'Test User',
@@ -41,7 +41,7 @@ describe.skipIf(!RUN)('Users API (integration)', () => {
     createdId = res.body.data.id;
   });
 
-  it('POST /users ডুপ্লিকেট email → 409', async () => {
+  it('POST /users duplicate email → 409', async () => {
     const email = `${uniq('dup')}@test.school.com`;
     const body = {
       full_name: 'Dup User',
@@ -55,19 +55,19 @@ describe.skipIf(!RUN)('Users API (integration)', () => {
     expect(res.status).toBe(409);
   });
 
-  it('POST /users অসম্পূর্ণ body → 400', async () => {
+  it('POST /users incomplete body → 400', async () => {
     const res = await post(app, token, '/users', { full_name: 'No Email' });
     expect(res.status).toBe(400);
   });
 
-  it('GET /users/{id} → 200 সদ্য তৈরি user', async () => {
+  it('GET /users/{id} → 200 just-created user', async () => {
     expect(createdId).toBeTruthy();
     const res = await get(app, token, `/users/${createdId}`);
     expect(res.status).toBe(200);
     expect(res.body.data.id).toBe(createdId);
   });
 
-  it('PATCH /users/{id} → 200 আপডেট', async () => {
+  it('PATCH /users/{id} → 200 update', async () => {
     const res = await patch(app, token, `/users/${createdId}`, {
       full_name: 'Updated User',
     });
@@ -75,7 +75,7 @@ describe.skipIf(!RUN)('Users API (integration)', () => {
     expect(res.body.data.full_name).toBe('Updated User');
   });
 
-  it('PATCH /users/{id}/toggle-active → 200 নিষ্ক্রিয়/সক্রিয়', async () => {
+  it('PATCH /users/{id}/toggle-active → 200 deactivate/activate', async () => {
     const off = await patch(app, token, `/users/${createdId}/toggle-active`, {
       is_active: false,
     });
@@ -90,7 +90,7 @@ describe.skipIf(!RUN)('Users API (integration)', () => {
     expect(on.body.data.is_active).toBe(true);
   });
 
-  it('GET অস্তিত্বহীন id → 404', async () => {
+  it('GET nonexistent id → 404', async () => {
     const res = await get(app, token, '/users/00000000-0000-0000-0000-0000000000ff');
     expect(res.status).toBe(404);
   });

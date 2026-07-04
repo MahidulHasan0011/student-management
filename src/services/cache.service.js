@@ -1,8 +1,8 @@
 import redisClient from '../config/redis.js';
 
-// সাধারণ cache wrapper — get/set/del-এর সাথে JSON parse/stringify built-in
-// roleService.getCachedPermissions ইতিমধ্যে redisClient সরাসরি ব্যবহার করে;
-// এই service ভবিষ্যতের সব module-এর জন্য একই কাজ একভাবে করার জন্য
+// General cache wrapper — get/set/del with JSON parse/stringify built in
+// roleService.getCachedPermissions already uses redisClient directly;
+// this service exists so all future modules do the same thing in one consistent way
 export const cacheService = {
   async get(key) {
     const value = await redisClient.get(key);
@@ -10,7 +10,7 @@ export const cacheService = {
     try {
       return JSON.parse(value);
     } catch {
-      return value; // plain string হলে parse fail করবে, raw value-ই ফেরত দাও
+      return value; // for a plain string the parse fails, so return the raw value
     }
   },
 
@@ -27,10 +27,10 @@ export const cacheService = {
     await redisClient.del(key);
   },
 
-  // pattern দিয়ে একসাথে অনেক key invalidate করতে — যেমন সব role-এর cache clear
-  // KEYS পুরো Redis block করে দেয় (production-এ বিপজ্জনক); তাই SCAN দিয়ে batch-এ ঘুরে delete করি
+  // Invalidate many keys at once by pattern — e.g. clear the cache for all roles
+  // KEYS blocks the whole of Redis (dangerous in production); so we iterate in batches with SCAN and delete
   async delByPattern(pattern) {
-    let cursor = 0; // node-redis v4 cursor সংখ্যা হিসেবে আসে, শেষ হলে 0-তে ফিরে আসে
+    let cursor = 0; // in node-redis v4 the cursor comes as a number, returning to 0 when done
     do {
       const reply = await redisClient.scan(cursor, { MATCH: pattern, COUNT: 100 });
       cursor = reply.cursor;

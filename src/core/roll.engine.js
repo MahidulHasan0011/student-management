@@ -4,15 +4,15 @@ import { rankingLockRepository } from '../modules/ranking-locks/ranking-lock.rep
 import { rankingRepository } from '../modules/ranking/ranking.repository.js';
 import { AppError } from '../utils/appError.js';
 
-// ── Core business logic — rank অনুযায়ী roll_number + section বসায়, একই transaction-এ
-//    history snapshot সংরক্ষণ করে এবং ranking lock করে দেয় ──
+// ── Core business logic — assigns roll_number + section by rank, and within the same transaction
+//    saves a history snapshot and locks the ranking ──
 //
-// পুরো কাজটা একটাই DB transaction-এ হয় → roll, history, lock তিনটার যেকোনো একটা ব্যর্থ হলে
-// সবগুলো rollback হবে (atomicity)। শুরুতেই Postgres advisory lock নেওয়া হয়, তাই একই class+session-এর
-// দুটো job কখনো একসাথে চলতে পারবে না (concurrency safety) — দ্বিতীয়টা প্রথমটার commit পর্যন্ত অপেক্ষা করবে।
+// The whole thing happens in a single DB transaction → if any one of roll, history, or lock fails,
+// everything is rolled back (atomicity). A Postgres advisory lock is taken up front, so two jobs for the
+// same class+session can never run at the same time (concurrency safety) — the second waits until the first commits.
 export const rollEngine = {
-  // rankedList = [{ student_id, rank_position, total_score }, ...] — ranking.engine থেকে আসে
-  // lockedBy: যে admin/system trigger করেছে তার user id — lock + audit-এ যাবে
+  // rankedList = [{ student_id, rank_position, total_score }, ...] — comes from ranking.engine
+  // lockedBy: the user id of the admin/system that triggered it — goes into lock + audit
   async generateRolls({
     rankedList,
     classId,
@@ -25,14 +25,14 @@ export const rollEngine = {
     }
 
     return withTransaction(async (client) => {
-      // ── ১. concurrency guard — একই class+session-এ একসাথে দুটো ranking job চলতে দেবে না ──
-      // hashtext দিয়ে class+session-কে একটা int key-তে এনে session-scoped advisory lock নেওয়া হয়;
-      // transaction commit/rollback হলে lock নিজে থেকেই ছেড়ে যায় (xact-scoped)
+      // ── 1. concurrency guard — won't allow two ranking jobs to run at once for the same class+session ──
+      // hashtext maps class+session to an int key and a session-scoped advisory lock is taken;
+      // the lock releases itself when the transaction commits/rolls back (xact-scoped)
       await client.query(`SELECT pg_advisory_xact_lock(hashtext($1))`, [
         `ranking:${classId}:${academicSessionId}`,
       ]);
 
-      // ── ২. roll_number + section বসানো ──
+      // ── 2. assign roll_number + section ──
       let results;
       if (sectionId) {
         results = await this._assignDirectRoll(client, rankedList, academicSessionId, sectionId);
@@ -48,7 +48,7 @@ export const rollEngine = {
             );
       }
 
-      // ── ৩. history snapshot সংরক্ষণ (version = আগের MAX + 1) ──
+      // ── 3. save history snapshot (version = previous MAX + 1) ──
       const version = await this._saveHistory(
         client,
         rankedList,
@@ -57,10 +57,10 @@ export const rollEngine = {
         academicSessionId,
       );
 
-      // ── ৪. ranking lock (document rule: "After rank generation: ranking_locked = true") ──
+      // ── 4. ranking lock (document rule: "After rank generation: ranking_locked = true") ──
       await rankingLockRepository.lock(classId, academicSessionId, lockedBy, client);
 
-      // ── ৫. audit trail ──
+      // ── 5. audit trail ──
       await rankingRepository.logAudit(
         {
           action: 'GENERATE',
@@ -77,7 +77,7 @@ export const rollEngine = {
     });
   },
 
-  // section ছাড়া বা single section-এ সরাসরি rank=roll বসানো
+  // Directly assign rank=roll when there's no section or a single section
   async _assignDirectRoll(client, rankedList, academicSessionId, sectionId) {
     const results = [];
     for (const entry of rankedList) {
@@ -93,8 +93,8 @@ export const rollEngine = {
     return results;
   },
 
-  // Section A পূর্ণ হলে B, তারপর C — capacity অনুযায়ী ক্রমান্বয়ে ভরে যায়
-  // প্রতিটা section-এর ভেতরে roll_number আলাদাভাবে ১ থেকে শুরু হয়
+  // When Section A fills up then B, then C — filled sequentially by capacity
+  // roll_number restarts from 1 separately within each section
   async _assignWithSectionDistribution(client, rankedList, academicSessionId, sections) {
     const results = [];
     let sectionIdx = 0;
@@ -102,7 +102,7 @@ export const rollEngine = {
     let remainingInSection = sections[sectionIdx].available_seats ?? Infinity;
 
     for (const entry of rankedList) {
-      // চলতি section ভরে গেলে পরের section-এ যাও
+      // when the current section is full, move to the next one
       while (remainingInSection <= 0 && sectionIdx < sections.length - 1) {
         sectionIdx++;
         rollInSection = 1;
@@ -127,9 +127,9 @@ export const rollEngine = {
     return results;
   },
 
-  // ── prev MAX(version)+1 বের করে পুরো ranked list bulk-insert করে ──
-  // total_score আসে rankedList থেকে (merit list/ADMISSION → আসল score, FIFO student → 0),
-  // roll_number আসে আসল assignment result থেকে (section-wise হলে rank ≠ roll)
+  // ── computes prev MAX(version)+1 and bulk-inserts the whole ranked list ──
+  // total_score comes from rankedList (merit list/ADMISSION → actual score, FIFO student → 0),
+  // roll_number comes from the actual assignment result (rank ≠ roll when section-wise)
   async _saveHistory(client, rankedList, results, classId, academicSessionId) {
     const { rows: vrows } = await client.query(
       `SELECT COALESCE(MAX(version), 0) + 1 AS next
@@ -139,7 +139,7 @@ export const rollEngine = {
     );
     const version = vrows[0].next;
 
-    // student_id → assigned roll_number map (section distribution-এ roll আলাদা)
+    // student_id → assigned roll_number map (roll differs under section distribution)
     const rollByStudent = new Map(results.map((r) => [r.student_id, r.roll_number]));
 
     const placeholders = [];
@@ -147,7 +147,7 @@ export const rollEngine = {
     let i = 0;
     for (const entry of rankedList) {
       const rollNumber = rollByStudent.get(entry.student_id);
-      if (rollNumber == null) continue; // enrollment আপডেট হয়নি (যেমন withdrawn) — snapshot-এ আনব না
+      if (rollNumber == null) continue; // enrollment wasn't updated (e.g. withdrawn) — don't include in the snapshot
 
       const b = i * 7;
       placeholders.push(

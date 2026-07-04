@@ -3,8 +3,8 @@ import { env } from './env.js';
 import { entitySchemas } from '../docs/schemas.js';
 
 // ── OpenAPI base definition ─────────────────────────────────────────────
-// reusable components (security, schema, response) এখানে একবার ডিফাইন করি,
-// তারপর প্রতিটি route ফাইলে JSDoc (@openapi) দিয়ে শুধু path ডকুমেন্ট করি — DRY.
+// Define reusable components (security, schema, response) here once,
+// then simply document the path in each route file using JSDoc (@openapi) — DRY.
 const definition = {
   openapi: '3.0.3',
   info: {
@@ -12,12 +12,12 @@ const definition = {
     version: '1.0.0',
     description:
       'School ERP REST API — JWT auth, permission-based RBAC.\n\n' +
-      '**Auth:** প্রথমে `POST /auth/login` দিয়ে `accessToken` নিন, ' +
-      'তারপর উপরের **Authorize** বাটনে সেটি বসান (Bearer)। ' +
-      'প্রতিটি protected endpoint-এ নির্দিষ্ট permission লাগে (যেমন `STUDENT_READ`)।',
+      '**Auth:** First get the `accessToken` with `POST /auth/login`,' +
+      'Then, enter it (Bearer) in the **Authorize** button above.' +
+      'Each protected endpoint requires a specific permission (e.g., `STUDENT_READ`).',
   },
   servers: [{ url: `http://localhost:${env.PORT}/api/v1`, description: 'Local (v1)' }],
-  // সব endpoint ডিফল্টভাবে bearer auth চায়; auth/login-এ override করে খুলে দেওয়া হয়
+  // All endpoints require bearer auth by default; this is overridden and disabled for auth/login.
   security: [{ bearerAuth: [] }],
   tags: [
     { name: 'Auth', description: 'Login, token refresh, logout, current user' },
@@ -45,13 +45,13 @@ const definition = {
         type: 'http',
         scheme: 'bearer',
         bearerFormat: 'JWT',
-        description: 'JWT access token. ফরম্যাট: `Bearer <accessToken>`',
+        description: 'JWT access token. format: `Bearer <accessToken>`',
       },
     },
     schemas: {
-      // entity response schemas (src/docs/schemas.js থেকে) — route ফাইল $ref দিয়ে ব্যবহার করে
+      // entity response schemas (from src/docs/schemas.js) — used by route files via $ref
       ...entitySchemas,
-      // ── envelope: প্রতিটি সফল response এই শেপে আসে ──
+      // ── envelope: Every successful response comes in this shape ──
       SuccessResponse: {
         type: 'object',
         properties: {
@@ -61,7 +61,7 @@ const definition = {
           meta: { type: 'object', nullable: true },
         },
       },
-      // ── envelope: প্রতিটি error response এই শেপে আসে ──
+      // ── envelope: Every error response follows this shape ──
       ErrorResponse: {
         type: 'object',
         properties: {
@@ -69,7 +69,7 @@ const definition = {
           message: { type: 'string', example: 'Something went wrong' },
           errors: {
             nullable: true,
-            description: 'validation error হলে ফিল্ড-ভিত্তিক বিস্তারিত',
+            description: 'Field-level details in case of a validation error',
             example: null,
           },
         },
@@ -89,7 +89,7 @@ const definition = {
         name: 'id',
         in: 'path',
         required: true,
-        description: 'রিসোর্সের UUID',
+        description: 'Resource UUID',
         schema: { type: 'string', format: 'uuid' },
       },
       PageQuery: {
@@ -107,7 +107,7 @@ const definition = {
     },
     responses: {
       Unauthorized: {
-        description: '401 — টোকেন নেই / মেয়াদ শেষ / অবৈধ',
+        description: '401 — Authorization token required',
         content: {
           'application/json': {
             schema: { $ref: '#/components/schemas/ErrorResponse' },
@@ -116,7 +116,7 @@ const definition = {
         },
       },
       Forbidden: {
-        description: '403 — এই কাজের permission নেই',
+        description: '403 — Permission denied for this action.',
         content: {
           'application/json': {
             schema: { $ref: '#/components/schemas/ErrorResponse' },
@@ -128,7 +128,7 @@ const definition = {
         },
       },
       NotFound: {
-        description: '404 — রিসোর্স পাওয়া যায়নি',
+        description: '404 — Resource not found',
         content: {
           'application/json': {
             schema: { $ref: '#/components/schemas/ErrorResponse' },
@@ -137,7 +137,7 @@ const definition = {
         },
       },
       ValidationError: {
-        description: '400 — ইনপুট validation ব্যর্থ',
+        description: '400 — Input validation failed',
         content: {
           'application/json': {
             schema: { $ref: '#/components/schemas/ErrorResponse' },
@@ -146,7 +146,7 @@ const definition = {
         },
       },
       Conflict: {
-        description: '409 — ডুপ্লিকেট / ইতিমধ্যে আছে',
+        description: '409 — Duplicate / Already exists',
         content: {
           'application/json': {
             schema: { $ref: '#/components/schemas/ErrorResponse' },
@@ -158,7 +158,7 @@ const definition = {
   },
 };
 
-// route ফাইলের JSDoc (@openapi) ব্লকগুলো এখান থেকে স্ক্যান হয়
+// JSDoc (@openapi) blocks in route files are scanned from here
 export const swaggerSpec = swaggerJSDoc({
   definition,
   apis: ['./src/modules/**/*.routes.js', './src/docs/*.js'],

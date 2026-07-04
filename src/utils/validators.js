@@ -1,15 +1,15 @@
 import { AppError } from './appError.js';
 
 // ─────────────────────────────────────────────────────────────────────────
-// shared input validators — library ছাড়া, সব fail হলে AppError(msg, 400) দেয়।
-// প্রতিটা assert* normalized value ফেরত দেয় (যেমন trimmed string / number),
-// তাই caller সরাসরি ব্যবহার করতে পারে:  const name = assertString(name, 'name', { max: 50 });
+// shared input validators — no library; on any failure they throw AppError(msg, 400).
+// Each assert* returns a normalized value (e.g. trimmed string / number),
+// so the caller can use it directly:  const name = assertString(name, 'name', { max: 50 });
 //
-// required (default true): value null/undefined হলে throw।
-//   না দিলে (required:false) এবং value null/undefined → undefined ফেরত (skip)।
+// required (default true): throws if value is null/undefined.
+//   when not required (required:false) and value is null/undefined → returns undefined (skip).
 // ─────────────────────────────────────────────────────────────────────────
 
-// schema-র enum/CHECK মান — module-এ আলাদা করে না লিখে এখান থেকে নাও
+// enum/CHECK values from the schema — take them from here instead of redefining in each module
 export const GENDERS = ['MALE', 'FEMALE', 'OTHER'];
 export const EXAM_TYPES = ['ADMISSION', 'MIDTERM', 'FINAL', 'UNIT_TEST'];
 export const EXAM_STATUSES = ['DRAFT', 'PUBLISHED'];
@@ -18,15 +18,15 @@ export const ATTENDANCE_STATUSES = ['PRESENT', 'ABSENT', 'LATE', 'EXCUSED'];
 
 const isMissing = (v) => v === undefined || v === null;
 
-// অনুপস্থিত value handle করার সাধারণ logic — required হলে throw, নাহলে undefined
+// common logic for handling a missing value — throw if required, otherwise undefined
 const handleMissing = (field, required) => {
   if (required) throw new AppError(`${field} is required`, 400);
   return undefined;
 };
 
 /**
- * string — type + (trim করে) খালি নয় + length range।
- * @returns trim করা string, বা optional+absent হলে undefined
+ * string — type + (after trim) non-empty + length range.
+ * @returns the trimmed string, or undefined if optional+absent
  */
 export function assertString(value, field, { required = true, min = 1, max, trim = true } = {}) {
   if (isMissing(value)) return handleMissing(field, required);
@@ -35,7 +35,7 @@ export function assertString(value, field, { required = true, min = 1, max, trim
   }
   const out = trim ? value.trim() : value;
   if (out === '') {
-    // provided but blank — optional হলে "দেওয়া হয়নি" ধরে নাও
+    // provided but blank — if optional, treat it as "not provided"
     if (!required) return undefined;
     throw new AppError(`${field} is required`, 400);
   }
@@ -44,7 +44,7 @@ export function assertString(value, field, { required = true, min = 1, max, trim
   return out;
 }
 
-/** uuid — Postgres `uuid` টাইপের মতো loose (version/variant nibble যাচাই করে না)। */
+/** uuid — loose like the Postgres `uuid` type (does not check the version/variant nibble). */
 export function assertUuid(value, field, { required = true } = {}) {
   if (isMissing(value)) return handleMissing(field, required);
   const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -54,7 +54,7 @@ export function assertUuid(value, field, { required = true } = {}) {
   return value;
 }
 
-/** integer — "12" string-ও মেনে নেয় (coerce), তারপর min/max। @returns number */
+/** integer — also accepts a "12" string (coerce), then min/max. @returns number */
 export function assertInteger(value, field, { required = true, min, max } = {}) {
   if (isMissing(value) || value === '') return handleMissing(field, required);
   const n = typeof value === 'number' ? value : Number(value);
@@ -64,7 +64,7 @@ export function assertInteger(value, field, { required = true, min, max } = {}) 
   return n;
 }
 
-/** decimal/number — marks ইত্যাদির জন্য। @returns number */
+/** decimal/number — for marks etc. @returns number */
 export function assertNumber(value, field, { required = true, min, max } = {}) {
   if (isMissing(value) || value === '') return handleMissing(field, required);
   const n = typeof value === 'number' ? value : Number(value);
@@ -75,7 +75,7 @@ export function assertNumber(value, field, { required = true, min, max } = {}) {
   return n;
 }
 
-/** boolean — কড়া type check (string "true" মানে না)। @returns boolean */
+/** boolean — strict type check (string "true" is not accepted). @returns boolean */
 export function assertBoolean(value, field, { required = true } = {}) {
   if (isMissing(value)) return handleMissing(field, required);
   if (typeof value !== 'boolean') throw new AppError(`${field} must be a boolean`, 400);
@@ -83,9 +83,9 @@ export function assertBoolean(value, field, { required = true } = {}) {
 }
 
 /**
- * date — string ও Date.parse-যোগ্য হতে হবে।
- * number পাঠালে Date.parse ভুলভাবে মেনে নেয়, তাই typeof string বাধ্যতামূলক।
- * @returns মূল string
+ * date — must be a string and parseable by Date.parse.
+ * Date.parse wrongly accepts a number, so typeof string is mandatory.
+ * @returns the original string
  */
 export function assertDate(value, field, { required = true } = {}) {
   if (isMissing(value) || value === '') return handleMissing(field, required);
@@ -95,7 +95,7 @@ export function assertDate(value, field, { required = true } = {}) {
   return value;
 }
 
-/** start < end — দুটো দিলে তবেই check। */
+/** start < end — only checked when both are given. */
 export function assertDateOrder(
   start,
   end,
@@ -106,7 +106,7 @@ export function assertDateOrder(
   }
 }
 
-/** enum — allowed list-এর মধ্যে থাকতে হবে। @returns value */
+/** enum — must be within the allowed list. @returns value */
 export function assertEnum(value, field, allowed, { required = true } = {}) {
   if (isMissing(value) || value === '') return handleMissing(field, required);
   if (!allowed.includes(value)) {
@@ -115,7 +115,7 @@ export function assertEnum(value, field, allowed, { required = true } = {}) {
   return value;
 }
 
-/** array — bulk/assign এর জন্য। @returns array */
+/** array — for bulk/assign. @returns array */
 export function assertArray(value, field, { required = true, min = 1, max } = {}) {
   if (isMissing(value)) return handleMissing(field, required);
   if (!Array.isArray(value)) throw new AppError(`${field} must be an array`, 400);

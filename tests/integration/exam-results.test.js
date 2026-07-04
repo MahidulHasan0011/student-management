@@ -3,12 +3,12 @@ import { RUN, SEED, uniq, connect, disconnect, get, post, patch, del } from './_
 
 describe.skipIf(!RUN)('Exam-Results API (integration)', () => {
   let app, token;
-  let examId; // টেস্টের জন্য তৈরি fresh exam (unique triple রাখতে)
-  let resultId; // তৈরি করা result-এর id
+  let examId; // fresh exam created for the test (to keep the triple unique)
+  let resultId; // id of the created result
 
   beforeAll(async () => {
     ({ app, token } = await connect());
-    // unique (exam_id, student_id, subject_id) নিশ্চিত করতে নতুন exam বানাই
+    // create a new exam to ensure a unique (exam_id, student_id, subject_id)
     const res = await post(app, token, '/exams', {
       name: uniq('ResultExam'),
       class_id: SEED.classes.c1,
@@ -20,7 +20,7 @@ describe.skipIf(!RUN)('Exam-Results API (integration)', () => {
   });
 
   afterAll(async () => {
-    // self-clean: result আগে, তারপর exam (result থাকলে exam delete আটকায়)
+    // self-clean: result first, then exam (a result blocks exam deletion)
     if (resultId) await del(app, token, `/results/${resultId}`);
     if (examId) await del(app, token, `/exams/${examId}`);
     await disconnect();
@@ -34,12 +34,12 @@ describe.skipIf(!RUN)('Exam-Results API (integration)', () => {
     expect(res.body.meta).toHaveProperty('total');
   });
 
-  it('GET /results টোকেন ছাড়া → 401', async () => {
+  it('GET /results without token → 401', async () => {
     const res = await get(app, 'invalid-token', '/results');
     expect(res.status).toBe(401);
   });
 
-  it('POST /results → 201 নতুন result এন্ট্রি', async () => {
+  it('POST /results → 201 new result entry', async () => {
     expect(examId).toBeTruthy();
     const res = await post(app, token, '/results', {
       exam_id: examId,
@@ -54,7 +54,7 @@ describe.skipIf(!RUN)('Exam-Results API (integration)', () => {
     resultId = res.body.data.id;
   });
 
-  it('POST /results ডুপ্লিকেট triple → 409', async () => {
+  it('POST /results duplicate triple → 409', async () => {
     const res = await post(app, token, '/results', {
       exam_id: examId,
       student_id: SEED.students.s1,
@@ -64,24 +64,24 @@ describe.skipIf(!RUN)('Exam-Results API (integration)', () => {
     expect(res.status).toBe(409);
   });
 
-  it('POST /results অসম্পূর্ণ body → 400', async () => {
+  it('POST /results incomplete body → 400', async () => {
     const res = await post(app, token, '/results', { exam_id: examId });
     expect(res.status).toBe(400);
   });
 
-  it('GET /results/{id} → 200 সদ্য তৈরি result', async () => {
+  it('GET /results/{id} → 200 just-created result', async () => {
     expect(resultId).toBeTruthy();
     const res = await get(app, token, `/results/${resultId}`);
     expect(res.status).toBe(200);
     expect(res.body.data.id).toBe(resultId);
   });
 
-  it('GET অস্তিত্বহীন id → 404', async () => {
+  it('GET nonexistent id → 404', async () => {
     const res = await get(app, token, '/results/00000000-0000-0000-0000-0000000000ff');
     expect(res.status).toBe(404);
   });
 
-  it('PATCH /results/{id} → 200 marks আপডেট', async () => {
+  it('PATCH /results/{id} → 200 marks update', async () => {
     const res = await patch(app, token, `/results/${resultId}`, { marks: 88 });
     expect(res.status).toBe(200);
     expect(Number(res.body.data.marks)).toBe(88);
@@ -93,7 +93,7 @@ describe.skipIf(!RUN)('Exam-Results API (integration)', () => {
     expect(Array.isArray(res.body.data)).toBe(true);
   });
 
-  it('GET /results/exam/{examId} অস্তিত্বহীন exam → 404', async () => {
+  it('GET /results/exam/{examId} nonexistent exam → 404', async () => {
     const res = await get(app, token, '/results/exam/00000000-0000-0000-0000-0000000000ff');
     expect(res.status).toBe(404);
   });

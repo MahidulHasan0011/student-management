@@ -1,8 +1,8 @@
 import { query } from '../config/db.js';
 
-// ── Core business logic — attendance শতকরা হিসাব ──
+// ── Core business logic — attendance percentage calculation ──
 export const attendanceEngine = {
-  // student_attendance থেকে একটা ছাত্রের মাসিক উপস্থিতির হার বের করে
+  // Computes a student's monthly attendance rate from student_attendance
   async calculateStudentMonthlyAttendance(studentId, year, month) {
     const { rows } = await query(
       `SELECT
@@ -24,12 +24,12 @@ export const attendanceEngine = {
       summary[row.status] = parseInt(row.count);
       total += parseInt(row.count);
     }
-    const presentCount = summary.PRESENT + summary.LATE; // LATE-কেও উপস্থিত ধরা হয়
+    const presentCount = summary.PRESENT + summary.LATE; // LATE is also counted as present
     const attendancePercentage = total > 0 ? Math.round((presentCount / total) * 10000) / 100 : 0;
 
     return { ...summary, total_days: total, attendance_percentage: attendancePercentage };
   },
-  // staff (attendance_logs) এর মাসিক কাজের সময় হিসাব
+  // Calculates monthly work hours for staff (attendance_logs)
   async calculateStaffMonthlyWorkHours(userId, year, month) {
     const { rows } = await query(
       `SELECT
@@ -52,7 +52,7 @@ export const attendanceEngine = {
     };
   },
 
-  // একটা class/section-এর একটা নির্দিষ্ট দিনের attendance summary — দ্রুত overview-র জন্য
+  // Attendance summary for a class/section on a specific day — for a quick overview
   async calculateDailyClassSummary(classId, sectionId, date) {
     const { rows } = await query(
       `SELECT status, COUNT(*) AS count

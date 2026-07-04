@@ -1,8 +1,8 @@
 // WHERE clause builder — soft delete + search + filter
 //
-// config.filterableColumns এখন দুই ফরম্যাট নেয়:
-//   ["status"]                          → query param ও SQL column একই নাম
-//   [{ param: "role_id", column: "u.role_id" }]  → alias সহ SQL column হলে এভাবে দিতে হবে
+// config.filterableColumns now takes two formats:
+//   ["status"]                          → query param and SQL column have the same name
+//   [{ param: "role_id", column: "u.role_id" }]  → use this form when the SQL column has an alias
 export const buildWhereClause = (queryOptions, values, config, countRef, baseAlias = '') => {
   let where = baseAlias ? `WHERE ${baseAlias}.deleted_at IS NULL` : `WHERE deleted_at IS NULL`;
 
@@ -21,7 +21,7 @@ export const buildWhereClause = (queryOptions, values, config, countRef, baseAli
   // FILTER
   if (config.filterableColumns) {
     for (const entry of config.filterableColumns) {
-      // string দিলে param নাম ও column নাম একই ধরে নেওয়া হয়
+      // if given a string, the param name and column name are assumed to be the same
       const { param, column } = typeof entry === 'string' ? { param: entry, column: entry } : entry;
 
       if (queryOptions[param] !== undefined && queryOptions[param] !== '') {

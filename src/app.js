@@ -15,7 +15,7 @@ app.use(cors());
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true }));
 
-// API docs (Swagger UI) — ব্রাউজ: /api/docs , raw spec: /api/docs.json
+// API docs (Swagger UI) — browse: /api/docs , raw spec: /api/docs.json
 app.get('/api/docs.json', (_req, res) => res.json(swaggerSpec));
 app.use(
   '/api/docs',

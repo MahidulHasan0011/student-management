@@ -4,7 +4,7 @@ export const buildOrder = (
   allowedFields, // always Object only
   defaultField = 'created_at',
 ) => {
-  // queryOptions.sortBy যদি allowedFields এ না থাকে → default use করো
+  // if queryOptions.sortBy is not in allowedFields → use the default
   const sortKey = allowedFields[queryOptions.sortBy] ? queryOptions.sortBy : defaultField;
 
   const sortBy = allowedFields[sortKey];

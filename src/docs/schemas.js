@@ -1,14 +1,3 @@
-// ─────────────────────────────────────────────────────────────────────────
-// Entity response schemas — DB schema.sql + migrations অনুযায়ী।
-// এগুলো swagger.js-এ components.schemas-এ merge হয়, route ফাইল থেকে
-// `$ref: '#/components/schemas/<Name>'` দিয়ে রেফার করা হয়।
-//
-// নিরাপত্তা/বাস্তবতা নোট:
-//   - User-এ `password` নেই (service সবসময় strip করে)।
-//   - Upload-এ `storage_key` নেই (download URL আলাদাভাবে issue হয়, key কখনো expose হয় না)।
-//   - response-এ সাধারণত deleted_at থাকে না (soft-deleted row ফেরত আসে না)।
-// ─────────────────────────────────────────────────────────────────────────
-
 const uuid = { type: 'string', format: 'uuid' };
 const ts = { type: 'string', format: 'date-time' };
 const date = { type: 'string', format: 'date', nullable: true };
@@ -17,7 +6,7 @@ export const entitySchemas = {
   // ── Auth / Users ──────────────────────────────────────────────────────
   User: {
     type: 'object',
-    description: 'সিস্টেম ইউজার (password বাদ দিয়ে)',
+    description: 'System user (without password)',
     properties: {
       id: uuid,
       full_name: { type: 'string', example: 'Admin User' },
@@ -27,7 +16,7 @@ export const entitySchemas = {
         type: 'string',
         nullable: true,
         example: 'super_admin',
-        description: 'JOIN থেকে আসে (list/get)',
+        description: 'Comes from JOIN (list/get)',
       },
       gender: { type: 'string', enum: ['MALE', 'FEMALE', 'OTHER'], example: 'MALE' },
       is_active: { type: 'boolean', example: true },
@@ -56,7 +45,7 @@ export const entitySchemas = {
     },
   },
 
-  // role_permissions assignment row (repository যা ফেরত দেয়)
+  // role_permissions assignment row (what the repository returns)
   RolePermission: {
     type: 'object',
     properties: {
@@ -131,7 +120,7 @@ export const entitySchemas = {
       full_name: {
         type: 'string',
         nullable: true,
-        description: 'users JOIN থেকে',
+        description: 'From users JOIN',
         example: 'Rahim Uddin',
       },
       email: { type: 'string', format: 'email', nullable: true },
@@ -149,7 +138,7 @@ export const entitySchemas = {
       designation: { type: 'string', nullable: true, example: 'Senior Teacher' },
       qualification: { type: 'string', nullable: true, example: 'M.Sc in Mathematics' },
       joining_date: date,
-      full_name: { type: 'string', nullable: true, description: 'users JOIN থেকে' },
+      full_name: { type: 'string', nullable: true, description: 'From users JOIN' },
       email: { type: 'string', format: 'email', nullable: true },
       created_at: ts,
       updated_at: ts,
@@ -166,7 +155,7 @@ export const entitySchemas = {
       section_id: { ...uuid, nullable: true },
       subject_id: { ...uuid, nullable: true },
       academic_session_id: { ...uuid, nullable: true },
-      assigned_by: { ...uuid, nullable: true, description: 'লগইন করা admin-এর id (auto-set)' },
+      assigned_by: { ...uuid, nullable: true, description: 'Logged-in admin id (auto-set)' },
       created_at: ts,
       updated_at: ts,
     },
@@ -225,7 +214,7 @@ export const entitySchemas = {
   // ── Ranking ─────────────────────────────────────────────────────────────
   RankingEntry: {
     type: 'object',
-    description: 'ranking_history-এর এক row (rank snapshot)',
+    description: 'One row of ranking_history (rank snapshot)',
     properties: {
       id: uuid,
       class_id: uuid,
@@ -251,7 +240,7 @@ export const entitySchemas = {
   // ── Uploads ───────────────────────────────────────────────────────────
   Upload: {
     type: 'object',
-    description: 'আপলোড metadata (storage_key কখনো expose হয় না)',
+    description: 'Upload metadata (storage_key is never exposed)',
     properties: {
       id: uuid,
       original_name: { type: 'string', example: 'profile.png' },
@@ -293,10 +282,10 @@ export const entitySchemas = {
     properties: {
       upload_id: uuid,
       method: { type: 'string', example: 'PUT' },
-      uploadUrl: { type: 'string', description: 'pre-signed PUT URL (TTL-সীমিত)' },
-      headers: { type: 'object', description: 'PUT-এ পাঠাতে হবে এমন header (যেমন Content-Type)' },
-      expiresIn: { type: 'integer', example: 300, description: 'সেকেন্ড' },
-      storage_key: { type: 'string', description: 'object key (confirm-এ লাগে)' },
+      uploadUrl: { type: 'string', description: 'pre-signed PUT URL (TTL-limited)' },
+      headers: { type: 'object', description: 'headers to send with the PUT (e.g. Content-Type)' },
+      expiresIn: { type: 'integer', example: 300, description: 'seconds' },
+      storage_key: { type: 'string', description: 'object key (needed for confirm)' },
     },
   },
 

@@ -1,11 +1,11 @@
 import { describe, it, expect, beforeAll, afterAll } from 'vitest';
 import { RUN, uniq, connect, disconnect, get, post, patch, del } from './_helpers.js';
 
-// pre-signed URL flow — generate-url স্থানীয়ভাবে sign হয় (network ছাড়া), তাই MinIO/S3
-// না চললেও কাজ করে। confirm-এ S3 HEAD লাগে বলে এখানে confirm test করা হয় না।
+// pre-signed URL flow — generate-url is signed locally (without network), so it works
+// even when MinIO/S3 is not running. Since confirm requires an S3 HEAD, confirm is not tested here.
 describe.skipIf(!RUN)('Uploads API (integration)', () => {
   let app, token;
-  let createdId; // generate-url ধাপে তৈরি upload_id
+  let createdId; // upload_id created in the generate-url step
 
   beforeAll(async () => {
     ({ app, token } = await connect());
@@ -22,7 +22,7 @@ describe.skipIf(!RUN)('Uploads API (integration)', () => {
     expect(res.body.meta).toHaveProperty('total');
   });
 
-  it('GET /uploads টোকেন ছাড়া → 401', async () => {
+  it('GET /uploads without token → 401', async () => {
     const res = await get(app, 'invalid-token', '/uploads');
     expect(res.status).toBe(401);
   });
@@ -42,15 +42,15 @@ describe.skipIf(!RUN)('Uploads API (integration)', () => {
     createdId = res.body.data.upload_id;
   });
 
-  it('POST /uploads/generate-url অসম্পূর্ণ body → 400', async () => {
+  it('POST /uploads/generate-url incomplete body → 400', async () => {
     const res = await post(app, token, '/uploads/generate-url', {
       original_name: 'x.png',
     });
     expect(res.status).toBe(400);
   });
 
-  it('POST /uploads/generate-url category-তে অননুমোদিত টাইপ → 400', async () => {
-    // STUDENT_PROFILE শুধু IMAGE; pdf দিলে policy reject করবে
+  it('POST /uploads/generate-url disallowed type in category → 400', async () => {
+    // STUDENT_PROFILE is IMAGE only; providing a pdf will be rejected by policy
     const res = await post(app, token, '/uploads/generate-url', {
       original_name: `${uniq('doc')}.pdf`,
       category: 'STUDENT_PROFILE',
@@ -60,7 +60,7 @@ describe.skipIf(!RUN)('Uploads API (integration)', () => {
     expect(res.status).toBe(400);
   });
 
-  it('GET /uploads/{id} → 200 সদ্য তৈরি upload', async () => {
+  it('GET /uploads/{id} → 200 just-created upload', async () => {
     expect(createdId).toBeTruthy();
     const res = await get(app, token, `/uploads/${createdId}`);
     expect(res.status).toBe(200);
@@ -68,7 +68,7 @@ describe.skipIf(!RUN)('Uploads API (integration)', () => {
     expect(res.body.data.status).toBe('PENDING');
   });
 
-  it('GET /uploads অস্তিত্বহীন id → 404', async () => {
+  it('GET /uploads nonexistent id → 404', async () => {
     const res = await get(app, token, '/uploads/00000000-0000-0000-0000-0000000000ff');
     expect(res.status).toBe(404);
   });
@@ -88,7 +88,7 @@ describe.skipIf(!RUN)('Uploads API (integration)', () => {
     expect(res.body.data.id).toBe(createdId);
   });
 
-  it('clean up: DELETE /uploads/{id} আবার soft-delete', async () => {
+  it('clean up: DELETE /uploads/{id} soft-delete again', async () => {
     if (!createdId) return;
     const res = await del(app, token, `/uploads/${createdId}`);
     expect(res.status).toBe(200);

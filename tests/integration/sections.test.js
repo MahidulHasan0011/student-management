@@ -3,7 +3,7 @@ import { RUN, SEED, uniq, connect, disconnect, get, post, patch, del } from './_
 
 describe.skipIf(!RUN)('Sections API (integration)', () => {
   let app, token;
-  let createdId; // lifecycle জুড়ে তৈরি করা section-এর id
+  let createdId; // id of the section created during the lifecycle
 
   beforeAll(async () => {
     ({ app, token } = await connect());
@@ -20,12 +20,12 @@ describe.skipIf(!RUN)('Sections API (integration)', () => {
     expect(res.body.meta).toHaveProperty('total');
   });
 
-  it('GET /sections টোকেন ছাড়া → 401', async () => {
+  it('GET /sections without token → 401', async () => {
     const res = await get(app, 'invalid-token', '/sections');
     expect(res.status).toBe(401);
   });
 
-  it('POST /sections → 201 নতুন section তৈরি', async () => {
+  it('POST /sections → 201 create new section', async () => {
     const res = await post(app, token, '/sections', {
       class_id: SEED.classes.c1,
       name: uniq('S'),
@@ -37,7 +37,7 @@ describe.skipIf(!RUN)('Sections API (integration)', () => {
     createdId = res.body.data.id;
   });
 
-  it('POST /sections ডুপ্লিকেট name (একই class) → 409', async () => {
+  it('POST /sections duplicate name (same class) → 409', async () => {
     const name = uniq('S');
     const body = { class_id: SEED.classes.c1, name, max_capacity: 30 };
     await post(app, token, '/sections', body);
@@ -45,12 +45,12 @@ describe.skipIf(!RUN)('Sections API (integration)', () => {
     expect(res.status).toBe(409);
   });
 
-  it('POST /sections অসম্পূর্ণ body → 400', async () => {
+  it('POST /sections incomplete body → 400', async () => {
     const res = await post(app, token, '/sections', { name: uniq('S') });
     expect(res.status).toBe(400);
   });
 
-  it('GET /sections/{id} → 200 সদ্য তৈরি section', async () => {
+  it('GET /sections/{id} → 200 just-created section', async () => {
     expect(createdId).toBeTruthy();
     const res = await get(app, token, `/sections/${createdId}`);
     expect(res.status).toBe(200);
@@ -65,18 +65,18 @@ describe.skipIf(!RUN)('Sections API (integration)', () => {
     expect(res.body.data).toHaveProperty('is_full');
   });
 
-  it('PATCH /sections/{id} → 200 আপডেট', async () => {
+  it('PATCH /sections/{id} → 200 update', async () => {
     const res = await patch(app, token, `/sections/${createdId}`, { max_capacity: 45 });
     expect(res.status).toBe(200);
     expect(res.body.data.max_capacity).toBe(45);
   });
 
-  it('GET অস্তিত্বহীন id → 404', async () => {
+  it('GET nonexistent id → 404', async () => {
     const res = await get(app, token, '/sections/00000000-0000-0000-0000-0000000000ff');
     expect(res.status).toBe(404);
   });
 
-  it('DELETE /sections/{id} → 200 (enrollment নেই বলে মুছবে)', async () => {
+  it('DELETE /sections/{id} → 200 (deletes because there is no enrollment)', async () => {
     const res = await del(app, token, `/sections/${createdId}`);
     expect(res.status).toBe(200);
   });
