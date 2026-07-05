@@ -12,17 +12,17 @@ import {
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
-// UPLOAD_MANAGE থাকলে অন্যের ফাইলও দেখা/মোছা যায় (admin override)
+// with UPLOAD_MANAGE a user can view/delete other users' files too (admin override)
 const hasManage = (actor) =>
   Array.isArray(actor?.permissions) && actor.permissions.includes('UPLOAD_MANAGE');
 
-// owner নিজে, নাহলে manage permission — কোনোটাই না হলে 403
+// must be the owner, otherwise have manage permission — neither means 403
 const assertCanAccess = (row, actor) => {
   if (row.uploaded_by === actor.userId || hasManage(actor)) return;
   throw new AppError('You do not have access to this file', 403);
 };
 
-// storage_key বাইরে দেখাই না (internal); বাকি সব ফেরত দিই
+// never expose storage_key externally (internal); return everything else
 const sanitize = (row) => {
   if (!row) return row;
   const { storage_key, ...safe } = row;
@@ -32,8 +32,8 @@ const sanitize = (row) => {
 
 export const uploadService = {
   /**
-   * ধাপ ১ — presigned PUT URL। আমরা শুধু PENDING metadata row বানাই;
-   * আসল ফাইল frontend সরাসরি S3/R2-তে দেয়। (input ইতিমধ্যে validation-এ normalized)
+   * step 1 — presigned PUT URL. we only create a PENDING metadata row;
+   * the actual file is sent by the frontend directly to S3/R2. (input already normalized in validation)
    */
   async generateUploadUrl(input, actor, ctx = {}) {
     const storage_key = buildStorageKey({
@@ -47,7 +47,7 @@ export const uploadService = {
       original_name: input.original_name,
       mime_type: input.mime_type,
       extension: input.extension,
-      file_size: input.file_size, // declared; confirm-এ যাচাই
+      file_size: input.file_size, // declared; verified on confirm
       category: input.category,
       uploaded_by: actor.userId,
       related_type: input.related_type,
@@ -72,7 +72,7 @@ export const uploadService = {
       upload_id: row.id,
       method: 'PUT',
       uploadUrl,
-      // frontend ঠিক এই header দিয়ে PUT করবে (ContentType signed)
+      // the frontend must PUT with exactly this header (ContentType is signed)
       headers: { 'Content-Type': input.mime_type },
       expiresIn: env.STORAGE_UPLOAD_URL_TTL,
       storage_key,
@@ -80,8 +80,8 @@ export const uploadService = {
   },
 
   /**
-   * ধাপ ২ — confirm। S3-তে object আছে কিনা + আসল size যাচাই করে PENDING→READY।
-   * idempotent: আগেই READY হলে সেটাই ফেরত দেয়।
+   * step 2 — confirm. verifies the object exists in S3 + checks the actual size, then PENDING→READY.
+   * idempotent: if already READY, returns that same row.
    */
   async confirmUpload({ upload_id, checksum }, actor, ctx = {}) {
     const row = await uploadRepository.findById(upload_id);
@@ -96,10 +96,10 @@ export const uploadService = {
       throw new AppError('File was not found in storage — upload may have failed', 400);
     }
 
-    // আসল size limit-এর মধ্যে আছে কিনা (client-এর declared size-এ ভরসা করি না)
+    // check the actual size is within the limit (we don't trust the client's declared size)
     const resolved = resolveFileType(row.extension, row.mime_type);
     if (resolved && head.contentLength > resolved.maxBytes) {
-      await storageService.deleteObject(row.storage_key); // oversize ফাইল purge
+      await storageService.deleteObject(row.storage_key); // purge oversize file
       await uploadRepository.markFailed(row.id);
       const limitMb = Math.round(resolved.maxBytes / (1024 * 1024));
       throw new AppError(`Uploaded file exceeds the ${limitMb}MB limit`, 400);
@@ -123,11 +123,11 @@ export const uploadService = {
     return sanitize(ready);
   },
 
-  /** list — non-manage user শুধু নিজের ফাইল দেখে (ownership scope জোর করে বসাই)। */
+  /** list — a non-manage user only sees their own files (ownership scope is enforced). */
   async list(filters, actor) {
     const queryOptions = { ...filters };
     if (!hasManage(actor)) {
-      queryOptions.uploaded_by = actor.userId; // override — অন্যের uploaded_by filter খাটবে না
+      queryOptions.uploaded_by = actor.userId; // override — another user's uploaded_by filter won't apply
     }
 
     const { page, limit, offset } = getPagination(filters);
@@ -145,7 +145,7 @@ export const uploadService = {
     return sanitize(row);
   },
 
-  /** secure download — short-lived presigned GET URL (CDN/stream নয়, সরাসরি storage থেকে)। */
+  /** secure download — short-lived presigned GET URL (not CDN/stream, directly from storage). */
   async getDownloadUrl(id, actor, ctx = {}) {
     const row = await uploadRepository.findById(id);
     if (!row) throw new AppError('Upload not found', 404);
@@ -206,7 +206,7 @@ export const uploadService = {
     return sanitize(restored);
   },
 
-  /** bulk soft-delete — প্রতিটার ownership আলাদা করে যাচাই, partial success রিপোর্ট। */
+  /** bulk soft-delete — each item's ownership is checked separately, partial success reported. */
   async bulkDelete(ids, actor, ctx = {}) {
     const deleted = [];
     const skipped = [];

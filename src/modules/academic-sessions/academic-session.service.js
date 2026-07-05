@@ -69,8 +69,8 @@ export const academicSessionService = {
     return updated;
   },
 
-  // ── একসাথে শুধু একটাই session active রাখার নিয়ম ────────────
-  // নতুনটা activate করার আগে বাকি সব deactivate করতে হবে — transaction-এ atomic
+  // ── rule: only one session may be active at a time ────────────
+  // deactivate all others before activating the new one — atomic in a transaction
   async activate(id) {
     await this.getById(id); // 404 check
 
@@ -86,7 +86,7 @@ export const academicSessionService = {
     const session = await this.getById(id);
     if (!session.is_active) return session; // already inactive
 
-    // update() শুধু name/start_date/end_date নেয়, তাই is_active বদলাতে সরাসরি raw query করি
+    // update() only takes name/start_date/end_date, so we run a raw query directly to change is_active
     return withTransaction(async (client) => {
       const { rows } = await client.query(
         `UPDATE academic_sessions SET is_active = false, updated_at = NOW()
@@ -97,7 +97,7 @@ export const academicSessionService = {
     });
   },
 
-  // ── Admin admission test on/off করতে পারেন ─────────────────
+  // ── Admin can turn the admission test on/off ─────────────────
   async toggleAdmissionTest(id, admission_test_enabled) {
     if (typeof admission_test_enabled !== 'boolean') {
       throw new AppError('admission_test_enabled (boolean) is required', 400);

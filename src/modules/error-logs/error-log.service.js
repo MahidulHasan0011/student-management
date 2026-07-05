@@ -2,7 +2,7 @@ import { errorLogRepository } from './error-log.repository.js';
 import { AppError } from '../../utils/appError.js';
 import { getPagination, buildMeta } from '../../utils/pagination.js';
 
-// request object থেকে নিরাপদে context তোলে — sensitive header (auth, cookie) বাদ দিয়ে
+// safely pulls context from the request object — excluding sensitive headers (auth, cookie)
 const buildContext = (req) => {
   if (!req) return null;
   return {
@@ -10,14 +10,14 @@ const buildContext = (req) => {
     userAgent: req.headers?.['user-agent'],
     query: req.query,
     params: req.params,
-    // body বড়/sensitive হতে পারে — শুধু থাকলে রাখো, পুরো রাখি না এমন কিছু লাগলে এখানে redact করা যাবে
+    // body may be large/sensitive — keep it only if present; if needed, redaction can be added here rather than keeping it all
     body: req.body,
   };
 };
 
 export const errorLogService = {
-  // global error handler থেকে call হয় — best-effort, কখনো throw করবে না
-  // (logging fail করলে আসল request flow যেন ভেঙে না যায়)
+  // called from the global error handler — best-effort, never throws
+  // (so that a logging failure doesn't break the actual request flow)
   async log(err, req) {
     try {
       return await errorLogRepository.create({
@@ -32,7 +32,7 @@ export const errorLogService = {
         userId: req?.user?.userId || null,
       });
     } catch (logErr) {
-      // DB-তে log করতে না পারলে অন্তত console-এ ফেলে দাও, কিন্তু request ভাঙবে না
+      // if it can't be logged to the DB, at least dump it to the console, but don't break the request
       console.error('Failed to persist error log:', logErr.message);
       return null;
     }
@@ -59,7 +59,7 @@ export const errorLogService = {
     return deleted;
   },
 
-  // সব (বা ?before=ISODate-এর আগের) log soft-delete করে, কয়টা মুছলো তা ফেরত দেয়
+  // soft-deletes all (or those before ?before=ISODate) logs and returns how many were deleted
   async clear({ before } = {}) {
     const count = await errorLogRepository.clear(before || null);
     return { cleared: count };

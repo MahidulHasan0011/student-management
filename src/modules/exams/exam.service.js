@@ -95,13 +95,13 @@ export const examService = {
     return deleted;
   },
 
-  // exam-এর class-এ enrolled সব ছাত্রের result entry সম্পূর্ণ হয়েছে কিনা — auto-trigger-এর জন্য মূল check
-  // শুধুমাত্র FINAL exam-এই ranking/roll trigger হবে — UNIT_TEST/MIDTERM/ADMISSION-এ না
+  // Whether result entry is complete for all students enrolled in the exam's class — the core check for auto-trigger
+  // Only a FINAL exam triggers ranking/roll — not UNIT_TEST/MIDTERM/ADMISSION
   async isResultEntryComplete(examId) {
     const exam = await this.getById(examId);
 
-    if (exam.exam_type !== 'FINAL') return false; // FINAL ছাড়া কখনো ranking trigger হবে না
-    if (!exam.class_id || !exam.academic_session_id) return false; // class/session না থাকলে চেক করা যায় না
+    if (exam.exam_type !== 'FINAL') return false; // ranking is never triggered for anything other than FINAL
+    if (!exam.class_id || !exam.academic_session_id) return false; // cannot check without class/session
 
     const [enrolledCount, resultCount] = await Promise.all([
       examRepository.countEnrolledStudents(exam.class_id, exam.academic_session_id),
@@ -112,7 +112,7 @@ export const examService = {
   },
 
   // ── DRAFT → PUBLISHED ──
-  // Publish করার পর exam_results আর সাধারণভাবে edit করা যাবে না (correction আলাদা flow-এ হবে, ধাপ পরে)
+  // After publishing, exam_results can no longer be edited normally (correction happens in a separate flow, a later step)
   async publish(id) {
     const exam = await this.getById(id);
 
@@ -132,8 +132,8 @@ export const examService = {
     const updated = await examRepository.setStatus(id, 'PUBLISHED');
 
     // ── Auto-trigger ──
-    // FINAL বা ADMISSION publish হলে ranking চলার শর্ত পূরণ হয়েছে কিনা ranking module নিজে যাচাই করবে।
-    // এটা কখনো throw করে না (publish সফল হয়েছে, ranking আলাদা concern) — শর্ত না মিললে চুপচাপ skip হয়।
+    // When a FINAL or ADMISSION exam is published, the ranking module itself verifies whether the conditions to run ranking are met.
+    // This never throws (publish succeeded, ranking is a separate concern) — if the conditions are not met it is silently skipped.
     if (exam.exam_type === 'FINAL' || exam.exam_type === 'ADMISSION') {
       await rankingService.autoTriggerAfterPublish({
         classId: exam.class_id,
@@ -146,8 +146,8 @@ export const examService = {
   },
 
   // ── PUBLISHED → DRAFT ──
-  // Unpublish করলে result correction করা যায় (ধাপ পরে যুক্ত হবে), কিন্তু ranking_locked থাকলে আটকাতে হবে —
-  // নাহলে already-locked roll/rank-এর ভিত্তি বদলে যাবে অথচ roll নম্বর পুরনোই থেকে যাবে
+  // Unpublishing allows result correction (to be added in a later step), but it must be blocked if ranking_locked —
+  // otherwise the basis of an already-locked roll/rank would change while the roll number stays the same as before
   async unpublish(id) {
     const exam = await this.getById(id);
 

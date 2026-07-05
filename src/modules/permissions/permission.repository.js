@@ -2,7 +2,7 @@ import { query } from '../../config/db.js';
 import { buildWhereClause } from '../../utils/queryBuilder.js';
 import { buildOrder } from '../../utils/order.js';
 
-// sortBy=name হলে এই map থেকে আসল column name বের হবে — SQL injection ঠেকাতে
+// When sortBy=name, the real column name is looked up from this map — to prevent SQL injection
 const SORTABLE_FIELDS = {
   name: 'name',
   created_at: 'created_at',
@@ -10,7 +10,7 @@ const SORTABLE_FIELDS = {
 
 const FILTER_CONFIG = {
   searchableColumns: ['name'],
-  filterableColumns: [], // permissions-এ কোনো extra filter নেই
+  filterableColumns: [], // no extra filters on permissions
 };
 
 export const permissionRepository = {
@@ -19,7 +19,7 @@ export const permissionRepository = {
     return rows[0];
   },
 
-  // queryOptions = req.query থেকে আসা { search, sortBy, sortOrder }
+  // queryOptions = { search, sortBy, sortOrder } coming from req.query
   async findAll(queryOptions, { limit, offset }) {
     const values = [];
     const countRef = { value: 1 };

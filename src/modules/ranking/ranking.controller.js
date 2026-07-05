@@ -12,7 +12,7 @@ export const rankingController = {
       return successResponse(res, {
         message: 'Ranking & roll generation started — this runs in the background',
         data,
-        statusCode: 202, // Accepted — queue-তে গেছে, এখনই শেষ হয়নি
+        statusCode: 202, // Accepted — queued, not finished yet
       });
     } catch (err) {
       next(err);

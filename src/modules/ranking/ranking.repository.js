@@ -1,12 +1,12 @@
 import { query } from '../../config/db.js';
 
-// ── Ranking module-এর read query + audit log লেখা ──
-// roll.engine transaction-এর ভেতর থেকে logAudit ডাকা হবে (client পাঠিয়ে),
-// আবার service থেকেও সরাসরি ডাকা যাবে (client ছাড়া → pool query)
+// ── Ranking module read queries + writing the audit log ──
+// logAudit is called from inside the roll.engine transaction (by passing a client),
+// and can also be called directly from the service (without a client → pool query)
 export const rankingRepository = {
-  // class+session-এর সর্বশেষ version-এর snapshot — এটাই "current ranking"
-  // (live student_enrollments.roll_number-এর বদলে authoritative history snapshot পড়ি,
-  //  কারণ এখানে rank_position + total_score একসাথে থাকে)
+  // the latest version's snapshot for a class+session — this is the "current ranking"
+  // (we read the authoritative history snapshot instead of live student_enrollments.roll_number,
+  //  because rank_position + total_score are kept together here)
   async getCurrentRanking(classId, academicSessionId) {
     const { rows } = await query(
       `WITH latest AS (
@@ -34,7 +34,7 @@ export const rankingRepository = {
     return rows;
   },
 
-  // নির্দিষ্ট version (বা version না দিলে সব version) snapshot — history viewer-এর জন্য
+  // snapshot for a specific version (or all versions if none given) — for the history viewer
   async getHistory(classId, academicSessionId, version = null) {
     const params = [classId, academicSessionId];
     let versionFilter = '';
@@ -62,7 +62,7 @@ export const rankingRepository = {
     return rows;
   },
 
-  // কোন কোন version আছে — history dropdown বানাতে
+  // which versions exist — to build the history dropdown
   async getVersions(classId, academicSessionId) {
     const { rows } = await query(
       `SELECT version, MIN(generated_at) AS generated_at, COUNT(*) AS student_count
@@ -75,8 +75,8 @@ export const rankingRepository = {
     return rows;
   },
 
-  // ── audit trail লেখা ──
-  // client পাঠালে চলমান transaction-এর অংশ হবে (atomic), নাহলে আলাদা pool query
+  // ── writing the audit trail ──
+  // if a client is passed it becomes part of the ongoing transaction (atomic), otherwise a separate pool query
   async logAudit(
     {
       action,

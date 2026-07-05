@@ -11,22 +11,22 @@ router.use(authMiddleware);
  * /sections:
  *   get:
  *     tags: [Sections]
- *     summary: সব section-এর তালিকা (pagination + search + filter)
+ *     summary: List all sections (pagination + search + filter)
  *     description: |
- *       section-এর পেজিনেটেড তালিকা ফেরত দেয় (class_name সহ)। প্রয়োজনীয় permission — `SECTION_READ`।
- *       `search` দিয়ে name-এ খোঁজা যায়; `class_id` দিয়ে নির্দিষ্ট ক্লাসে filter করা যায়।
+ *       Returns a paginated list of sections (including class_name). Requires the `SECTION_READ` permission.
+ *       Use `search` to search by name; use `class_id` to filter by a specific class.
  *     parameters:
  *       - $ref: '#/components/parameters/PageQuery'
  *       - $ref: '#/components/parameters/LimitQuery'
  *       - name: search
  *         in: query
  *         required: false
- *         description: section name-এ keyword search
+ *         description: keyword search on section name
  *         schema: { type: string }
  *       - name: class_id
  *         in: query
  *         required: false
- *         description: নির্দিষ্ট ক্লাসের section ফিল্টার
+ *         description: filter sections by a specific class
  *         schema: { type: string, format: uuid }
  *       - name: sortBy
  *         in: query
@@ -38,7 +38,7 @@ router.use(authMiddleware);
  *         schema: { type: string, enum: [asc, desc] }
  *     responses:
  *       200:
- *         description: section-এর তালিকা
+ *         description: List of sections
  *         content:
  *           application/json:
  *             schema:
@@ -62,13 +62,13 @@ router.get('/', rbacMiddleware('SECTION_READ'), sectionController.getAll);
  * /sections/{id}:
  *   get:
  *     tags: [Sections]
- *     summary: একটি section-এর বিস্তারিত (ID দিয়ে)
- *     description: নির্দিষ্ট section-এর তথ্য (class_name সহ) ফেরত দেয়। প্রয়োজনীয় permission — `SECTION_READ`।
+ *     summary: Get a single section by ID
+ *     description: Returns the details of the specified section (including class_name). Requires the `SECTION_READ` permission.
  *     parameters:
  *       - $ref: '#/components/parameters/IdParam'
  *     responses:
  *       200:
- *         description: section-এর তথ্য
+ *         description: Section details
  *         content:
  *           application/json:
  *             schema:
@@ -91,15 +91,15 @@ router.get('/:id', rbacMiddleware('SECTION_READ'), sectionController.getById);
  * /sections/{id}/occupancy:
  *   get:
  *     tags: [Sections]
- *     summary: section-এর আসন দখল (occupancy) তথ্য
+ *     summary: Section seat occupancy details
  *     description: |
- *       section-এর তথ্যের সাথে enrolled_count, available_seats ও is_full ফেরত দেয়।
- *       max_capacity null হলে unlimited ধরা হয়। প্রয়োজনীয় permission — `SECTION_READ`।
+ *       Returns the section details along with enrolled_count, available_seats and is_full.
+ *       A null max_capacity is treated as unlimited. Requires the `SECTION_READ` permission.
  *     parameters:
  *       - $ref: '#/components/parameters/IdParam'
  *     responses:
  *       200:
- *         description: section + occupancy তথ্য
+ *         description: Section + occupancy details
  *         content:
  *           application/json:
  *             schema:
@@ -127,10 +127,10 @@ router.get('/:id/occupancy', rbacMiddleware('SECTION_READ'), sectionController.g
  * /sections:
  *   post:
  *     tags: [Sections]
- *     summary: নতুন section তৈরি
+ *     summary: Create a new section
  *     description: |
- *       একটি ক্লাসের অধীনে নতুন section তৈরি করে। name বড় হাতের অক্ষরে রূপান্তরিত হয়
- *       এবং একই ক্লাসে unique হতে হবে। প্রয়োজনীয় permission — `SECTION_CREATE`।
+ *       Creates a new section under a class. The name is converted to uppercase
+ *       and must be unique within the same class. Requires the `SECTION_CREATE` permission.
  *     requestBody:
  *       required: true
  *       content:
@@ -144,7 +144,7 @@ router.get('/:id/occupancy', rbacMiddleware('SECTION_READ'), sectionController.g
  *               max_capacity: { type: integer, minimum: 1, nullable: true, example: 40 }
  *     responses:
  *       201:
- *         description: section তৈরি হয়েছে
+ *         description: Section created
  *         content:
  *           application/json:
  *             schema:
@@ -171,10 +171,10 @@ router.post('/', rbacMiddleware('SECTION_CREATE'), sectionController.create);
  * /sections/{id}:
  *   patch:
  *     tags: [Sections]
- *     summary: section আপডেট
+ *     summary: Update a section
  *     description: |
- *       section-এর name ও/অথবা max_capacity আপডেট করে। ইতিমধ্যে enrolled student
- *       সংখ্যার চেয়ে কম max_capacity দেওয়া যাবে না (400)। প্রয়োজনীয় permission — `SECTION_UPDATE`।
+ *       Updates the section's name and/or max_capacity. max_capacity cannot be set lower
+ *       than the number of already enrolled students (400). Requires the `SECTION_UPDATE` permission.
  *     parameters:
  *       - $ref: '#/components/parameters/IdParam'
  *     requestBody:
@@ -188,7 +188,7 @@ router.post('/', rbacMiddleware('SECTION_CREATE'), sectionController.create);
  *               max_capacity: { type: integer, minimum: 1, example: 45 }
  *     responses:
  *       200:
- *         description: আপডেট সফল
+ *         description: Update successful
  *         content:
  *           application/json:
  *             schema:
@@ -215,20 +215,20 @@ router.patch('/:id', rbacMiddleware('SECTION_UPDATE'), sectionController.update)
  * /sections/{id}:
  *   delete:
  *     tags: [Sections]
- *     summary: section মুছে ফেলা (soft delete)
+ *     summary: Delete a section (soft delete)
  *     description: |
- *       section-কে soft-delete করে। কোনো ছাত্র enrolled থাকলে মুছা যাবে না (400)।
- *       প্রয়োজনীয় permission — `SECTION_DELETE`।
+ *       Soft-deletes the section. It cannot be deleted while any student is enrolled (400).
+ *       Requires the `SECTION_DELETE` permission.
  *     parameters:
  *       - $ref: '#/components/parameters/IdParam'
  *     responses:
  *       200:
- *         description: section মুছে ফেলা হয়েছে
+ *         description: Section deleted
  *         content:
  *           application/json:
  *             schema: { $ref: '#/components/schemas/SuccessResponse' }
  *       400:
- *         description: ছাত্র enrolled থাকায় মুছা যায়নি
+ *         description: Could not delete because students are enrolled
  *         content:
  *           application/json:
  *             schema: { $ref: '#/components/schemas/ErrorResponse' }

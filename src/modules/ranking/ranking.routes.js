@@ -12,16 +12,16 @@ router.use(authMiddleware);
  * /ranking/{classId}/{academicSessionId}:
  *   get:
  *     tags: [Ranking]
- *     summary: একটি ক্লাস ও সেশনের বর্তমান র‍্যাঙ্কিং
+ *     summary: Current ranking for a class and session
  *     description: >-
- *       `RANKING_READ` permission লাগে। cache-first — আগে cache দেখে, না পেলে current ranking snapshot ফেরত দেয়।
- *       class বা academic session না পেলে 404।
+ *       Requires `RANKING_READ` permission. cache-first — checks the cache first, and if not found returns the current ranking snapshot.
+ *       Returns 404 if the class or academic session is not found.
  *     parameters:
- *       - { name: classId, in: path, required: true, description: 'ক্লাসের UUID', schema: { type: string, format: uuid } }
- *       - { name: academicSessionId, in: path, required: true, description: 'অ্যাকাডেমিক সেশনের UUID', schema: { type: string, format: uuid } }
+ *       - { name: classId, in: path, required: true, description: 'Class UUID', schema: { type: string, format: uuid } }
+ *       - { name: academicSessionId, in: path, required: true, description: 'Academic session UUID', schema: { type: string, format: uuid } }
  *     responses:
  *       200:
- *         description: বর্তমান র‍্যাঙ্কিং তালিকা
+ *         description: current ranking list
  *         content:
  *           application/json:
  *             schema:
@@ -48,17 +48,17 @@ router.get(
  * /ranking/{classId}/{academicSessionId}/history:
  *   get:
  *     tags: [Ranking]
- *     summary: র‍্যাঙ্কিং ইতিহাস (snapshot ও version তালিকা)
+ *     summary: Ranking history (snapshot and version list)
  *     description: >-
- *       `RANKING_READ` permission লাগে। সব available version এবং (optional) নির্দিষ্ট version-এর snapshots ফেরত দেয়।
- *       `version` query না দিলে সর্বশেষ/সব snapshot আসে।
+ *       Requires `RANKING_READ` permission. Returns all available versions and (optionally) the snapshots for a specific version.
+ *       Without a `version` query, the latest/all snapshots are returned.
  *     parameters:
- *       - { name: classId, in: path, required: true, description: 'ক্লাসের UUID', schema: { type: string, format: uuid } }
- *       - { name: academicSessionId, in: path, required: true, description: 'অ্যাকাডেমিক সেশনের UUID', schema: { type: string, format: uuid } }
- *       - { name: version, in: query, required: false, description: 'নির্দিষ্ট version filter', schema: { type: integer } }
+ *       - { name: classId, in: path, required: true, description: 'Class UUID', schema: { type: string, format: uuid } }
+ *       - { name: academicSessionId, in: path, required: true, description: 'Academic session UUID', schema: { type: string, format: uuid } }
+ *       - { name: version, in: query, required: false, description: 'filter by a specific version', schema: { type: integer } }
  *     responses:
  *       200:
- *         description: ইতিহাস
+ *         description: history
  *         content:
  *           application/json:
  *             schema:
@@ -89,16 +89,16 @@ router.get(
  * /ranking/{classId}/{academicSessionId}/audit:
  *   get:
  *     tags: [Ranking]
- *     summary: র‍্যাঙ্কিং অডিট লগ
+ *     summary: Ranking audit log
  *     description: >-
- *       `RANKING_READ` permission লাগে। এই ক্লাস ও সেশনের ranking সংক্রান্ত audit log
- *       (generate, unlock, auto-trigger ইত্যাদি action) ফেরত দেয়।
+ *       Requires `RANKING_READ` permission. Returns the ranking-related audit log for this class and session
+ *       (generate, unlock, auto-trigger and similar actions).
  *     parameters:
- *       - { name: classId, in: path, required: true, description: 'ক্লাসের UUID', schema: { type: string, format: uuid } }
- *       - { name: academicSessionId, in: path, required: true, description: 'অ্যাকাডেমিক সেশনের UUID', schema: { type: string, format: uuid } }
+ *       - { name: classId, in: path, required: true, description: 'Class UUID', schema: { type: string, format: uuid } }
+ *       - { name: academicSessionId, in: path, required: true, description: 'Academic session UUID', schema: { type: string, format: uuid } }
  *     responses:
  *       200:
- *         description: অডিট লগ
+ *         description: audit log
  *         content:
  *           application/json:
  *             schema:
@@ -120,18 +120,18 @@ router.get(
   rankingController.getAuditLog,
 );
 
-// ── Generate (manual, প্রথমবার) ──
+// ── Generate (manual, first time) ──
 /**
  * @openapi
  * /ranking/generate-roll:
  *   post:
  *     tags: [Ranking]
- *     summary: র‍্যাঙ্ক ও রোল জেনারেশন শুরু করা (manual, প্রথমবার)
+ *     summary: Start rank and roll generation (manual, first time)
  *     description: >-
- *       `RANKING_GENERATE` permission লাগে। background job-এ ranking ও roll generation enqueue করে (202 Accepted)।
- *       ইতিমধ্যে locked থাকলে 409 (তখন recalculate ব্যবহার করতে হবে)।
- *       FINAL exam (এবং সেশনে admission test enabled হলে ADMISSION exam-ও) PUBLISHED না থাকলে 400।
- *       triggeredBy স্বয়ংক্রিয়ভাবে লগইন করা ইউজার থেকে নেওয়া হয়।
+ *       Requires `RANKING_GENERATE` permission. Enqueues ranking and roll generation as a background job (202 Accepted).
+ *       Returns 409 if already locked (use recalculate in that case).
+ *       Returns 400 if the FINAL exam (and the ADMISSION exam too, if admission test is enabled for the session) is not PUBLISHED.
+ *       triggeredBy is taken automatically from the logged-in user.
  *     requestBody:
  *       required: true
  *       content:
@@ -142,10 +142,10 @@ router.get(
  *             properties:
  *               classId: { type: string, format: uuid }
  *               academicSessionId: { type: string, format: uuid }
- *               sectionId: { type: string, format: uuid, description: 'optional — নির্দিষ্ট section-এর জন্য' }
+ *               sectionId: { type: string, format: uuid, description: 'optional — for a specific section' }
  *     responses:
  *       202:
- *         description: job queue-তে গেছে
+ *         description: job has been queued
  *         content:
  *           application/json:
  *             schema:
@@ -173,12 +173,12 @@ router.post('/generate-roll', rbacMiddleware('RANKING_GENERATE'), rankingControl
  * /ranking/recalculate:
  *   post:
  *     tags: [Ranking]
- *     summary: র‍্যাঙ্কিং unlock করে পুনঃগণনা শুরু করা (admin)
+ *     summary: Unlock ranking and start recalculation (admin)
  *     description: >-
- *       `RANKING_RECALCULATE` permission লাগে। প্রথমে lock খুলে দেয়, তারপর background job-এ
- *       recalculation + regenerate enqueue করে (202 Accepted) এবং stale cache মুছে দেয়।
- *       FINAL (ও admission test enabled হলে ADMISSION) exam PUBLISHED না থাকলে 400।
- *       triggeredBy স্বয়ংক্রিয়ভাবে লগইন করা ইউজার থেকে নেওয়া হয়।
+ *       Requires `RANKING_RECALCULATE` permission. First releases the lock, then enqueues
+ *       recalculation + regenerate as a background job (202 Accepted) and clears the stale cache.
+ *       Returns 400 if the FINAL (and ADMISSION, when admission test is enabled) exam is not PUBLISHED.
+ *       triggeredBy is taken automatically from the logged-in user.
  *     requestBody:
  *       required: true
  *       content:
@@ -192,7 +192,7 @@ router.post('/generate-roll', rbacMiddleware('RANKING_GENERATE'), rankingControl
  *               sectionId: { type: string, format: uuid, description: 'optional' }
  *     responses:
  *       202:
- *         description: recalculation শুরু হয়েছে
+ *         description: recalculation has started
  *         content:
  *           application/json:
  *             schema:
@@ -217,11 +217,11 @@ router.post('/recalculate', rbacMiddleware('RANKING_RECALCULATE'), rankingContro
  * /ranking/unlock:
  *   post:
  *     tags: [Ranking]
- *     summary: র‍্যাঙ্কিং lock খুলে দেওয়া (regenerate ছাড়া, admin)
+ *     summary: Release the ranking lock (without regenerating, admin)
  *     description: >-
- *       `RANKING_UNLOCK` permission লাগে। শুধু lock খুলে দেয় (কোনো recalculation/regenerate ছাড়া) —
- *       admin ম্যানুয়ালি edit করতে চাইলে। class বা session না পেলে 404।
- *       triggeredBy স্বয়ংক্রিয়ভাবে লগইন করা ইউজার থেকে নেওয়া হয়।
+ *       Requires `RANKING_UNLOCK` permission. Only releases the lock (without any recalculation/regenerate) —
+ *       for when an admin wants to edit manually. Returns 404 if the class or session is not found.
+ *       triggeredBy is taken automatically from the logged-in user.
  *     requestBody:
  *       required: true
  *       content:
@@ -234,7 +234,7 @@ router.post('/recalculate', rbacMiddleware('RANKING_RECALCULATE'), rankingContro
  *               academicSessionId: { type: string, format: uuid }
  *     responses:
  *       200:
- *         description: unlock সফল
+ *         description: unlock successful
  *         content:
  *           application/json:
  *             schema:

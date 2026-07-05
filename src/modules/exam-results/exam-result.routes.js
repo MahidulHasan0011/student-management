@@ -11,10 +11,10 @@ router.use(authMiddleware);
  * /results:
  *   get:
  *     tags: [Exam-Results]
- *     summary: পরীক্ষার ফলাফলের তালিকা (paginated, filter সহ)
+ *     summary: List exam results (paginated, with filter)
  *     description: >-
- *       `EXAM_RESULT_READ` permission লাগে। `exam_id`, `student_id`, `subject_id` দিয়ে filter,
- *       এবং `sortBy`/`sortOrder` দিয়ে সাজানো যায়। প্রতিটি result-এ exam, student ও subject-এর নাম যুক্ত থাকে।
+ *       Requires `EXAM_RESULT_READ` permission. Filter by `exam_id`, `student_id`, `subject_id`,
+ *       and sort with `sortBy`/`sortOrder`. Each result includes the exam, student and subject names.
  *     parameters:
  *       - $ref: '#/components/parameters/PageQuery'
  *       - $ref: '#/components/parameters/LimitQuery'
@@ -25,7 +25,7 @@ router.use(authMiddleware);
  *       - { name: sortOrder, in: query, required: false, schema: { type: string, enum: [asc, desc] } }
  *     responses:
  *       200:
- *         description: ফলাফলের তালিকা
+ *         description: List of results
  *         content:
  *           application/json:
  *             schema:
@@ -47,13 +47,13 @@ router.get('/', rbacMiddleware('EXAM_RESULT_READ'), examResultController.getAll)
  * /results/{id}:
  *   get:
  *     tags: [Exam-Results]
- *     summary: একটি পরীক্ষার ফলাফলের বিস্তারিত
- *     description: '`EXAM_RESULT_READ` permission লাগে। exam, student ও subject নাম সহ একটি result ফেরত দেয়।'
+ *     summary: Get a single exam result's details
+ *     description: 'Requires `EXAM_RESULT_READ` permission. Returns a single result with exam, student and subject names.'
  *     parameters:
  *       - $ref: '#/components/parameters/IdParam'
  *     responses:
  *       200:
- *         description: ফলাফলের তথ্য
+ *         description: Result details
  *         content:
  *           application/json:
  *             schema:
@@ -76,15 +76,15 @@ router.get('/:id', rbacMiddleware('EXAM_RESULT_READ'), examResultController.getB
  * /results/exam/{examId}:
  *   get:
  *     tags: [Exam-Results]
- *     summary: একটি পরীক্ষার সব ফলাফল
+ *     summary: All results for an exam
  *     description: >-
- *       `EXAM_RESULT_READ` permission লাগে। নির্দিষ্ট exam-এর সব subject-ভিত্তিক result
- *       (student ও subject নাম সহ) ফেরত দেয়। exam না পেলে 404।
+ *       Requires `EXAM_RESULT_READ` permission. Returns all subject-wise results for a given exam
+ *       (with student and subject names). Returns 404 if the exam is not found.
  *     parameters:
- *       - { name: examId, in: path, required: true, description: 'পরীক্ষার UUID', schema: { type: string, format: uuid } }
+ *       - { name: examId, in: path, required: true, description: 'Exam UUID', schema: { type: string, format: uuid } }
  *     responses:
  *       200:
- *         description: পরীক্ষার ফলাফল
+ *         description: Exam results
  *         content:
  *           application/json:
  *             schema:
@@ -107,16 +107,16 @@ router.get('/exam/:examId', rbacMiddleware('EXAM_RESULT_READ'), examResultContro
  * /results/exam/{examId}/student/{studentId}/marksheet:
  *   get:
  *     tags: [Exam-Results]
- *     summary: একজন ছাত্রের একটি পরীক্ষার মার্কশিট
+ *     summary: A student's marksheet for an exam
  *     description: >-
- *       `EXAM_RESULT_READ` permission লাগে। নির্দিষ্ট exam ও student-এর সব subject-এর marks/grade,
- *       সাথে মোট নম্বর (total_marks) ফেরত দেয়। exam বা student না পেলে 404।
+ *       Requires `EXAM_RESULT_READ` permission. Returns marks/grade for all subjects for a given exam and student,
+ *       along with the total marks (total_marks). Returns 404 if the exam or student is not found.
  *     parameters:
- *       - { name: examId, in: path, required: true, description: 'পরীক্ষার UUID', schema: { type: string, format: uuid } }
- *       - { name: studentId, in: path, required: true, description: 'ছাত্রের UUID', schema: { type: string, format: uuid } }
+ *       - { name: examId, in: path, required: true, description: 'Exam UUID', schema: { type: string, format: uuid } }
+ *       - { name: studentId, in: path, required: true, description: 'Student UUID', schema: { type: string, format: uuid } }
  *     responses:
  *       200:
- *         description: মার্কশিট
+ *         description: Marksheet
  *         content:
  *           application/json:
  *             schema:
@@ -149,11 +149,11 @@ router.get(
  * /results:
  *   post:
  *     tags: [Exam-Results]
- *     summary: একটি ফলাফল এন্ট্রি (এক ছাত্র, এক subject)
+ *     summary: Enter a single result (one student, one subject)
  *     description: >-
- *       `EXAM_RESULT_CREATE` permission লাগে। `marks` 0–100 এর মধ্যে থাকতে হবে; grade স্বয়ংক্রিয়ভাবে নির্ণীত হয়।
- *       exam PUBLISHED হলে এন্ট্রি বন্ধ (আগে unpublish করতে হবে) — 400।
- *       একই exam/student/subject-এর entry আগে থাকলে 409।
+ *       Requires `EXAM_RESULT_CREATE` permission. `marks` must be between 0–100; the grade is determined automatically.
+ *       Entry is blocked if the exam is PUBLISHED (unpublish it first) — 400.
+ *       Returns 409 if an entry already exists for the same exam/student/subject.
  *     requestBody:
  *       required: true
  *       content:
@@ -168,7 +168,7 @@ router.get(
  *               marks: { type: number, minimum: 0, maximum: 100, example: 87.5 }
  *     responses:
  *       201:
- *         description: ফলাফল এন্ট্রি হয়েছে
+ *         description: Result entered
  *         content:
  *           application/json:
  *             schema:
@@ -195,11 +195,11 @@ router.post('/', rbacMiddleware('EXAM_RESULT_CREATE'), examResultController.crea
  * /results/bulk:
  *   post:
  *     tags: [Exam-Results]
- *     summary: একসাথে অনেক ফলাফল এন্ট্রি (bulk upsert)
+ *     summary: Enter many results at once (bulk upsert)
  *     description: >-
- *       `EXAM_RESULT_CREATE` permission লাগে। একটি exam-এ অনেক student/subject-এর marks একসাথে বসানো হয় —
- *       (exam, student, subject) আগে থাকলে marks/grade আপডেট হয় (upsert)। exam PUBLISHED হলে 400।
- *       response-এ insert করা results ও completion তথ্য (সব ছাত্রের entry সম্পূর্ণ কিনা) ফেরত আসে।
+ *       Requires `EXAM_RESULT_CREATE` permission. Marks for many students/subjects are set at once for a single exam —
+ *       if (exam, student, subject) already exists, marks/grade are updated (upsert). Returns 400 if the exam is PUBLISHED.
+ *       The response returns the inserted results and completion info (whether entry is complete for all students).
  *     requestBody:
  *       required: true
  *       content:
@@ -221,7 +221,7 @@ router.post('/', rbacMiddleware('EXAM_RESULT_CREATE'), examResultController.crea
  *                     marks: { type: number, minimum: 0, maximum: 100 }
  *     responses:
  *       201:
- *         description: bulk ফলাফল এন্ট্রি হয়েছে
+ *         description: Bulk results entered
  *         content:
  *           application/json:
  *             schema:
@@ -255,10 +255,10 @@ router.post('/bulk', rbacMiddleware('EXAM_RESULT_CREATE'), examResultController.
  * /results/{id}:
  *   patch:
  *     tags: [Exam-Results]
- *     summary: একটি ফলাফলের marks আপডেট
+ *     summary: Update a result's marks
  *     description: >-
- *       `EXAM_RESULT_UPDATE` permission লাগে। শুধু `marks` আপডেট করা যায় (0–100); grade নতুন করে নির্ণীত হয়।
- *       exam PUBLISHED হলে 400।
+ *       Requires `EXAM_RESULT_UPDATE` permission. Only `marks` can be updated (0–100); the grade is recalculated.
+ *       Returns 400 if the exam is PUBLISHED.
  *     parameters:
  *       - $ref: '#/components/parameters/IdParam'
  *     requestBody:
@@ -272,7 +272,7 @@ router.post('/bulk', rbacMiddleware('EXAM_RESULT_CREATE'), examResultController.
  *               marks: { type: number, minimum: 0, maximum: 100 }
  *     responses:
  *       200:
- *         description: আপডেট সফল
+ *         description: Update successful
  *         content:
  *           application/json:
  *             schema:
@@ -297,13 +297,13 @@ router.patch('/:id', rbacMiddleware('EXAM_RESULT_UPDATE'), examResultController.
  * /results/{id}:
  *   delete:
  *     tags: [Exam-Results]
- *     summary: একটি ফলাফল মুছে ফেলা (soft delete)
- *     description: '`EXAM_RESULT_UPDATE` permission লাগে। exam PUBLISHED হলে মুছা যায় না — 400।'
+ *     summary: Delete a result (soft delete)
+ *     description: 'Requires `EXAM_RESULT_UPDATE` permission. Cannot delete if the exam is PUBLISHED — 400.'
  *     parameters:
  *       - $ref: '#/components/parameters/IdParam'
  *     responses:
  *       200:
- *         description: মুছে ফেলা হয়েছে
+ *         description: Deleted
  *         content:
  *           application/json:
  *             schema: { $ref: '#/components/schemas/SuccessResponse' }

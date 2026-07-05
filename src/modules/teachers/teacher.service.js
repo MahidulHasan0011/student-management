@@ -9,8 +9,8 @@ import { env } from '../../config/env.js';
 import { assertString, assertEnum, assertDate, GENDERS } from '../../utils/validators.js';
 
 export const teacherService = {
-  // একটা teacher তৈরি করা মানে user account + teacher profile — দুটো একসাথে,
-  // একটা fail করলে অন্যটাও rollback হওয়া উচিত, তাই withTransaction
+  // Creating a teacher means user account + teacher profile — both together,
+  // and if one fails the other should roll back too, hence withTransaction
   async create({
     full_name,
     email,
@@ -78,7 +78,7 @@ export const teacherService = {
     return teacher;
   },
 
-  // teacher profile + তার সব subject assignment একসাথে
+  // teacher profile + all of their subject assignments together
   async getByIdWithAssignments(id) {
     const teacher = await this.getById(id);
     const assignments = await teacherRepository.findAssignments(id);

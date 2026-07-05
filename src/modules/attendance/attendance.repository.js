@@ -2,8 +2,8 @@ import { query, withTransaction } from '../../config/db.js';
 import { buildWhereClause } from '../../utils/queryBuilder.js';
 import { buildOrder } from '../../utils/order.js';
 
-// ── DB write/read layer — attendance.engine শুধু হিসাব করে (read-only),
-//    আসল mark/check-in/check-out এখানে হয় ──
+// ── DB write/read layer — attendance.engine only computes (read-only),
+//    the actual mark/check-in/check-out happens here ──
 
 const SA_SORTABLE = {
   attendance_date: 'sa.attendance_date',
@@ -24,7 +24,7 @@ const SA_FILTER = {
 export const attendanceRepository = {
   // ── Student attendance ──
 
-  // একজন student-এর একটা তারিখে record আগে আছে কিনা — duplicate ঠেকাতে
+  // whether a record already exists for a student on a given date — to prevent duplicates
   async findStudentRecord(client, studentId, attendanceDate) {
     const exec = client ? client.query.bind(client) : query;
     const { rows } = await exec(
@@ -36,8 +36,8 @@ export const attendanceRepository = {
     return rows[0] || null;
   },
 
-  // একটা class/section-এর একদিনের attendance একসাথে mark — upsert (থাকলে update, নাহলে insert)
-  // পুরোটা একটাই transaction-এ → আংশিক ব্যর্থ হলে সব rollback (data consistency)
+  // mark a class/section's single-day attendance in one go — upsert (update if exists, otherwise insert)
+  // the whole thing runs in a single transaction → a partial failure rolls everything back (data consistency)
   async bulkMarkStudents({ classId, sectionId, attendanceDate, records }) {
     return withTransaction(async (client) => {
       const results = [];
@@ -100,7 +100,7 @@ export const attendanceRepository = {
 
   // ── Staff attendance (attendance_logs) ──
 
-  // আজকের (বা নির্দিষ্ট তারিখের) log — check-in/out এর জন্য
+  // today's (or a specific date's) log — used for check-in/out
   async findStaffLog(userId, attendanceDate) {
     const { rows } = await query(
       `SELECT * FROM attendance_logs
@@ -122,7 +122,7 @@ export const attendanceRepository = {
     return rows[0];
   },
 
-  // check-out — check_in থেকে এখন পর্যন্ত সময় মিনিটে হিসাব করে বসায়
+  // check-out — computes and stores the elapsed time in minutes from check_in until now
   async setCheckOut({ logId, latitude, longitude }) {
     const { rows } = await query(
       `UPDATE attendance_logs

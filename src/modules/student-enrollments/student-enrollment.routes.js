@@ -11,8 +11,8 @@ router.use(authMiddleware);
  * /enrollments:
  *   get:
  *     tags: [Enrollments]
- *     summary: সকল ভর্তির তালিকা (পেজিনেটেড)
- *     description: '`ENROLLMENT_READ` permission লাগে। `class_id`, `section_id`, `academic_session_id` দিয়ে ফিল্টার এবং `sortBy` (roll_number|created_at) সাপোর্ট করে।'
+ *     summary: List all enrollments (paginated)
+ *     description: 'Requires the `ENROLLMENT_READ` permission. Supports filtering by `class_id`, `section_id`, `academic_session_id` and `sortBy` (roll_number|created_at).'
  *     parameters:
  *       - $ref: '#/components/parameters/PageQuery'
  *       - $ref: '#/components/parameters/LimitQuery'
@@ -23,7 +23,7 @@ router.use(authMiddleware);
  *       - { name: sortOrder, in: query, required: false, schema: { type: string, enum: [asc, desc] } }
  *     responses:
  *       200:
- *         description: ভর্তির তালিকা (student/class/section/session নাম সহ)
+ *         description: List of enrollments (with student/class/section/session names)
  *         content:
  *           application/json:
  *             schema:
@@ -44,13 +44,13 @@ router.get('/', rbacMiddleware('ENROLLMENT_READ'), studentEnrollmentController.g
  * /enrollments/{id}:
  *   get:
  *     tags: [Enrollments]
- *     summary: একটি ভর্তির বিস্তারিত
- *     description: '`ENROLLMENT_READ` permission লাগে।'
+ *     summary: Get a single enrollment
+ *     description: 'Requires the `ENROLLMENT_READ` permission.'
  *     parameters:
  *       - $ref: '#/components/parameters/IdParam'
  *     responses:
  *       200:
- *         description: ভর্তির তথ্য
+ *         description: Enrollment details
  *         content:
  *           application/json:
  *             schema:
@@ -72,11 +72,11 @@ router.get('/:id', rbacMiddleware('ENROLLMENT_READ'), studentEnrollmentControlle
  * /enrollments:
  *   post:
  *     tags: [Enrollments]
- *     summary: শিক্ষার্থীকে ক্লাস/সেশনে ভর্তি করা
+ *     summary: Enroll a student into a class/session
  *     description: >
- *       `ENROLLMENT_CREATE` permission লাগে। একই শিক্ষার্থী একই সেশনে দুইবার ভর্তি হতে পারবে না।
- *       ক্লাসে সেকশন থাকলে `section_id` আবশ্যক (capacity full হলে আটকাবে); সেকশন না থাকলে `section_id` দেওয়া যাবে না।
- *       `enrollment_type` validate হয় কিন্তু persist হয় না; `roll_number` এখানে সেট হয় না (ranking engine বসায়)।
+ *       Requires the `ENROLLMENT_CREATE` permission. A student cannot be enrolled twice in the same session.
+ *       `section_id` is required when the class has sections (blocked if the section is at capacity); it must not be provided when the class has no sections.
+ *       `enrollment_type` is validated but not persisted; `roll_number` is not set here (the ranking engine assigns it).
  *     requestBody:
  *       required: true
  *       content:
@@ -88,11 +88,11 @@ router.get('/:id', rbacMiddleware('ENROLLMENT_READ'), studentEnrollmentControlle
  *               student_id: { type: string, format: uuid }
  *               class_id: { type: string, format: uuid }
  *               academic_session_id: { type: string, format: uuid }
- *               section_id: { type: string, format: uuid, description: 'ক্লাসে সেকশন থাকলে আবশ্যক' }
+ *               section_id: { type: string, format: uuid, description: 'Required when the class has sections' }
  *               enrollment_type: { type: string, enum: [OLD, NEW] }
  *     responses:
  *       201:
- *         description: শিক্ষার্থী ভর্তি হয়েছে
+ *         description: Student enrolled
  *         content:
  *           application/json:
  *             schema:
@@ -118,10 +118,10 @@ router.post('/', rbacMiddleware('ENROLLMENT_CREATE'), studentEnrollmentControlle
  * /enrollments/{id}:
  *   patch:
  *     tags: [Enrollments]
- *     summary: ভর্তি আপডেট (ক্লাস/সেকশন ট্রান্সফার)
+ *     summary: Update enrollment (class/section transfer)
  *     description: >
- *       `ENROLLMENT_UPDATE` permission লাগে। শুধু `class_id` ও `section_id` বদলানো যায় (উভয়ই ঐচ্ছিক)।
- *       নতুন সেকশনের জন্য capacity আবার যাচাই হয়; `roll_number` এখানে বদলানো যায় না।
+ *       Requires the `ENROLLMENT_UPDATE` permission. Only `class_id` and `section_id` can be changed (both optional).
+ *       Capacity is re-checked for the new section; `roll_number` cannot be changed here.
  *     parameters:
  *       - $ref: '#/components/parameters/IdParam'
  *     requestBody:
@@ -135,7 +135,7 @@ router.post('/', rbacMiddleware('ENROLLMENT_CREATE'), studentEnrollmentControlle
  *               section_id: { type: string, format: uuid, nullable: true }
  *     responses:
  *       200:
- *         description: ভর্তি আপডেট হয়েছে
+ *         description: Enrollment updated
  *         content:
  *           application/json:
  *             schema:
@@ -159,13 +159,13 @@ router.patch('/:id', rbacMiddleware('ENROLLMENT_UPDATE'), studentEnrollmentContr
  * /enrollments/{id}:
  *   delete:
  *     tags: [Enrollments]
- *     summary: ভর্তি মুছে ফেলা (soft delete)
- *     description: 'ডিলিটের জন্য `ENROLLMENT_DELETE` নয় — `ENROLLMENT_UPDATE` permission লাগে।'
+ *     summary: Delete an enrollment (soft delete)
+ *     description: 'Deletion requires the `ENROLLMENT_UPDATE` permission, not `ENROLLMENT_DELETE`.'
  *     parameters:
  *       - $ref: '#/components/parameters/IdParam'
  *     responses:
  *       200:
- *         description: ভর্তি মুছে ফেলা হয়েছে
+ *         description: Enrollment deleted
  *         content:
  *           application/json:
  *             schema: { $ref: '#/components/schemas/SuccessResponse' }

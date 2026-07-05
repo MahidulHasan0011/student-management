@@ -29,7 +29,7 @@ export const subjectAssignmentService = {
     const session = await academicSessionRepository.findById(academic_session_id);
     if (!session) throw new AppError('Academic session not found', 404);
 
-    // ── class-এ section আছে কিনা — student_enrollment-এর মতোই rule এখানেও প্রযোজ্য ──
+    // ── whether the class has sections — the same rule as student_enrollment applies here too ──
     const classSections = await sectionRepository.findByClassId(class_id);
     const classHasSections = classSections.length > 0;
 
@@ -47,7 +47,7 @@ export const subjectAssignmentService = {
 
     const finalSectionId = classHasSections ? section_id : null;
 
-    // ── duplicate check — DB-র unique constraint-এর আগেই স্পষ্ট error দেওয়া ──
+    // ── duplicate check — return a clear error before the DB unique constraint kicks in ──
     const existing = await subjectAssignmentRepository.findExact({
       teacher_id,
       class_id,
@@ -62,8 +62,8 @@ export const subjectAssignmentService = {
       );
     }
 
-    // ── একই slot-এ অন্য teacher আগে থেকে assigned থাকলে সতর্ক করা (block না, শুধু জানিয়ে দেওয়া) ──
-    // স্কুলে কখনো কখনো একই বিষয় দুইজন শিক্ষক ভাগাভাগি করে পড়ান, তাই hard-block না করে info দেওয়া হলো
+    // ── warn if another teacher is already assigned to the same slot (do not block, just inform) ──
+    // in a school the same subject is sometimes shared by two teachers, so we surface info instead of hard-blocking
     const otherTeachers = await subjectAssignmentRepository.findOtherTeacherForSlot({
       class_id,
       section_id: finalSectionId,
@@ -104,13 +104,13 @@ export const subjectAssignmentService = {
     return subjectAssignmentRepository.findByTeacherId(teacherId);
   },
 
-  // assignment বদলানো মানে মূলত teacher reassign করা — অন্য field বদলালে নতুন assignment বানানোই ভালো,
-  // কিন্তু flexibility-র জন্য আংশিক update সাপোর্ট করা হলো
+  // changing an assignment mainly means reassigning the teacher — for other fields it is better to create a new assignment,
+  // but partial update is supported for flexibility
   async update(id, fields) {
     const assignment = await this.getById(id);
 
-    // শুধু provided field-ই validate করি — undefined লিখে দিলে নিচের merged spread-এ
-    // assignment-এর মান মুছে যেত, তাই present থাকলেই reassign করি
+    // validate only the provided fields — writing undefined would wipe the assignment's value
+    // in the merged spread below, so we only reassign when the field is present
     if (fields.teacher_id !== undefined) {
       fields.teacher_id = assertUuid(fields.teacher_id, 'teacher_id');
     }
@@ -135,7 +135,7 @@ export const subjectAssignmentService = {
       if (!teacher) throw new AppError('Teacher not found', 404);
     }
 
-    // duplicate চেক — বদলানো ফিল্ডসহ চূড়ান্ত combination যদি অন্য কোনো assignment-এর সাথে মিলে যায়
+    // duplicate check — whether the final combination (including changed fields) matches another assignment
     const merged = { ...assignment, ...fields };
     const existing = await subjectAssignmentRepository.findExact({
       teacher_id: merged.teacher_id,

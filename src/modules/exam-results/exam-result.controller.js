@@ -19,8 +19,8 @@ export const examResultController = {
 
       const data = await examResultService.bulkCreate(examId, entries);
 
-      // bulk entry শেষে exam সম্পূর্ণ হলো কিনা জানিয়ে দেওয়া হয়, যাতে frontend
-      // চাইলে এখানেই "publish করবেন?" prompt দেখাতে পারে — auto-trigger module রিস্টোর হলে এখানে কল বসবে
+      // After bulk entry, report whether the exam is now complete, so the frontend
+      // can optionally show a "publish now?" prompt right here — the call will be placed here once the auto-trigger module is restored
       const completion = await examResultService.checkAndReportCompletion(examId);
 
       return successResponse(res, {

@@ -11,8 +11,8 @@ router.use(authMiddleware);
  * /assignments:
  *   get:
  *     tags: [Subject-Assignments]
- *     summary: শিক্ষক-বিষয় অ্যাসাইনমেন্টের তালিকা (পেজিনেটেড)
- *     description: '`SUBJECT_ASSIGNMENT_READ` permission লাগে। `teacher_id`, `class_id`, `section_id`, `subject_id`, `academic_session_id` দিয়ে ফিল্টার করা যায়।'
+ *     summary: List teacher-subject assignments (paginated)
+ *     description: 'Requires the `SUBJECT_ASSIGNMENT_READ` permission. Can be filtered by `teacher_id`, `class_id`, `section_id`, `subject_id`, `academic_session_id`.'
  *     parameters:
  *       - $ref: '#/components/parameters/PageQuery'
  *       - $ref: '#/components/parameters/LimitQuery'
@@ -23,7 +23,7 @@ router.use(authMiddleware);
  *       - { name: academic_session_id, in: query, required: false, schema: { type: string, format: uuid } }
  *     responses:
  *       200:
- *         description: অ্যাসাইনমেন্টের তালিকা (teacher/class/section/subject/session নাম সহ)
+ *         description: List of assignments (with teacher/class/section/subject/session names)
  *         content:
  *           application/json:
  *             schema:
@@ -44,13 +44,13 @@ router.get('/', rbacMiddleware('SUBJECT_ASSIGNMENT_READ'), subjectAssignmentCont
  * /assignments/{id}:
  *   get:
  *     tags: [Subject-Assignments]
- *     summary: একটি অ্যাসাইনমেন্টের বিস্তারিত
- *     description: '`SUBJECT_ASSIGNMENT_READ` permission লাগে।'
+ *     summary: Get a single assignment
+ *     description: 'Requires the `SUBJECT_ASSIGNMENT_READ` permission.'
  *     parameters:
  *       - $ref: '#/components/parameters/IdParam'
  *     responses:
  *       200:
- *         description: অ্যাসাইনমেন্টের তথ্য
+ *         description: Assignment details
  *         content:
  *           application/json:
  *             schema:
@@ -72,17 +72,17 @@ router.get('/:id', rbacMiddleware('SUBJECT_ASSIGNMENT_READ'), subjectAssignmentC
  * /assignments/teacher/{teacherId}:
  *   get:
  *     tags: [Subject-Assignments]
- *     summary: নির্দিষ্ট শিক্ষকের সকল অ্যাসাইনমেন্ট
- *     description: '`SUBJECT_ASSIGNMENT_READ` permission লাগে। শিক্ষক না থাকলে 404।'
+ *     summary: All assignments for a specific teacher
+ *     description: 'Requires the `SUBJECT_ASSIGNMENT_READ` permission. Returns 404 if the teacher does not exist.'
  *     parameters:
  *       - name: teacherId
  *         in: path
  *         required: true
- *         description: শিক্ষকের UUID
+ *         description: Teacher UUID
  *         schema: { type: string, format: uuid }
  *     responses:
  *       200:
- *         description: শিক্ষকের অ্যাসাইনমেন্ট তালিকা
+ *         description: List of the teacher's assignments
  *         content:
  *           application/json:
  *             schema:
@@ -108,10 +108,10 @@ router.get(
  * /assignments:
  *   post:
  *     tags: [Subject-Assignments]
- *     summary: শিক্ষককে বিষয়/ক্লাস/সেশনে অ্যাসাইন করা
+ *     summary: Assign a teacher to a subject/class/session
  *     description: >
- *       `SUBJECT_ASSIGNMENT_CREATE` permission লাগে। `assigned_by` লগইন করা অ্যাডমিন থেকে স্বয়ংক্রিয়ভাবে সেট হয়।
- *       ক্লাসে সেকশন থাকলে `section_id` আবশ্যক; সেকশন না থাকলে `section_id` দেওয়া যাবে না।
+ *       Requires the `SUBJECT_ASSIGNMENT_CREATE` permission. `assigned_by` is set automatically from the logged-in admin.
+ *       `section_id` is required if the class has sections; it must not be provided if the class has no sections.
  *     requestBody:
  *       required: true
  *       content:
@@ -124,10 +124,10 @@ router.get(
  *               class_id: { type: string, format: uuid }
  *               subject_id: { type: string, format: uuid }
  *               academic_session_id: { type: string, format: uuid }
- *               section_id: { type: string, format: uuid, description: 'ক্লাসে সেকশন থাকলে আবশ্যক' }
+ *               section_id: { type: string, format: uuid, description: 'required if the class has sections' }
  *     responses:
  *       201:
- *         description: অ্যাসাইনমেন্ট তৈরি হয়েছে (`other_teachers_on_same_slot` কাউন্ট সহ)
+ *         description: Assignment created (with `other_teachers_on_same_slot` count)
  *         content:
  *           application/json:
  *             schema:
@@ -153,8 +153,8 @@ router.post('/', rbacMiddleware('SUBJECT_ASSIGNMENT_CREATE'), subjectAssignmentC
  * /assignments/{id}:
  *   patch:
  *     tags: [Subject-Assignments]
- *     summary: অ্যাসাইনমেন্ট আপডেট (মূলত শিক্ষক reassign)
- *     description: '`SUBJECT_ASSIGNMENT_UPDATE` permission লাগে। সব ফিল্ড ঐচ্ছিক — যেগুলো পাঠানো হবে শুধু সেগুলোই বদলায়।'
+ *     summary: Update an assignment (mainly to reassign the teacher)
+ *     description: 'Requires the `SUBJECT_ASSIGNMENT_UPDATE` permission. All fields are optional — only the fields sent are changed.'
  *     parameters:
  *       - $ref: '#/components/parameters/IdParam'
  *     requestBody:
@@ -171,7 +171,7 @@ router.post('/', rbacMiddleware('SUBJECT_ASSIGNMENT_CREATE'), subjectAssignmentC
  *               academic_session_id: { type: string, format: uuid }
  *     responses:
  *       200:
- *         description: অ্যাসাইনমেন্ট আপডেট হয়েছে
+ *         description: Assignment updated
  *         content:
  *           application/json:
  *             schema:
@@ -201,13 +201,13 @@ router.patch(
  * /assignments/{id}:
  *   delete:
  *     tags: [Subject-Assignments]
- *     summary: অ্যাসাইনমেন্ট মুছে ফেলা (soft delete)
- *     description: '`SUBJECT_ASSIGNMENT_DELETE` permission লাগে।'
+ *     summary: Delete an assignment (soft delete)
+ *     description: 'Requires the `SUBJECT_ASSIGNMENT_DELETE` permission.'
  *     parameters:
  *       - $ref: '#/components/parameters/IdParam'
  *     responses:
  *       200:
- *         description: অ্যাসাইনমেন্ট মুছে ফেলা হয়েছে
+ *         description: Assignment deleted
  *         content:
  *           application/json:
  *             schema: { $ref: '#/components/schemas/SuccessResponse' }

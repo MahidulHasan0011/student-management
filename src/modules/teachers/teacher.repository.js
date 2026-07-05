@@ -20,7 +20,7 @@ const FILTER_CONFIG = {
 };
 
 export const teacherRepository = {
-  // user + teacher দুটো একসাথে তৈরি — caller transaction handle করবে (service layer)
+  // Create user + teacher together — the caller handles the transaction (service layer)
   async createUser(client, { full_name, email, password, role_id, gender }) {
     const { rows } = await client.query(
       `INSERT INTO users (full_name, email, password, role_id, gender)
@@ -94,7 +94,7 @@ export const teacherRepository = {
     return rows[0] || null;
   },
 
-  // teacher-এর সব subject assignment (active session-এর) — profile-এর সাথে দেখাতে
+  // All of the teacher's subject assignments (for the active session) — to show with the profile
   async findAssignments(teacherId) {
     const { rows } = await query(
       `SELECT

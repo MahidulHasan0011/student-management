@@ -8,14 +8,14 @@ import { getPagination, buildMeta } from '../../utils/pagination.js';
 import { assertUuid, assertEnum, ENROLLMENT_TYPES } from '../../utils/validators.js';
 
 export const studentEnrollmentService = {
-  // student_id, class_id, academic_session_id আবশ্যক — section_id ঐচ্ছিক
-  // (class-এ section থাকলে section_id দিতেই হবে, না থাকলে দেওয়ার দরকার নেই)
+  // student_id, class_id, academic_session_id are required — section_id is optional
+  // (if the class has sections, section_id must be provided; otherwise it is not needed)
   async create({ student_id, class_id, section_id, academic_session_id, enrollment_type }) {
     student_id = assertUuid(student_id, 'student_id');
     class_id = assertUuid(class_id, 'class_id');
     academic_session_id = assertUuid(academic_session_id, 'academic_session_id');
     section_id = assertUuid(section_id, 'section_id', { required: false });
-    // enrollment_type create-এ persist হয় না (repo নেয় না) — তবু input এলে validate করি
+    // enrollment_type is not persisted on create (the repo ignores it) — but validate it if provided
     assertEnum(enrollment_type, 'enrollment_type', ENROLLMENT_TYPES, { required: false });
 
     const student = await studentRepository.findById(student_id);
@@ -27,8 +27,8 @@ export const studentEnrollmentService = {
     const session = await academicSessionRepository.findById(academic_session_id);
     if (!session) throw new AppError('Academic session not found', 404);
 
-    // একই student একই session-এ দুইবার enroll করতে পারবে না (DB unique constraint-এও আছে,
-    // কিন্তু এখানে আগেই চেক করলে স্পষ্ট error message দেওয়া যায়)
+    // A student cannot enroll twice in the same session (also enforced by a DB unique constraint,
+    // but checking here first lets us return a clear error message)
     const existing = await studentEnrollmentRepository.findByStudentAndSession(
       student_id,
       academic_session_id,
@@ -37,7 +37,7 @@ export const studentEnrollmentService = {
       throw new AppError('This student is already enrolled in this academic session', 409);
     }
 
-    // ── class-এ section আছে কিনা চেক — তোমার rule: "class maybe section or not" ──
+    // ── Check whether the class has sections — per the rule: "class maybe section or not" ──
     const classSections = await sectionRepository.findByClassId(class_id);
     const classHasSections = classSections.length > 0;
 
@@ -51,7 +51,7 @@ export const studentEnrollmentService = {
         throw new AppError('section_id does not belong to the given class', 400);
       }
 
-      // capacity check — max_capacity set করা থাকলে full হয়ে গেলে নতুন enroll আটকাও
+      // capacity check — if max_capacity is set, block new enrollments once it is full
       if (section.max_capacity != null) {
         const enrolledCount = await sectionRepository.countEnrolledStudents(section_id);
         if (enrolledCount >= section.max_capacity) {
@@ -62,11 +62,11 @@ export const studentEnrollmentService = {
         }
       }
     } else if (section_id) {
-      // class-এ section-ই নেই, কিন্তু caller section_id পাঠিয়েছে — ভুল input
+      // the class has no sections, but the caller sent a section_id — invalid input
       throw new AppError('This class has no sections — section_id should not be provided', 400);
     }
 
-    // roll_number এখানে দেওয়া হয় না — ranking/roll engine পরে বসাবে
+    // roll_number is not set here — the ranking/roll engine assigns it later
     return studentEnrollmentRepository.create({
       student_id,
       class_id,
@@ -90,8 +90,8 @@ export const studentEnrollmentService = {
     return enrollment;
   },
 
-  // section পরিবর্তন (transfer) — capacity আবার চেক হবে নতুন section-এর জন্য
-  // roll_number এখানে বদলানো যায় না — ranking/roll engine-ই authoritative (core/roll.engine.js)
+  // section change (transfer) — capacity is re-checked for the new section
+  // roll_number cannot be changed here — the ranking/roll engine is authoritative (core/roll.engine.js)
   async update(id, { class_id, section_id }) {
     const enrollment = await this.getById(id);
 
@@ -108,8 +108,8 @@ export const studentEnrollmentService = {
 
       if (section.max_capacity != null) {
         const enrolledCount = await sectionRepository.countEnrolledStudents(section_id);
-        // নিজে যদি already এই section-এ থাকে, তাকে বাদ দিয়ে গোনা উচিত — কিন্তু সরল রাখতে
-        // আমরা strictly < ব্যবহার করি (নিজের section বদলালেও এক ঘর বেশি চাইবে না transfer-এ)
+        // if the student is already in this section, they should be excluded from the count — but to keep it simple
+        // we use strictly < (so a transfer within the same section won't require an extra slot)
         const alreadyHere = enrollment.section_id === section_id;
         if (!alreadyHere && enrolledCount >= section.max_capacity) {
           throw new AppError(`Section "${section.name}" is full`, 400);

@@ -49,7 +49,7 @@ export const attendanceController = {
   async staffCheckIn(req, res, next) {
     try {
       const data = await attendanceService.staffCheckIn({
-        // userId না দিলে নিজের check-in (logged-in user)
+        // if userId is not provided, check in the logged-in user
         userId: req.body.userId || req.user.userId,
         ...req.body,
         ip_address: req.ip,

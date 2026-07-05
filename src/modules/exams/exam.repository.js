@@ -101,8 +101,8 @@ export const examRepository = {
     return rows[0] || null;
   },
 
-  // exam status DRAFT ↔ PUBLISHED টগল করার জন্য — update() থেকে আলাদা রাখা হয়েছে
-  // কারণ publish করার সময় বিশেষ business rule (ranking_locked চেক) আছে, সেটা service-এ হবে
+  // For toggling exam status DRAFT ↔ PUBLISHED — kept separate from update()
+  // because publishing has special business rules (ranking_locked check), which live in the service
   async setStatus(id, status) {
     const { rows } = await query(
       `UPDATE exams SET status = $1, updated_at = NOW()
@@ -122,8 +122,8 @@ export const examRepository = {
     return rows[0] || null;
   },
 
-  // class+session-এর নির্দিষ্ট exam_type-এর exam খুঁজে আনে — status সহ (PUBLISHED কিনা চেক করতে)
-  // একই class+session-এ একই exam_type একবারই থাকবে এই ধরে নেওয়া হচ্ছে
+  // Finds the exam of a specific exam_type for a class+session — including status (to check whether it is PUBLISHED)
+  // Assumes the same exam_type exists only once per class+session
   async findByClassSessionAndType(classId, academicSessionId, examType) {
     const { rows } = await query(
       `SELECT * FROM exams
@@ -144,8 +144,8 @@ export const examRepository = {
     return rows.length > 0;
   },
 
-  // এই exam-এর class-এ মোট কতজন ছাত্র enrolled আছে — auto-trigger-এর জন্য লাগবে
-  // ("সবার result entry হয়ে গেছে কিনা" বোঝার জন্য এই সংখ্যা দরকার)
+  // How many students in total are enrolled in this exam's class — needed for auto-trigger
+  // (this count is required to determine "whether result entry is done for everyone")
   async countEnrolledStudents(classId, academicSessionId) {
     const { rows } = await query(
       `SELECT COUNT(*) FROM student_enrollments
@@ -155,7 +155,7 @@ export const examRepository = {
     return parseInt(rows[0].count);
   },
 
-  // এই exam-এ কতজন distinct ছাত্রের result entry হয়েছে
+  // How many distinct students have a result entry in this exam
   async countStudentsWithResults(examId) {
     const { rows } = await query(
       `SELECT COUNT(DISTINCT student_id) FROM exam_results

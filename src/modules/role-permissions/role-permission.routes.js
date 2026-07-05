@@ -6,19 +6,19 @@ import { rbacMiddleware } from '../../middlewares/rbac.middleware.js';
 const router = Router();
 router.use(authMiddleware);
 
-// দেখা — সবার জন্য ROLE_READ যথেষ্ট, আলাদা permission বানানোর দরকার নেই
+// Read — ROLE_READ is enough for everyone, no need to create a separate permission
 /**
  * @openapi
  * /role-permissions/role/{roleId}:
  *   get:
  *     tags: [Role-Permissions]
- *     summary: একটি রোলের সব permission দেখা
- *     description: '`ROLE_READ` permission লাগে। নির্দিষ্ট role-এ assign করা permission-এর তালিকা ফেরত দেয়।'
+ *     summary: View all permissions of a role
+ *     description: 'Requires `ROLE_READ` permission. Returns the list of permissions assigned to the given role.'
  *     parameters:
- *       - { name: roleId, in: path, required: true, schema: { type: string, format: uuid }, description: 'রোলের UUID' }
+ *       - { name: roleId, in: path, required: true, schema: { type: string, format: uuid }, description: 'Role UUID' }
  *     responses:
  *       200:
- *         description: রোলের permission তালিকা
+ *         description: Role permission list
  *         content:
  *           application/json:
  *             schema:
@@ -40,13 +40,13 @@ router.get('/role/:roleId', rbacMiddleware('ROLE_READ'), rolePermissionControlle
  * /role-permissions/permission/{permissionId}:
  *   get:
  *     tags: [Role-Permissions]
- *     summary: একটি permission কোন কোন রোলে আছে দেখা
- *     description: '`ROLE_READ` permission লাগে। নির্দিষ্ট permission যেসব role-এ assign করা সেগুলোর তালিকা ফেরত দেয়।'
+ *     summary: View which roles a permission belongs to
+ *     description: 'Requires `ROLE_READ` permission. Returns the list of roles the given permission is assigned to.'
  *     parameters:
- *       - { name: permissionId, in: path, required: true, schema: { type: string, format: uuid }, description: 'permission-এর UUID' }
+ *       - { name: permissionId, in: path, required: true, schema: { type: string, format: uuid }, description: 'Permission UUID' }
  *     responses:
  *       200:
- *         description: permission-ধারী রোল তালিকা
+ *         description: List of roles holding the permission
  *         content:
  *           application/json:
  *             schema:
@@ -67,14 +67,14 @@ router.get(
   rolePermissionController.getByPermission,
 );
 
-// পরিবর্তন — ROLE_UPDATE permission থাকা লাগবে (role.routes.js-এর syncPermissions-এর মতো)
+// Modify — requires ROLE_UPDATE permission (like syncPermissions in role.routes.js)
 /**
  * @openapi
  * /role-permissions:
  *   post:
  *     tags: [Role-Permissions]
- *     summary: একটি permission একটি রোলে assign করা
- *     description: '`ROLE_UPDATE` permission লাগে। আগে থেকে assign থাকলে 409 দেয়।'
+ *     summary: Assign a permission to a role
+ *     description: 'Requires `ROLE_UPDATE` permission. Returns 409 if it is already assigned.'
  *     requestBody:
  *       required: true
  *       content:
@@ -87,7 +87,7 @@ router.get(
  *               permissionId: { type: string, format: uuid }
  *     responses:
  *       201:
- *         description: permission রোলে assign হয়েছে
+ *         description: Permission assigned to the role
  *         content:
  *           application/json:
  *             schema:
@@ -109,8 +109,8 @@ router.post('/', rbacMiddleware('ROLE_UPDATE'), rolePermissionController.assign)
  * /role-permissions/bulk:
  *   post:
  *     tags: [Role-Permissions]
- *     summary: একসাথে একাধিক permission রোলে assign করা
- *     description: '`ROLE_UPDATE` permission লাগে। প্রতিটি id আলাদাভাবে process হয় — সফলগুলো assigned-এ, ব্যর্থ/ডুপ্লিকেটগুলো skipped-এ রিপোর্ট হয় (partial success)।'
+ *     summary: Assign multiple permissions to a role at once
+ *     description: 'Requires `ROLE_UPDATE` permission. Each id is processed individually — successes are reported under assigned, failures/duplicates under skipped (partial success).'
  *     requestBody:
  *       required: true
  *       content:
@@ -126,7 +126,7 @@ router.post('/', rbacMiddleware('ROLE_UPDATE'), rolePermissionController.assign)
  *                 items: { type: string, format: uuid }
  *     responses:
  *       200:
- *         description: bulk assignment process সম্পন্ন
+ *         description: Bulk assignment process completed
  *         content:
  *           application/json:
  *             schema:
@@ -157,8 +157,8 @@ router.post('/bulk', rbacMiddleware('ROLE_UPDATE'), rolePermissionController.ass
  * /role-permissions:
  *   delete:
  *     tags: [Role-Permissions]
- *     summary: একটি রোল থেকে একটি permission সরিয়ে দেওয়া
- *     description: '`ROLE_UPDATE` permission লাগে। permission টি assign করা না থাকলে 404 দেয়।'
+ *     summary: Remove a permission from a role
+ *     description: 'Requires `ROLE_UPDATE` permission. Returns 404 if the permission is not assigned.'
  *     requestBody:
  *       required: true
  *       content:
@@ -171,7 +171,7 @@ router.post('/bulk', rbacMiddleware('ROLE_UPDATE'), rolePermissionController.ass
  *               permissionId: { type: string, format: uuid }
  *     responses:
  *       200:
- *         description: permission রোল থেকে সরানো হয়েছে
+ *         description: Permission removed from the role
  *         content:
  *           application/json:
  *             schema: { $ref: '#/components/schemas/SuccessResponse' }

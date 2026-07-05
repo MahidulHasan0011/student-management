@@ -8,10 +8,10 @@ import { rankingRepository } from './ranking.repository.js';
 import { cacheService } from '../../services/cache.service.js';
 import { assertUuid } from '../../utils/validators.js';
 
-const CURRENT_TTL = 60 * 60; // current ranking cache 1 ঘন্টা
+const CURRENT_TTL = 60 * 60; // current ranking cache 1 hour
 const currentKey = (classId, sessionId) => `ranking:current:${classId}:${sessionId}`;
 
-// class+session valid কিনা যাচাই করে দুটোই ফেরত দেয় (বারবার লাগে)
+// validates that class+session are valid and returns both (needed repeatedly)
 const loadClassAndSession = async (classId, academicSessionId) => {
   if (!classId || !academicSessionId) {
     throw new AppError('classId and academicSessionId are required', 400);
@@ -23,8 +23,8 @@ const loadClassAndSession = async (classId, academicSessionId) => {
   return { cls, session };
 };
 
-// FINAL (+ admission হলে ADMISSION) PUBLISHED কিনা যাচাই
-// throwOnMissing=false হলে error throw না করে শুধু boolean ফেরত দেয় (auto-trigger-এর জন্য)
+// checks whether FINAL (+ ADMISSION, if admission is enabled) is PUBLISHED
+// when throwOnMissing=false it returns just a boolean instead of throwing (for auto-trigger)
 const checkResultsReady = async (
   classId,
   academicSessionId,
@@ -63,7 +63,7 @@ const checkResultsReady = async (
 };
 
 export const rankingService = {
-  // ── Manual "Generate Roll" বাটন (ধাপ: একবারই, locked থাকলে আটকাবে) ──
+  // ── Manual "Generate Roll" button (runs once; blocked if already locked) ──
   async triggerRankingAndRoll({ classId, academicSessionId, sectionId, triggeredBy }) {
     classId = assertUuid(classId, 'classId');
     academicSessionId = assertUuid(academicSessionId, 'academicSessionId');
@@ -93,9 +93,9 @@ export const rankingService = {
     return { jobId: job.id, status: 'queued' };
   },
 
-  // ── Auto-trigger — exam publish হওয়ার পর exam.service থেকে কল হয় ──
-  // কখনো throw করে না (publish flow ভাঙা যাবে না)। শর্ত পূরণ না হলে বা locked থাকলে চুপচাপ skip করে,
-  // আর সেটাও audit log-এ রেখে দেয়। কেবল FINAL/ADMISSION publish-এই এটা ডাকা অর্থপূর্ণ।
+  // ── Auto-trigger — called from exam.service after an exam is published ──
+  // never throws (the publish flow must not break). If conditions aren't met or it's locked, it silently skips,
+  // recording that in the audit log too. It only makes sense to call this on a FINAL/ADMISSION publish.
   async autoTriggerAfterPublish({ classId, academicSessionId, examType }) {
     try {
       if (!classId || !academicSessionId) return;
@@ -103,7 +103,7 @@ export const rankingService = {
       const session = await academicSessionRepository.findById(academicSessionId);
       if (!session) return;
 
-      // locked থাকলে auto-recalculation নিষেধ (document rule) — skip + log
+      // auto-recalculation is not allowed when locked (documented rule) — skip + log
       if (await rankingLockRepository.isLocked(classId, academicSessionId)) {
         await rankingRepository.logAudit({
           action: 'AUTO_TRIGGER_SKIP',
@@ -145,13 +145,13 @@ export const rankingService = {
         detail: { examType },
       });
     } catch (err) {
-      // auto path-এ কখনো throw করব না — শুধু log
+      // never throw on the auto path — just log
       console.error('[ranking.autoTrigger] failed:', err.message);
     }
   },
 
   // ── RECALCULATE_RANKING (admin only) ──
-  // ১. unlock → ২.৩.৪. job allowWhenLocked:true দিয়ে recalc+regenerate+history → ৫. job শেষে আবার lock
+  // 1. unlock → 2.3.4. job with allowWhenLocked:true does recalc+regenerate+history → 5. re-lock when the job finishes
   async recalculate({ classId, academicSessionId, sectionId, triggeredBy }) {
     classId = assertUuid(classId, 'classId');
     academicSessionId = assertUuid(academicSessionId, 'academicSessionId');
@@ -166,7 +166,7 @@ export const rankingService = {
     const fromVersion =
       (await rankingRepository.getVersions(classId, academicSessionId))[0]?.version ?? null;
 
-    // ধাপ ১ — explicit unlock
+    // step 1 — explicit unlock
     await rankingLockRepository.unlock(classId, academicSessionId);
     await rankingRepository.logAudit({
       action: 'UNLOCK',
@@ -177,8 +177,8 @@ export const rankingService = {
       detail: { context: 'recalculate', wasLocked: before?.is_locked ?? false },
     });
 
-    // ধাপ ২–৫ — background job (allowWhenLocked লাগবে না কারণ আমরা আগেই unlock করেছি,
-    // তবু পাঠালাম যাতে job-চলাকালীন race-এ অন্য কেউ lock করে ফেললেও আটকে না যায়)
+    // steps 2–5 — background job (allowWhenLocked isn't strictly needed since we already unlocked,
+    // but we pass it so a concurrent lock during the job doesn't block it in a race)
     const job = await enqueueRankingJob({
       classId,
       academicSessionId,
@@ -188,13 +188,13 @@ export const rankingService = {
       allowWhenLocked: true,
     });
 
-    // stale cache সরিয়ে দাও — নতুন snapshot job শেষে roll.job আবার invalidate করবে
+    // clear the stale cache — roll.job will invalidate again after the new snapshot job finishes
     await cacheService.del(currentKey(classId, academicSessionId));
 
     return { jobId: job.id, status: 'recalculating', fromVersion };
   },
 
-  // ── শুধু unlock (regenerate ছাড়া) — admin ম্যানুয়ালি edit করতে চাইলে ──
+  // ── unlock only (without regenerate) — for when an admin wants to edit manually ──
   async unlock({ classId, academicSessionId, triggeredBy }) {
     classId = assertUuid(classId, 'classId');
     academicSessionId = assertUuid(academicSessionId, 'academicSessionId');

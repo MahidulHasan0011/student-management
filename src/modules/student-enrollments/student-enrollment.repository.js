@@ -83,7 +83,7 @@ export const studentEnrollmentRepository = {
     return rows[0] || null;
   },
 
-  // একই student + session-এ আগে enroll করা আছে কিনা — unique constraint অনুযায়ী
+  // Check whether the same student + session is already enrolled — per the unique constraint
   async findByStudentAndSession(studentId, academicSessionId) {
     const { rows } = await query(
       `SELECT * FROM student_enrollments
@@ -94,7 +94,7 @@ export const studentEnrollmentRepository = {
   },
 
   async update(id, fields) {
-    // roll_number ইচ্ছাকৃতভাবে বাদ — শুধু ranking/roll engine (raw SQL) এটা বসায়, CRUD update নয়
+    // roll_number is intentionally excluded — only the ranking/roll engine (raw SQL) sets it, not CRUD update
     const allowed = ['class_id', 'section_id'];
     const setClauses = [];
     const params = [];

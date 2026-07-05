@@ -1,7 +1,7 @@
 import { query } from '../../config/db.js';
 
 export const rankingLockRepository = {
-  // class+session-এর lock status আছে কিনা — না থাকলে ধরে নেওয়া হয় unlocked (প্রথমবার)
+  // whether a lock status exists for the class+session — if not, it's assumed unlocked (first time)
   async findByClassAndSession(classId, academicSessionId) {
     const { rows } = await query(
       `SELECT * FROM ranking_locks
@@ -16,8 +16,8 @@ export const rankingLockRepository = {
     return lock?.is_locked === true;
   },
 
-  // লক row না থাকলে তৈরি করে lock দেয়, থাকলে আপডেট করে — upsert pattern
-  // client পাঠালে roll.engine-এর চলমান transaction-এর অংশ হয় (roll+history+lock atomic)
+  // creates and locks the row if no lock row exists, updates it if it does — upsert pattern
+  // if a client is passed it becomes part of the roll.engine's ongoing transaction (roll+history+lock atomic)
   async lock(classId, academicSessionId, lockedBy, client = null) {
     const exec = client ? client.query.bind(client) : query;
     const { rows } = await exec(

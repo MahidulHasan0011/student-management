@@ -1,13 +1,13 @@
 import { randomUUID } from 'crypto';
 
 // ─────────────────────────────────────────────────────────────────────────────
-// upload.constants — সব allow-list এক জায়গায়। নতুন ফাইল-টাইপ/ক্যাটাগরি যোগ করতে
-// শুধু এখানে বদলান; service/validation কোড অপরিবর্তিত থাকবে।
+// upload.constants — all allow-lists in one place. To add a new file-type/category,
+// change it here only; service/validation code stays unchanged.
 // ─────────────────────────────────────────────────────────────────────────────
 
 const MB = 1024 * 1024;
 
-// upload_category_enum-এর সাথে হুবহু মিল রাখতে হবে (migration 004_uploads.sql)
+// must match upload_category_enum exactly (migration 004_uploads.sql)
 export const UPLOAD_CATEGORIES = [
   'STUDENT_PROFILE',
   'TEACHER_PROFILE',
@@ -33,8 +33,8 @@ export const AUDIT_ACTIONS = {
   RESTORE: 'RESTORE',
 };
 
-// ── ফাইল গ্রুপ: প্রতি extension-এর জন্য গ্রহণযোগ্য MIME(গুলো) + গ্রুপভিত্তিক size limit ──
-// একই ext-এ একাধিক MIME রাখা হয়েছে কারণ browser/OS ভেদে csv/zip/rar-এর MIME ভিন্ন হয়।
+// ── file groups: accepted MIME(s) per extension + per-group size limit ──
+// multiple MIMEs are kept per ext because csv/zip/rar MIME varies across browser/OS.
 export const FILE_GROUPS = {
   IMAGE: {
     maxBytes: 5 * MB,
@@ -69,8 +69,8 @@ export const FILE_GROUPS = {
   },
 };
 
-// ── কোন category-তে কোন গ্রুপ allowed (বিজনেস রুল) ──
-// যেমন profile/logo শুধু image; assignment-এ doc/image/archive সব চলে।
+// ── which groups are allowed per category (business rule) ──
+// e.g. profile/logo only image; assignment allows doc/image/archive.
 export const CATEGORY_POLICY = {
   STUDENT_PROFILE: ['IMAGE'],
   TEACHER_PROFILE: ['IMAGE'],
@@ -88,7 +88,7 @@ export const CATEGORY_POLICY = {
 
 // ── helpers ──────────────────────────────────────────────────────────────────
 
-/** extension থেকে normalized form (lowercase, leading dot/whitespace ছাড়া)। */
+/** normalized form of an extension (lowercase, no leading dot/whitespace). */
 export const normalizeExt = (ext) =>
   String(ext || '')
     .trim()
@@ -96,8 +96,8 @@ export const normalizeExt = (ext) =>
     .replace(/^\./, '');
 
 /**
- * extension + MIME দুটোই একসাথে যাচাই করে কোন গ্রুপে পড়ে তা বলে — anti-spoofing।
- * (ext=png কিন্তু mime=application/zip হলে কোনো গ্রুপেই মিলবে না → null)
+ * validates extension + MIME together and returns which group it belongs to — anti-spoofing.
+ * (ext=png but mime=application/zip matches no group → null)
  * @returns { group, ext, mime, maxBytes } | null
  */
 export const resolveFileType = (extension, mimeType) => {
@@ -114,14 +114,14 @@ export const resolveFileType = (extension, mimeType) => {
   return null;
 };
 
-/** নির্দিষ্ট category-তে এই গ্রুপ allowed কিনা। */
+/** whether this group is allowed for the given category. */
 export const isGroupAllowedForCategory = (category, group) =>
   (CATEGORY_POLICY[category] || []).includes(group);
 
 /**
- * storage key (bucket-এর ভেতরের path) সবসময় backend বানায় — client নয়।
- * ফরম্যাট: category/uploaderId/YYYY/MM/<uuid>.<ext>
- *   → collision নেই, path-traversal নেই, prefix দিয়ে সহজে list/lifecycle করা যায়।
+ * the storage key (path inside the bucket) is always built by the backend — never the client.
+ * format: category/uploaderId/YYYY/MM/<uuid>.<ext>
+ *   → no collisions, no path-traversal, easy to list/lifecycle by prefix.
  */
 export const buildStorageKey = ({ category, uploadedBy, ext }) => {
   const now = new Date();

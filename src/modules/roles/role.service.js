@@ -30,7 +30,7 @@ export const roleService = {
 
   async update(id, { name }) {
     await this.getById(id);
-    // name হলো roles-এর একমাত্র updatable + NOT NULL কলাম, তাই update-এও required
+    // name is the only updatable + NOT NULL column in roles, so it is required on update too
     name = assertString(name, 'name', { max: 50 }).toUpperCase();
     const existing = await roleRepository.findByName(name);
     if (existing && existing.id !== id) throw new AppError(`Role "${name}" already exists`, 409);
@@ -48,11 +48,11 @@ export const roleService = {
       }
     }
     await roleRepository.syncPermissions(roleId, permissionIds);
-    await permissionEngine.invalidate(roleId); // cache stale হয়ে গেলো, clear করো
+    await permissionEngine.invalidate(roleId); // cache is now stale, clear it
     return this.getById(roleId);
   },
 
-  // rbac.middleware.js এটা কল করে — আসল cache+DB logic এখন core/permission.engine.js-এ
+  // rbac.middleware.js calls this — the actual cache+DB logic now lives in core/permission.engine.js
   async getCachedPermissions(roleId) {
     return permissionEngine.resolvePermissions(roleId);
   },

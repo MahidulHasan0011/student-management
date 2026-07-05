@@ -30,7 +30,7 @@ export const permissionService = {
 
   async update(id, { name }) {
     await this.getById(id);
-    // name হলো permissions-এর একমাত্র updatable + NOT NULL কলাম, তাই update-এও required
+    // name is the only updatable + NOT NULL column in permissions, so it is required on update too
     name = assertString(name, 'name', { max: 100 }).toUpperCase();
     const existing = await permissionRepository.findByName(name);
     if (existing && existing.id !== id)

@@ -71,7 +71,7 @@ export const sectionRepository = {
     return rows[0] || null;
   },
 
-  // একই class-এ একই নামের section আগে আছে কিনা — duplicate check
+  // whether a section with the same name already exists in the same class — duplicate check
   async findByClassAndName(class_id, name) {
     const { rows } = await query(
       `SELECT * FROM sections
@@ -81,7 +81,7 @@ export const sectionRepository = {
     return rows[0] || null;
   },
 
-  // নির্দিষ্ট class-এর সব section, name ধরে sort — roll/section বিতরণে লাগবে
+  // all sections of a specific class, sorted by name — needed for roll/section distribution
   async findByClassId(class_id) {
     const { rows } = await query(
       `SELECT * FROM sections
@@ -92,7 +92,7 @@ export const sectionRepository = {
     return rows;
   },
 
-  // একটা section-এ এখন কত ছাত্র enrolled আছে — capacity check-এর জন্য
+  // how many students are currently enrolled in a section — for capacity checks
   async countEnrolledStudents(sectionId) {
     const { rows } = await query(
       `SELECT COUNT(*) FROM student_enrollments

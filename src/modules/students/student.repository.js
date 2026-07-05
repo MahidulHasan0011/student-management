@@ -20,7 +20,7 @@ const FILTER_CONFIG = {
 };
 
 export const studentRepository = {
-  // user + student profile একসাথে — caller (service) transaction-এ চালাবে
+  // user + student profile together — caller (service) runs this in a transaction
   async createUser(client, { full_name, email, password, role_id, gender }) {
     const { rows } = await client.query(
       `INSERT INTO users (full_name, email, password, role_id, gender)
@@ -112,7 +112,7 @@ export const studentRepository = {
     return rows[0] || null;
   },
 
-  // student-এর current enrollment (active session-এর) — class/section/roll জানার জন্য
+  // Student's current enrollment (for the active session) — to get class/section/roll
   async findCurrentEnrollment(studentId) {
     const { rows } = await query(
       `SELECT

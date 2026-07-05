@@ -6,23 +6,23 @@ import { rbacMiddleware } from '../../middlewares/rbac.middleware.js';
 const router = Router();
 router.use(authMiddleware);
 
-// error log-এ stack trace ও request context থাকে — তাই শুধু SUPER_ADMIN-কে এই permission দেওয়া হয় (seed.sql)
+// error logs contain stack traces and request context — so only SUPER_ADMIN is granted this permission (seed.sql)
 /**
  * @openapi
  * /error-logs:
  *   get:
  *     tags: [Error-Logs]
- *     summary: সার্ভার error log তালিকা (ERROR_LOG_READ permission লাগে)
+ *     summary: list server error logs (requires ERROR_LOG_READ permission)
  *     description: >
- *       paginated error log তালিকা। stack trace ও request context থাকে বলে সাধারণত শুধু
- *       SUPER_ADMIN-এর কাছেই এই permission থাকে। প্রয়োজনীয় permission — ERROR_LOG_READ।
+ *       Paginated list of error logs. Since they contain stack traces and request context,
+ *       usually only SUPER_ADMIN holds this permission. Required permission — ERROR_LOG_READ.
  *     parameters:
  *       - $ref: '#/components/parameters/PageQuery'
  *       - $ref: '#/components/parameters/LimitQuery'
  *       - name: search
  *         in: query
  *         required: false
- *         description: message ও path-এ খোঁজে
+ *         description: searches in message and path
  *         schema: { type: string }
  *       - name: status_code
  *         in: query
@@ -50,7 +50,7 @@ router.use(authMiddleware);
  *         schema: { type: string, enum: [asc, desc] }
  *     responses:
  *       200:
- *         description: error log তালিকা
+ *         description: error log list
  *         content:
  *           application/json:
  *             schema:
@@ -73,13 +73,13 @@ router.get('/', rbacMiddleware('ERROR_LOG_READ'), errorLogController.getAll);
  * /error-logs/{id}:
  *   get:
  *     tags: [Error-Logs]
- *     summary: একটি error log-এর বিস্তারিত (ERROR_LOG_READ permission লাগে)
- *     description: প্রয়োজনীয় permission — ERROR_LOG_READ।
+ *     summary: details of a single error log (requires ERROR_LOG_READ permission)
+ *     description: Required permission — ERROR_LOG_READ.
  *     parameters:
  *       - $ref: '#/components/parameters/IdParam'
  *     responses:
  *       200:
- *         description: error log-এর তথ্য
+ *         description: error log information
  *         content:
  *           application/json:
  *             schema:
@@ -101,19 +101,19 @@ router.get('/:id', rbacMiddleware('ERROR_LOG_READ'), errorLogController.getById)
  * /error-logs:
  *   delete:
  *     tags: [Error-Logs]
- *     summary: সব (বা পুরনো) error log clear করা (ERROR_LOG_DELETE permission লাগে)
+ *     summary: clear all (or old) error logs (requires ERROR_LOG_DELETE permission)
  *     description: >
- *       সব error log soft-delete করে এবং কয়টি মুছল তা ফেরত দেয়। `?before=ISODate` দিলে শুধু
- *       সেই তারিখের আগের log মোছে। প্রয়োজনীয় permission — ERROR_LOG_DELETE।
+ *       Soft-deletes all error logs and returns how many were deleted. If `?before=ISODate` is
+ *       given, only logs created before that date are deleted. Required permission — ERROR_LOG_DELETE.
  *     parameters:
  *       - name: before
  *         in: query
  *         required: false
- *         description: এই ISO date-time-এর আগে তৈরি হওয়া log-ই শুধু মুছবে
+ *         description: only logs created before this ISO date-time will be deleted
  *         schema: { type: string, format: date-time }
  *     responses:
  *       200:
- *         description: log clear হয়েছে
+ *         description: logs cleared
  *         content:
  *           application/json:
  *             schema:
@@ -130,19 +130,19 @@ router.get('/:id', rbacMiddleware('ERROR_LOG_READ'), errorLogController.getById)
  *       403:
  *         $ref: '#/components/responses/Forbidden'
  */
-router.delete('/', rbacMiddleware('ERROR_LOG_DELETE'), errorLogController.clear); // ?before=ISODate দিলে শুধু পুরনোগুলো
+router.delete('/', rbacMiddleware('ERROR_LOG_DELETE'), errorLogController.clear); // ?before=ISODate deletes only the older ones
 /**
  * @openapi
  * /error-logs/{id}:
  *   delete:
  *     tags: [Error-Logs]
- *     summary: একটি error log soft-delete (ERROR_LOG_DELETE permission লাগে)
- *     description: প্রয়োজনীয় permission — ERROR_LOG_DELETE।
+ *     summary: soft-delete a single error log (requires ERROR_LOG_DELETE permission)
+ *     description: Required permission — ERROR_LOG_DELETE.
  *     parameters:
  *       - $ref: '#/components/parameters/IdParam'
  *     responses:
  *       200:
- *         description: error log মুছে ফেলা হয়েছে
+ *         description: error log deleted
  *         content:
  *           application/json:
  *             schema: { $ref: '#/components/schemas/SuccessResponse' }

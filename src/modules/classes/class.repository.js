@@ -54,7 +54,7 @@ export const classRepository = {
     return rows[0] || null;
   },
 
-  // class এর সাথে তার সব section (যদি থাকে) একসাথে — খুব common use case
+  // class together with all of its sections (if any) — a very common use case
   async findByIdWithSections(id) {
     const { rows } = await query(
       `SELECT
@@ -97,7 +97,7 @@ export const classRepository = {
     return rows[0] || null;
   },
 
-  // delete করার আগে চেক — কোনো section/enrollment আছে কিনা
+  // check before delete — whether any section/enrollment exists
   async hasSections(id) {
     const { rows } = await query(
       `SELECT id FROM sections WHERE class_id = $1 AND deleted_at IS NULL LIMIT 1`,

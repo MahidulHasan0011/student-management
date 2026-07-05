@@ -6,7 +6,7 @@ export const subjectAssignmentController = {
     try {
       const data = await subjectAssignmentService.create({
         ...req.body,
-        assigned_by: req.user.userId, // auth.middleware.js থেকে আসা logged-in admin
+        assigned_by: req.user.userId, // logged-in admin coming from auth.middleware.js
       });
       return successResponse(res, {
         message: 'Subject assigned to teacher',

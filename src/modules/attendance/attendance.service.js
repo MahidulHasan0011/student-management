@@ -17,7 +17,7 @@ import {
 } from '../../utils/validators.js';
 
 export const attendanceService = {
-  // ── Student: একদিনের attendance mark (bulk) ──
+  // ── Student: mark a single day's attendance (bulk) ──
   // body = { class_id, section_id, attendance_date, records: [{ student_id, status }] }
   async markStudents({ class_id, section_id, attendance_date, records }) {
     class_id = assertUuid(class_id, 'class_id');
@@ -33,13 +33,13 @@ export const attendanceService = {
       if (!section) throw new AppError('Section not found', 404);
     }
 
-    // প্রতিটি record validate + normalize (invalid status/student_id হলে এখানেই আটকাবে)
+    // validate + normalize each record (an invalid status/student_id is caught here)
     const normalized = records.map((r, i) => ({
       student_id: assertUuid(r.student_id, `records[${i}].student_id`),
       status: assertEnum(r.status, `records[${i}].status`, ATTENDANCE_STATUSES),
     }));
 
-    // একই student একবারের বেশি এলে duplicate — deterministic error
+    // the same student appearing more than once is a duplicate — deterministic error
     const seen = new Set();
     for (const r of normalized) {
       if (seen.has(r.student_id)) {
@@ -67,7 +67,7 @@ export const attendanceService = {
     return { data, meta: buildMeta({ total, page, limit }) };
   },
 
-  // ── Student: মাসিক attendance % (core engine) — report card / guardian portal ──
+  // ── Student: monthly attendance % (core engine) — report card / guardian portal ──
   async getStudentMonthly(studentId, year, month) {
     studentId = assertUuid(studentId, 'studentId');
     year = assertInteger(year, 'year', { min: 2000, max: 2100 });
@@ -79,7 +79,7 @@ export const attendanceService = {
     return attendanceEngine.calculateStudentMonthlyAttendance(studentId, year, month);
   },
 
-  // ── Class: একদিনের attendance summary (core engine) — teacher dashboard ──
+  // ── Class: single-day attendance summary (core engine) — teacher dashboard ──
   async getDailyClassSummary(classId, sectionId, date) {
     classId = assertUuid(classId, 'classId');
     sectionId = assertUuid(sectionId, 'sectionId');
@@ -98,7 +98,7 @@ export const attendanceService = {
     const user = await userRepository.findById(userId);
     if (!user) throw new AppError('User not found', 404);
 
-    // একই দিনে দুবার check-in আটকাও
+    // prevent a second check-in on the same day
     const existing = await attendanceRepository.findStaffLog(userId, attendance_date);
     if (existing) {
       throw new AppError('Already checked in for this date', 409);
@@ -127,7 +127,7 @@ export const attendanceService = {
     return attendanceRepository.setCheckOut({ logId: log.id, latitude, longitude });
   },
 
-  // ── Staff: মাসিক কাজের ঘণ্টা (core engine) — HR / payroll ──
+  // ── Staff: monthly work hours (core engine) — HR / payroll ──
   async getStaffMonthly(userId, year, month) {
     userId = assertUuid(userId, 'userId');
     year = assertInteger(year, 'year', { min: 2000, max: 2100 });

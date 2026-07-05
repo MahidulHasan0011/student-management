@@ -79,7 +79,7 @@ export const errorLogRepository = {
     return rows[0] || null;
   },
 
-  // সব (বা একটি তারিখের আগের) log একসাথে soft-delete করতে — log table পরিষ্কার রাখতে
+  // soft-delete all (or those before a given date) logs at once — to keep the log table clean
   async clear(before) {
     if (before) {
       const { rowCount } = await query(

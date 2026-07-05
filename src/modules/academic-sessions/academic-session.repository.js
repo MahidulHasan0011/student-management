@@ -83,7 +83,7 @@ export const academicSessionRepository = {
     return rows[0] || null;
   },
 
-  // একসাথে শুধু একটাই active session থাকতে পারবে
+  // only one active session may exist at a time
   async findActive() {
     const { rows } = await query(
       `SELECT * FROM academic_sessions WHERE is_active = true AND deleted_at IS NULL LIMIT 1`,
@@ -114,7 +114,7 @@ export const academicSessionRepository = {
     return rows[0] || null;
   },
 
-  // নতুনটা active করার আগে সব session deactivate — caller (service) transaction-এ চালাবে
+  // deactivate all sessions before activating the new one — the caller (service) runs this in a transaction
   async deactivateAll(client) {
     await client.query(
       `UPDATE academic_sessions SET is_active = false, updated_at = NOW()

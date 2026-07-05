@@ -9,9 +9,9 @@ const router = Router();
  * /auth/login:
  *   post:
  *     tags: [Auth]
- *     summary: ইমেইল/পাসওয়ার্ড দিয়ে লগইন
- *     description: সফল হলে user, accessToken ও refreshToken ফেরত দেয়।
- *     security: []   # পাবলিক — টোকেন লাগে না
+ *     summary: Log in with email/password
+ *     description: On success, returns user, accessToken and refreshToken.
+ *     security: []   # public — no token required
  *     requestBody:
  *       required: true
  *       content:
@@ -24,7 +24,7 @@ const router = Router();
  *               password: { type: string, format: password, example: 'Password@123' }
  *     responses:
  *       200:
- *         description: লগইন সফল
+ *         description: login successful
  *         content:
  *           application/json:
  *             schema:
@@ -39,12 +39,12 @@ const router = Router();
  *                         accessToken: { type: string }
  *                         refreshToken: { type: string }
  *       401:
- *         description: ইমেইল বা পাসওয়ার্ড ভুল
+ *         description: incorrect email or password
  *         content:
  *           application/json:
  *             schema: { $ref: '#/components/schemas/ErrorResponse' }
  *       403:
- *         description: অ্যাকাউন্ট নিষ্ক্রিয়
+ *         description: account is deactivated
  *         content:
  *           application/json:
  *             schema: { $ref: '#/components/schemas/ErrorResponse' }
@@ -56,8 +56,8 @@ router.post('/login', authController.login);
  * /auth/refresh:
  *   post:
  *     tags: [Auth]
- *     summary: refresh token দিয়ে নতুন access token নেওয়া
- *     description: refresh token rotate হয় — পুরনোটি বাতিল হয়ে নতুন refreshToken আসে।
+ *     summary: Get a new access token using a refresh token
+ *     description: The refresh token is rotated — the old one is invalidated and a new refreshToken is returned.
  *     security: []
  *     requestBody:
  *       required: true
@@ -70,7 +70,7 @@ router.post('/login', authController.login);
  *               refreshToken: { type: string }
  *     responses:
  *       200:
- *         description: নতুন টোকেন জোড়া
+ *         description: new token pair
  *         content:
  *           application/json:
  *             schema:
@@ -93,10 +93,10 @@ router.post('/refresh', authController.refresh);
  * /auth/logout:
  *   post:
  *     tags: [Auth]
- *     summary: লগআউট — server-side refresh token মুছে দেয়
+ *     summary: Log out — deletes the server-side refresh token
  *     responses:
  *       200:
- *         description: লগআউট সফল
+ *         description: logout successful
  *         content:
  *           application/json:
  *             schema: { $ref: '#/components/schemas/SuccessResponse' }
@@ -110,10 +110,10 @@ router.post('/logout', authMiddleware, authController.logout);
  * /auth/me:
  *   get:
  *     tags: [Auth]
- *     summary: বর্তমান লগইন করা ইউজারের তথ্য
+ *     summary: Current logged-in user's info
  *     responses:
  *       200:
- *         description: ইউজারের তথ্য
+ *         description: user info
  *         content:
  *           application/json:
  *             schema:

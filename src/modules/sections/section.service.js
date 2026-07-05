@@ -38,7 +38,7 @@ export const sectionService = {
     return section;
   },
 
-  // section-এর current occupancy (কত ছাত্র আছে / max_capacity)
+  // section's current occupancy (how many students / max_capacity)
   async getOccupancy(id) {
     const section = await this.getById(id);
     const enrolledCount = await sectionRepository.countEnrolledStudents(id);
@@ -46,7 +46,7 @@ export const sectionService = {
       ...section,
       enrolled_count: enrolledCount,
       available_seats:
-        section.max_capacity != null ? Math.max(0, section.max_capacity - enrolledCount) : null, // max_capacity না দিলে unlimited ধরা হয়
+        section.max_capacity != null ? Math.max(0, section.max_capacity - enrolledCount) : null, // if max_capacity is not set, treated as unlimited
       is_full: section.max_capacity != null && enrolledCount >= section.max_capacity,
     };
   },
@@ -65,7 +65,7 @@ export const sectionService = {
     }
 
     if (max_capacity !== undefined) {
-      // capacity কমানোর সময় চেক — already enrolled student-এর চেয়ে কম করা যাবে না
+      // check when lowering capacity — cannot set it below the number of already enrolled students
       const enrolledCount = await sectionRepository.countEnrolledStudents(id);
       if (max_capacity < enrolledCount) {
         throw new AppError(
@@ -96,7 +96,7 @@ export const sectionService = {
     return deleted;
   },
 
-  // roll/section বিতরণ engine এটা ব্যবহার করবে — class-এর সব section + occupancy
+  // used by the roll/section distribution engine — all sections of a class + occupancy
   async getSectionsForDistribution(class_id) {
     const sections = await sectionRepository.findByClassId(class_id);
     const withOccupancy = await Promise.all(

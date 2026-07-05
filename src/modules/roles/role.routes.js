@@ -11,17 +11,17 @@ router.use(authMiddleware);
  * /roles:
  *   get:
  *     tags: [Roles]
- *     summary: রোলের তালিকা (pagination + search)
- *     description: '`ROLE_READ` permission লাগে। name-এ search করা যায়।'
+ *     summary: List roles (pagination + search)
+ *     description: 'Requires `ROLE_READ` permission. Supports search by name.'
  *     parameters:
  *       - { $ref: '#/components/parameters/PageQuery' }
  *       - { $ref: '#/components/parameters/LimitQuery' }
- *       - { name: search, in: query, required: false, schema: { type: string }, description: 'role name-এ খোঁজা' }
+ *       - { name: search, in: query, required: false, schema: { type: string }, description: 'Search by role name' }
  *       - { name: sortBy, in: query, required: false, schema: { type: string, enum: [name, created_at], default: created_at } }
  *       - { name: sortOrder, in: query, required: false, schema: { type: string, enum: [asc, desc] } }
  *     responses:
  *       200:
- *         description: রোল তালিকা
+ *         description: Role list
  *         content:
  *           application/json:
  *             schema:
@@ -43,12 +43,12 @@ router.get('/', rbacMiddleware('ROLE_READ'), roleController.getAll);
  * /roles/{id}:
  *   get:
  *     tags: [Roles]
- *     summary: একক রোলের বিস্তারিত
- *     description: '`ROLE_READ` permission লাগে।'
+ *     summary: Get a single role's details
+ *     description: 'Requires `ROLE_READ` permission.'
  *     parameters: [{ $ref: '#/components/parameters/IdParam' }]
  *     responses:
  *       200:
- *         description: রোলের তথ্য
+ *         description: Role details
  *         content:
  *           application/json:
  *             schema:
@@ -68,8 +68,8 @@ router.get('/:id', rbacMiddleware('ROLE_READ'), roleController.getById);
  * /roles:
  *   post:
  *     tags: [Roles]
- *     summary: নতুন রোল তৈরি
- *     description: '`ROLE_CREATE` permission লাগে। name uppercase-এ সংরক্ষিত হয় ও ইউনিক হতে হবে।'
+ *     summary: Create a new role
+ *     description: 'Requires `ROLE_CREATE` permission. name is stored in uppercase and must be unique.'
  *     requestBody:
  *       required: true
  *       content:
@@ -81,7 +81,7 @@ router.get('/:id', rbacMiddleware('ROLE_READ'), roleController.getById);
  *               name: { type: string, maxLength: 50, example: TEACHER }
  *     responses:
  *       201:
- *         description: রোল তৈরি হয়েছে
+ *         description: Role created
  *         content:
  *           application/json:
  *             schema:
@@ -102,8 +102,8 @@ router.post('/', rbacMiddleware('ROLE_CREATE'), roleController.create);
  * /roles/{id}:
  *   patch:
  *     tags: [Roles]
- *     summary: রোল আপডেট
- *     description: '`ROLE_UPDATE` permission লাগে। name হলো একমাত্র updatable ফিল্ড — তাই required।'
+ *     summary: Update a role
+ *     description: 'Requires `ROLE_UPDATE` permission. name is the only updatable field, so it is required.'
  *     parameters: [{ $ref: '#/components/parameters/IdParam' }]
  *     requestBody:
  *       required: true
@@ -116,7 +116,7 @@ router.post('/', rbacMiddleware('ROLE_CREATE'), roleController.create);
  *               name: { type: string, maxLength: 50 }
  *     responses:
  *       200:
- *         description: আপডেট সফল
+ *         description: Update successful
  *         content:
  *           application/json:
  *             schema:
@@ -138,12 +138,12 @@ router.patch('/:id', rbacMiddleware('ROLE_UPDATE'), roleController.update);
  * /roles/{id}:
  *   delete:
  *     tags: [Roles]
- *     summary: রোল মুছে ফেলা (soft delete)
- *     description: '`ROLE_DELETE` permission লাগে। মুছলে সংশ্লিষ্ট permission cache invalidate হয়।'
+ *     summary: Delete a role (soft delete)
+ *     description: 'Requires `ROLE_DELETE` permission. Deleting invalidates the related permission cache.'
  *     parameters: [{ $ref: '#/components/parameters/IdParam' }]
  *     responses:
  *       200:
- *         description: রোল মুছে ফেলা হয়েছে
+ *         description: Role deleted
  *         content:
  *           application/json:
  *             schema: { $ref: '#/components/schemas/SuccessResponse' }
@@ -158,8 +158,8 @@ router.delete('/:id', rbacMiddleware('ROLE_DELETE'), roleController.delete);
  * /roles/{id}/permissions:
  *   put:
  *     tags: [Roles]
- *     summary: রোলের permission সম্পূর্ণ সিঙ্ক (replace)
- *     description: '`ROLE_UPDATE` permission লাগে। দেওয়া permissionIds দিয়ে রোলের permission সেট সম্পূর্ণ প্রতিস্থাপন হয়। খালি অ্যারে দিলে সব permission সরে যায়।'
+ *     summary: Fully sync a role's permissions (replace)
+ *     description: 'Requires `ROLE_UPDATE` permission. The provided permissionIds completely replace the role''s permission set. Passing an empty array removes all permissions.'
  *     parameters: [{ $ref: '#/components/parameters/IdParam' }]
  *     requestBody:
  *       required: true
@@ -174,7 +174,7 @@ router.delete('/:id', rbacMiddleware('ROLE_DELETE'), roleController.delete);
  *                 example: ['11111111-1111-1111-1111-111111111111']
  *     responses:
  *       200:
- *         description: permission সিঙ্ক সফল — আপডেটেড রোল ফেরত
+ *         description: Permission sync successful — returns the updated role
  *         content:
  *           application/json:
  *             schema:

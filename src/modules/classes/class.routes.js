@@ -11,17 +11,17 @@ router.use(authMiddleware);
  * /classes:
  *   get:
  *     tags: [Classes]
- *     summary: সব ক্লাসের তালিকা (pagination + search)
+ *     summary: List all classes (pagination + search)
  *     description: |
- *       ক্লাসের পেজিনেটেড তালিকা ফেরত দেয়। প্রয়োজনীয় permission — `CLASS_READ`।
- *       `search` দিয়ে name-এ খোঁজা যায়।
+ *       Returns a paginated list of classes. Requires the `CLASS_READ` permission.
+ *       Use `search` to search by name.
  *     parameters:
  *       - $ref: '#/components/parameters/PageQuery'
  *       - $ref: '#/components/parameters/LimitQuery'
  *       - name: search
  *         in: query
  *         required: false
- *         description: class name-এ keyword search
+ *         description: keyword search on class name
  *         schema: { type: string }
  *       - name: sortBy
  *         in: query
@@ -33,7 +33,7 @@ router.use(authMiddleware);
  *         schema: { type: string, enum: [asc, desc] }
  *     responses:
  *       200:
- *         description: ক্লাসের তালিকা
+ *         description: List of classes
  *         content:
  *           application/json:
  *             schema:
@@ -57,13 +57,13 @@ router.get('/', rbacMiddleware('CLASS_READ'), classController.getAll);
  * /classes/{id}:
  *   get:
  *     tags: [Classes]
- *     summary: একটি ক্লাসের বিস্তারিত (ID দিয়ে)
- *     description: নির্দিষ্ট ক্লাসের তথ্য ফেরত দেয়। প্রয়োজনীয় permission — `CLASS_READ`।
+ *     summary: Get a single class by ID
+ *     description: Returns the details of the specified class. Requires the `CLASS_READ` permission.
  *     parameters:
  *       - $ref: '#/components/parameters/IdParam'
  *     responses:
  *       200:
- *         description: ক্লাসের তথ্য
+ *         description: Class details
  *         content:
  *           application/json:
  *             schema:
@@ -86,15 +86,15 @@ router.get('/:id', rbacMiddleware('CLASS_READ'), classController.getById);
  * /classes/{id}/sections:
  *   get:
  *     tags: [Classes]
- *     summary: ক্লাসের তথ্য + তার section তালিকা
+ *     summary: Class details + its section list
  *     description: |
- *       ক্লাসের তথ্যের সাথে তার সব section (id, name, max_capacity) একসাথে ফেরত দেয়।
- *       প্রয়োজনীয় permission — `CLASS_READ`।
+ *       Returns the class details together with all of its sections (id, name, max_capacity).
+ *       Requires the `CLASS_READ` permission.
  *     parameters:
  *       - $ref: '#/components/parameters/IdParam'
  *     responses:
  *       200:
- *         description: ক্লাসের তথ্য সহ sections
+ *         description: Class details with sections
  *         content:
  *           application/json:
  *             schema:
@@ -124,8 +124,8 @@ router.get('/:id/sections', rbacMiddleware('CLASS_READ'), classController.getWit
  * /classes:
  *   post:
  *     tags: [Classes]
- *     summary: নতুন ক্লাস তৈরি
- *     description: একটি নতুন ক্লাস তৈরি করে। নাম unique হতে হবে। প্রয়োজনীয় permission — `CLASS_CREATE`।
+ *     summary: Create a new class
+ *     description: Creates a new class. The name must be unique. Requires the `CLASS_CREATE` permission.
  *     requestBody:
  *       required: true
  *       content:
@@ -137,7 +137,7 @@ router.get('/:id/sections', rbacMiddleware('CLASS_READ'), classController.getWit
  *               name: { type: string, maxLength: 50, example: 'Class Six' }
  *     responses:
  *       201:
- *         description: ক্লাস তৈরি হয়েছে
+ *         description: Class created
  *         content:
  *           application/json:
  *             schema:
@@ -162,10 +162,10 @@ router.post('/', rbacMiddleware('CLASS_CREATE'), classController.create);
  * /classes/{id}:
  *   patch:
  *     tags: [Classes]
- *     summary: ক্লাসের নাম আপডেট
+ *     summary: Update a class name
  *     description: |
- *       ক্লাসের নাম আপডেট করে (name একমাত্র updatable ফিল্ড, তাই required)।
- *       নতুন নাম unique হতে হবে। প্রয়োজনীয় permission — `CLASS_UPDATE`।
+ *       Updates the class name (name is the only updatable field, so it is required).
+ *       The new name must be unique. Requires the `CLASS_UPDATE` permission.
  *     parameters:
  *       - $ref: '#/components/parameters/IdParam'
  *     requestBody:
@@ -179,7 +179,7 @@ router.post('/', rbacMiddleware('CLASS_CREATE'), classController.create);
  *               name: { type: string, maxLength: 50, example: 'Class Seven' }
  *     responses:
  *       200:
- *         description: আপডেট সফল
+ *         description: Update successful
  *         content:
  *           application/json:
  *             schema:
@@ -206,20 +206,20 @@ router.patch('/:id', rbacMiddleware('CLASS_UPDATE'), classController.update);
  * /classes/{id}:
  *   delete:
  *     tags: [Classes]
- *     summary: ক্লাস মুছে ফেলা (soft delete)
+ *     summary: Delete a class (soft delete)
  *     description: |
- *       ক্লাসকে soft-delete করে। section attached থাকলে মুছা যাবে না (400)।
- *       প্রয়োজনীয় permission — `CLASS_DELETE`।
+ *       Soft-deletes the class. It cannot be deleted while sections are attached (400).
+ *       Requires the `CLASS_DELETE` permission.
  *     parameters:
  *       - $ref: '#/components/parameters/IdParam'
  *     responses:
  *       200:
- *         description: ক্লাস মুছে ফেলা হয়েছে
+ *         description: Class deleted
  *         content:
  *           application/json:
  *             schema: { $ref: '#/components/schemas/SuccessResponse' }
  *       400:
- *         description: section attached থাকায় মুছা যায়নি
+ *         description: Could not delete because sections are attached
  *         content:
  *           application/json:
  *             schema: { $ref: '#/components/schemas/ErrorResponse' }

@@ -83,7 +83,7 @@ export const examResultRepository = {
     return rows[0] || null;
   },
 
-  // (exam_id, student_id, subject_id) unique constraint অনুযায়ী আগে entry আছে কিনা
+  // Whether an entry already exists per the (exam_id, student_id, subject_id) unique constraint
   async findByExamStudentSubject(exam_id, student_id, subject_id) {
     const { rows } = await query(
       `SELECT * FROM exam_results
@@ -93,7 +93,7 @@ export const examResultRepository = {
     return rows[0] || null;
   },
 
-  // একটা exam-এর সব subject-ভিত্তিক result (marksheet তৈরি করতে — student-wise grouping caller করবে)
+  // All subject-wise results for an exam (to build a marksheet — the caller does the student-wise grouping)
   async findByExamId(examId) {
     const { rows } = await query(
       `SELECT
@@ -111,7 +111,7 @@ export const examResultRepository = {
     return rows;
   },
 
-  // একটা ছাত্রের একটা exam-এর সব subject-এর result — marksheet/report card-এর জন্য
+  // All subject results of a single exam for a single student — for a marksheet/report card
   async findByExamAndStudent(examId, studentId) {
     const { rows } = await query(
       `SELECT er.*, sub.name AS subject_name, sub.code AS subject_code
@@ -157,8 +157,8 @@ export const examResultRepository = {
     return rows[0] || null;
   },
 
-  // bulk entry — একটা exam-এ একসাথে অনেক student/subject-এর marks বসানো (teacher একসাথে এন্ট্রি করলে)
-  // single insert-এর বদলে transaction client দিয়ে loop — duplicate হলে individual error ধরা যায়
+  // bulk entry — set marks for many students/subjects at once for a single exam (when a teacher enters them together)
+  // instead of a single insert, loop with a transaction client — individual errors can be caught on duplicates
   async bulkCreate(client, entries) {
     const results = [];
     for (const entry of entries) {

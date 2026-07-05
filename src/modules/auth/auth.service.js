@@ -15,8 +15,8 @@ const signRefresh = (payload) =>
 
 export const authService = {
   async login({ email, password }) {
-    // type guard — garbage payload (object/number) দিলে .toLowerCase()/bcrypt crash না করে clean 401
-    // valid-কিন্তু-ভুল আর garbage আলাদা না করাই নিরাপদ (user enumeration কমায়)
+    // type guard — a garbage payload (object/number) yields a clean 401 instead of crashing .toLowerCase()/bcrypt
+    // it's safer not to distinguish valid-but-wrong from garbage (reduces user enumeration)
     if (typeof email !== 'string' || !email.trim() || typeof password !== 'string' || !password) {
       throw new AppError('Invalid email or password', 401);
     }
@@ -52,9 +52,9 @@ export const authService = {
 
     const stored = await redisClient.get(REFRESH_KEY(decoded.userId));
 
-    // stored token-ই না থাকলে বা না মিললে — token reuse/theft সন্দেহ, পুরো session বাতিল করো
+    // if the stored token is missing or doesn't match — suspect token reuse/theft, invalidate the whole session
     if (!stored || stored !== refreshToken) {
-      await redisClient.del(REFRESH_KEY(decoded.userId)); // safety: যদি কোনো token পড়েও থাকে, মুছে দাও
+      await redisClient.del(REFRESH_KEY(decoded.userId)); // safety: delete any token that may still be present
       throw new AppError('Refresh token is no longer valid — please log in again', 401);
     }
 
@@ -63,7 +63,7 @@ export const authService = {
 
     const tokenPayload = { userId: user.id, roleId: user.role_id, roleName: user.role_name };
 
-    // ── Rotation: নতুন access + নতুন refresh টোকেন, পুরনো refresh টোকেন বাতিল ──
+    // ── Rotation: new access + new refresh token, old refresh token invalidated ──
     const accessToken = signAccess(tokenPayload);
     const newRefreshToken = signRefresh({ userId: user.id });
 

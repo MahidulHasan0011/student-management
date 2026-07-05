@@ -13,10 +13,10 @@ router.use(authMiddleware);
  * /attendance/students:
  *   post:
  *     tags: [Attendance]
- *     summary: একটি ক্লাস/সেকশনের একদিনের attendance mark করা (bulk upsert)
+ *     summary: Mark a single day's attendance for a class/section (bulk upsert)
  *     description: >-
- *       `ATTENDANCE_MARK` permission লাগে। একই student+তারিখ আগে থাকলে update হয়, নাহলে নতুন insert।
- *       পুরোটা একটাই transaction — একটাও invalid হলে সব rollback।
+ *       Requires `ATTENDANCE_MARK` permission. If a record for the same student+date already exists it is updated, otherwise a new one is inserted.
+ *       The whole operation runs in a single transaction — if any record is invalid, everything is rolled back.
  *     requestBody:
  *       required: true
  *       content:
@@ -37,7 +37,7 @@ router.use(authMiddleware);
  *                     student_id: { type: string, format: uuid }
  *                     status: { type: string, enum: [PRESENT, ABSENT, LATE, EXCUSED] }
  *     responses:
- *       201: { description: mark সফল }
+ *       201: { description: marked successfully }
  *       400: { $ref: '#/components/responses/ValidationError' }
  *       401: { $ref: '#/components/responses/Unauthorized' }
  *       403: { $ref: '#/components/responses/Forbidden' }
@@ -50,9 +50,9 @@ router.post('/students', rbacMiddleware('ATTENDANCE_MARK'), attendanceController
  * /attendance/students:
  *   get:
  *     tags: [Attendance]
- *     summary: student attendance record তালিকা (pagination + filter)
+ *     summary: List student attendance records (pagination + filter)
  *     description: >-
- *       `ATTENDANCE_READ` permission লাগে। student_id / class_id / section_id / attendance_date / status দিয়ে filter করা যায়।
+ *       Requires `ATTENDANCE_READ` permission. Can be filtered by student_id / class_id / section_id / attendance_date / status.
  *     parameters:
  *       - $ref: '#/components/parameters/PageQuery'
  *       - $ref: '#/components/parameters/LimitQuery'
@@ -62,7 +62,7 @@ router.post('/students', rbacMiddleware('ATTENDANCE_MARK'), attendanceController
  *       - { name: attendance_date, in: query, required: false, schema: { type: string, format: date } }
  *       - { name: status, in: query, required: false, schema: { type: string, enum: [PRESENT, ABSENT, LATE, EXCUSED] } }
  *     responses:
- *       200: { description: তালিকা }
+ *       200: { description: list }
  *       401: { $ref: '#/components/responses/Unauthorized' }
  *       403: { $ref: '#/components/responses/Forbidden' }
  */
@@ -73,14 +73,14 @@ router.get('/students', rbacMiddleware('ATTENDANCE_READ'), attendanceController.
  * /attendance/students/{studentId}/monthly:
  *   get:
  *     tags: [Attendance]
- *     summary: একজন student-এর মাসিক attendance % (report card)
- *     description: '`ATTENDANCE_READ` permission লাগে। LATE-কেও present ধরা হয়।'
+ *     summary: A single student's monthly attendance % (report card)
+ *     description: 'Requires `ATTENDANCE_READ` permission. LATE is also counted as present.'
  *     parameters:
  *       - { name: studentId, in: path, required: true, schema: { type: string, format: uuid } }
  *       - { name: year, in: query, required: true, schema: { type: integer, example: 2026 } }
  *       - { name: month, in: query, required: true, schema: { type: integer, minimum: 1, maximum: 12, example: 7 } }
  *     responses:
- *       200: { description: মাসিক সারসংক্ষেপ + attendance_percentage }
+ *       200: { description: monthly summary + attendance_percentage }
  *       400: { $ref: '#/components/responses/ValidationError' }
  *       401: { $ref: '#/components/responses/Unauthorized' }
  *       403: { $ref: '#/components/responses/Forbidden' }
@@ -97,8 +97,8 @@ router.get(
  * /attendance/class/{classId}/{sectionId}/daily:
  *   get:
  *     tags: [Attendance]
- *     summary: একটি ক্লাস/সেকশনের একদিনের attendance summary (teacher dashboard)
- *     description: '`ATTENDANCE_READ` permission লাগে। PRESENT/ABSENT/LATE/EXCUSED সংখ্যা ফেরত দেয়।'
+ *     summary: A class/section's single-day attendance summary (teacher dashboard)
+ *     description: 'Requires `ATTENDANCE_READ` permission. Returns PRESENT/ABSENT/LATE/EXCUSED counts.'
  *     parameters:
  *       - { name: classId, in: path, required: true, schema: { type: string, format: uuid } }
  *       - { name: sectionId, in: path, required: true, schema: { type: string, format: uuid } }
@@ -124,8 +124,8 @@ router.get(
  *     tags: [Attendance]
  *     summary: staff check-in
  *     description: >-
- *       `ATTENDANCE_MARK` permission লাগে। userId না দিলে লগইন করা ইউজারের check-in হয়।
- *       একই দিনে দুবার check-in করলে 409।
+ *       Requires `ATTENDANCE_MARK` permission. If userId is not provided, the logged-in user is checked in.
+ *       Checking in twice on the same day returns 409.
  *     requestBody:
  *       required: true
  *       content:
@@ -134,7 +134,7 @@ router.get(
  *             type: object
  *             required: [attendance_date]
  *             properties:
- *               userId: { type: string, format: uuid, description: 'optional — না দিলে নিজের' }
+ *               userId: { type: string, format: uuid, description: 'optional — defaults to self' }
  *               attendance_date: { type: string, format: date }
  *               latitude: { type: number }
  *               longitude: { type: number }
@@ -157,9 +157,9 @@ router.post(
  * /attendance/staff/check-out:
  *   post:
  *     tags: [Attendance]
- *     summary: staff check-out (কাজের মিনিট স্বয়ংক্রিয় হিসাব)
+ *     summary: staff check-out (work minutes calculated automatically)
  *     description: >-
- *       `ATTENDANCE_MARK` permission লাগে। check-in না থাকলে 404, আগেই check-out হয়ে থাকলে 409।
+ *       Requires `ATTENDANCE_MARK` permission. Returns 404 if there is no check-in, or 409 if already checked out.
  *     requestBody:
  *       required: true
  *       content:
@@ -168,7 +168,7 @@ router.post(
  *             type: object
  *             required: [attendance_date]
  *             properties:
- *               userId: { type: string, format: uuid, description: 'optional — না দিলে নিজের' }
+ *               userId: { type: string, format: uuid, description: 'optional — defaults to self' }
  *               attendance_date: { type: string, format: date }
  *               latitude: { type: number }
  *               longitude: { type: number }
@@ -191,14 +191,14 @@ router.post(
  * /attendance/staff/{userId}/monthly:
  *   get:
  *     tags: [Attendance]
- *     summary: একজন staff-এর মাসিক কাজের ঘণ্টা (HR / payroll)
- *     description: '`ATTENDANCE_READ` permission লাগে। days_present, total_work_minutes, total_work_hours ফেরত দেয়।'
+ *     summary: A single staff member's monthly work hours (HR / payroll)
+ *     description: 'Requires `ATTENDANCE_READ` permission. Returns days_present, total_work_minutes, total_work_hours.'
  *     parameters:
  *       - { name: userId, in: path, required: true, schema: { type: string, format: uuid } }
  *       - { name: year, in: query, required: true, schema: { type: integer, example: 2026 } }
  *       - { name: month, in: query, required: true, schema: { type: integer, minimum: 1, maximum: 12, example: 7 } }
  *     responses:
- *       200: { description: মাসিক কাজের ঘণ্টা }
+ *       200: { description: monthly work hours }
  *       400: { $ref: '#/components/responses/ValidationError' }
  *       401: { $ref: '#/components/responses/Unauthorized' }
  *       403: { $ref: '#/components/responses/Forbidden' }

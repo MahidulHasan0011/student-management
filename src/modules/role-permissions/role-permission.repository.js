@@ -1,7 +1,7 @@
 import { query } from '../../config/db.js';
 
 export const rolePermissionRepository = {
-  // একটা নির্দিষ্ট role-এর সব permission — id + name দুটোই সহ
+  // All permissions of a specific role — including both id and name
   async findByRoleId(roleId) {
     const { rows } = await query(
       `SELECT rp.id AS assignment_id, rp.role_id, rp.created_at,
@@ -15,7 +15,7 @@ export const rolePermissionRepository = {
     return rows;
   },
 
-  // একটা নির্দিষ্ট permission কোন কোন role-এ আছে — উল্টো দিক থেকে দেখতে
+  // Which roles a specific permission belongs to — the reverse lookup
   async findByPermissionId(permissionId) {
     const { rows } = await query(
       `SELECT rp.id AS assignment_id, rp.permission_id, rp.created_at,
@@ -39,7 +39,7 @@ export const rolePermissionRepository = {
     return rows[0] || null;
   },
 
-  // soft-deleted row থাকলেও খুঁজে বের করি — restore করার জন্য লাগবে
+  // Find the row even if soft-deleted — needed for restoring
   async findAny(roleId, permissionId) {
     const { rows } = await query(
       `SELECT id, deleted_at FROM role_permissions
@@ -57,7 +57,7 @@ export const rolePermissionRepository = {
     );
     return rows[0];
   },
-  // আগে soft-delete হওয়া row restore করা — duplicate row তৈরি না করে
+  // Restore a previously soft-deleted row — without creating a duplicate row
   async restore(id) {
     const { rows } = await query(
       `UPDATE role_permissions SET deleted_at = NULL, updated_at = NOW()

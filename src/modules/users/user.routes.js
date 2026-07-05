@@ -11,8 +11,8 @@ router.use(authMiddleware);
  * /users/me/password:
  *   patch:
  *     tags: [Users]
- *     summary: নিজের পাসওয়ার্ড পরিবর্তন
- *     description: লগইন করা ইউজার নিজের পাসওয়ার্ড বদলায়। কোনো বাড়তি permission লাগে না — শুধু auth।
+ *     summary: Change own password
+ *     description: The logged-in user changes their own password. No extra permission is needed — auth only.
  *     requestBody:
  *       required: true
  *       content:
@@ -25,7 +25,7 @@ router.use(authMiddleware);
  *               newPassword: { type: string, format: password, minLength: 6 }
  *     responses:
  *       200:
- *         description: পাসওয়ার্ড পরিবর্তন সফল
+ *         description: Password changed successfully
  *         content:
  *           application/json:
  *             schema: { $ref: '#/components/schemas/SuccessResponse' }
@@ -40,19 +40,19 @@ router.patch('/me/password', userController.changePassword);
  * /users:
  *   get:
  *     tags: [Users]
- *     summary: ইউজারদের তালিকা (pagination + search + filter)
- *     description: '`USER_READ` permission লাগে। search করে full_name/email-এ, filter করা যায় role_id ও is_active দিয়ে।'
+ *     summary: List users (pagination + search + filter)
+ *     description: 'Requires the `USER_READ` permission. Searches on full_name/email, and can be filtered by role_id and is_active.'
  *     parameters:
  *       - { $ref: '#/components/parameters/PageQuery' }
  *       - { $ref: '#/components/parameters/LimitQuery' }
- *       - { name: search, in: query, required: false, schema: { type: string }, description: 'full_name বা email-এ খোঁজা' }
- *       - { name: role_id, in: query, required: false, schema: { type: string, format: uuid }, description: 'নির্দিষ্ট role-এর ইউজার' }
- *       - { name: is_active, in: query, required: false, schema: { type: boolean }, description: 'সক্রিয়/নিষ্ক্রিয় ফিল্টার' }
+ *       - { name: search, in: query, required: false, schema: { type: string }, description: 'search on full_name or email' }
+ *       - { name: role_id, in: query, required: false, schema: { type: string, format: uuid }, description: 'users of a specific role' }
+ *       - { name: is_active, in: query, required: false, schema: { type: boolean }, description: 'active/inactive filter' }
  *       - { name: sortBy, in: query, required: false, schema: { type: string, enum: [full_name, email, created_at], default: created_at } }
  *       - { name: sortOrder, in: query, required: false, schema: { type: string, enum: [asc, desc] } }
  *     responses:
  *       200:
- *         description: ইউজার তালিকা
+ *         description: List of users
  *         content:
  *           application/json:
  *             schema:
@@ -74,12 +74,12 @@ router.get('/', rbacMiddleware('USER_READ'), userController.getAll);
  * /users/{id}:
  *   get:
  *     tags: [Users]
- *     summary: একক ইউজারের বিস্তারিত
- *     description: '`USER_READ` permission লাগে।'
+ *     summary: Get a single user
+ *     description: 'Requires the `USER_READ` permission.'
  *     parameters: [{ $ref: '#/components/parameters/IdParam' }]
  *     responses:
  *       200:
- *         description: ইউজারের তথ্য
+ *         description: User details
  *         content:
  *           application/json:
  *             schema:
@@ -99,8 +99,8 @@ router.get('/:id', rbacMiddleware('USER_READ'), userController.getById);
  * /users:
  *   post:
  *     tags: [Users]
- *     summary: নতুন ইউজার তৈরি
- *     description: '`USER_CREATE` permission লাগে। ইমেইল ইউনিক হতে হবে; role_id অবশ্যই বিদ্যমান role হতে হবে।'
+ *     summary: Create a new user
+ *     description: 'Requires the `USER_CREATE` permission. The email must be unique; role_id must be an existing role.'
  *     requestBody:
  *       required: true
  *       content:
@@ -116,7 +116,7 @@ router.get('/:id', rbacMiddleware('USER_READ'), userController.getById);
  *               gender: { type: string, enum: [MALE, FEMALE, OTHER], default: MALE }
  *     responses:
  *       201:
- *         description: ইউজার তৈরি হয়েছে
+ *         description: User created
  *         content:
  *           application/json:
  *             schema:
@@ -138,8 +138,8 @@ router.post('/', rbacMiddleware('USER_CREATE'), userController.create);
  * /users/{id}:
  *   patch:
  *     tags: [Users]
- *     summary: ইউজার আপডেট (আংশিক)
- *     description: '`USER_UPDATE` permission লাগে। যেসব ফিল্ড পাঠানো হবে শুধু সেগুলোই আপডেট হয়।'
+ *     summary: Update a user (partial)
+ *     description: 'Requires the `USER_UPDATE` permission. Only the fields sent are updated.'
  *     parameters: [{ $ref: '#/components/parameters/IdParam' }]
  *     requestBody:
  *       required: true
@@ -154,7 +154,7 @@ router.post('/', rbacMiddleware('USER_CREATE'), userController.create);
  *               gender: { type: string, enum: [MALE, FEMALE, OTHER] }
  *     responses:
  *       200:
- *         description: আপডেট সফল
+ *         description: Update successful
  *         content:
  *           application/json:
  *             schema:
@@ -176,12 +176,12 @@ router.patch('/:id', rbacMiddleware('USER_UPDATE'), userController.update);
  * /users/{id}:
  *   delete:
  *     tags: [Users]
- *     summary: ইউজার মুছে ফেলা (soft delete)
- *     description: '`USER_DELETE` permission লাগে। রেকর্ড soft-delete হয় (deleted_at সেট হয়)।'
+ *     summary: Delete a user (soft delete)
+ *     description: 'Requires the `USER_DELETE` permission. The record is soft-deleted (deleted_at is set).'
  *     parameters: [{ $ref: '#/components/parameters/IdParam' }]
  *     responses:
  *       200:
- *         description: ইউজার মুছে ফেলা হয়েছে
+ *         description: User deleted
  *         content:
  *           application/json:
  *             schema: { $ref: '#/components/schemas/SuccessResponse' }
@@ -196,8 +196,8 @@ router.delete('/:id', rbacMiddleware('USER_DELETE'), userController.delete);
  * /users/{id}/reset-password:
  *   patch:
  *     tags: [Users]
- *     summary: অন্য ইউজারের পাসওয়ার্ড রিসেট (admin)
- *     description: '`USER_UPDATE` permission লাগে। বর্তমান পাসওয়ার্ড ছাড়াই নতুন পাসওয়ার্ড সেট করা হয়।'
+ *     summary: Reset another user's password (admin)
+ *     description: 'Requires the `USER_UPDATE` permission. Sets a new password without requiring the current one.'
  *     parameters: [{ $ref: '#/components/parameters/IdParam' }]
  *     requestBody:
  *       required: true
@@ -210,7 +210,7 @@ router.delete('/:id', rbacMiddleware('USER_DELETE'), userController.delete);
  *               newPassword: { type: string, format: password, minLength: 6 }
  *     responses:
  *       200:
- *         description: পাসওয়ার্ড রিসেট সফল
+ *         description: Password reset successful
  *         content:
  *           application/json:
  *             schema: { $ref: '#/components/schemas/SuccessResponse' }
@@ -226,8 +226,8 @@ router.patch('/:id/reset-password', rbacMiddleware('USER_UPDATE'), userControlle
  * /users/{id}/toggle-active:
  *   patch:
  *     tags: [Users]
- *     summary: ইউজার সক্রিয়/নিষ্ক্রিয় টগল
- *     description: '`USER_UPDATE` permission লাগে। is_active true/false সেট করা হয়।'
+ *     summary: Toggle a user active/inactive
+ *     description: 'Requires the `USER_UPDATE` permission. Sets is_active to true/false.'
  *     parameters: [{ $ref: '#/components/parameters/IdParam' }]
  *     requestBody:
  *       required: true
@@ -240,7 +240,7 @@ router.patch('/:id/reset-password', rbacMiddleware('USER_UPDATE'), userControlle
  *               is_active: { type: boolean }
  *     responses:
  *       200:
- *         description: স্ট্যাটাস পরিবর্তন সফল
+ *         description: Status changed successfully
  *         content:
  *           application/json:
  *             schema:

@@ -28,7 +28,7 @@ export const classService = {
     return cls;
   },
 
-  // class + section list — section assign/capacity দেখানোর জন্য
+  // class + section list — used to show section assignment/capacity
   async getByIdWithSections(id) {
     const cls = await classRepository.findByIdWithSections(id);
     if (!cls) throw new AppError('Class not found', 404);
@@ -37,7 +37,7 @@ export const classService = {
 
   async update(id, { name }) {
     await this.getById(id);
-    // name হলো classes-এর একমাত্র updatable + NOT NULL কলাম, তাই update-এও required
+    // name is the only updatable + NOT NULL column in classes, so it is required on update too
     name = assertString(name, 'name', { max: 50 });
 
     const existing = await classRepository.findByName(name);

@@ -21,7 +21,7 @@ const FILTER_CONFIG = {
 };
 
 export const uploadRepository = {
-  // PENDING row — generate-url ধাপে। confirm-এ READY হবে।
+  // PENDING row — created in the generate-url step. becomes READY on confirm.
   async create({
     storage_key,
     original_name,
@@ -61,13 +61,13 @@ export const uploadRepository = {
     return rows[0] || null;
   },
 
-  // restore/audit-এর জন্য soft-deleted row-ও দরকার হয়
+  // restore/audit also needs the soft-deleted row
   async findByIdWithDeleted(id) {
     const { rows } = await query(`SELECT * FROM uploads WHERE id = $1`, [id]);
     return rows[0] || null;
   },
 
-  // confirm: PENDING → READY, যাচাই করা size/checksum/metadata বসাই
+  // confirm: PENDING → READY, set the verified size/checksum/metadata
   async markReady(id, { file_size, checksum, metadata }) {
     const { rows } = await query(
       `UPDATE uploads

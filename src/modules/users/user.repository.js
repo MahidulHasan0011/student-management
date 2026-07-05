@@ -8,7 +8,7 @@ const SAFE_COLUMNS = `
   r.name AS role_name
 `;
 
-// JOIN আছে — alias "u"
+// has a JOIN — alias "u"
 const SORTABLE_FIELDS = {
   full_name: 'u.full_name',
   email: 'u.email',
@@ -38,7 +38,7 @@ export const userRepository = {
     const values = [];
     const countRef = { value: 1 };
 
-    // is_active আসে string হিসেবে ("true"/"false") — boolean-এ convert করতে হবে
+    // is_active comes in as a string ("true"/"false") — must be converted to a boolean
     const normalizedQuery = { ...queryOptions };
     if (normalizedQuery.is_active !== undefined) {
       normalizedQuery.is_active = normalizedQuery.is_active === 'true';

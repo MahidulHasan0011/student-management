@@ -11,17 +11,17 @@ router.use(authMiddleware);
  * /teachers:
  *   get:
  *     tags: [Teachers]
- *     summary: সব শিক্ষকের তালিকা (pagination + search)
+ *     summary: List all teachers (pagination + search)
  *     description: |
- *       শিক্ষকদের পেজিনেটেড তালিকা ফেরত দেয়। প্রয়োজনীয় permission — `TEACHER_READ`।
- *       `search` দিয়ে full_name, email ও phone-এ খোঁজা যায়।
+ *       Returns a paginated list of teachers. Requires the `TEACHER_READ` permission.
+ *       `search` matches against full_name, email, and phone.
  *     parameters:
  *       - $ref: '#/components/parameters/PageQuery'
  *       - $ref: '#/components/parameters/LimitQuery'
  *       - name: search
  *         in: query
  *         required: false
- *         description: full_name / email / phone-এ keyword search
+ *         description: keyword search across full_name / email / phone
  *         schema: { type: string }
  *       - name: sortBy
  *         in: query
@@ -33,7 +33,7 @@ router.use(authMiddleware);
  *         schema: { type: string, enum: [asc, desc] }
  *     responses:
  *       200:
- *         description: শিক্ষকদের তালিকা
+ *         description: List of teachers
  *         content:
  *           application/json:
  *             schema:
@@ -57,13 +57,13 @@ router.get('/', rbacMiddleware('TEACHER_READ'), teacherController.getAll);
  * /teachers/{id}:
  *   get:
  *     tags: [Teachers]
- *     summary: একজন শিক্ষকের বিস্তারিত (ID দিয়ে)
- *     description: নির্দিষ্ট শিক্ষকের profile ফেরত দেয়। প্রয়োজনীয় permission — `TEACHER_READ`।
+ *     summary: Get a single teacher by ID
+ *     description: Returns the profile of the specified teacher. Requires the `TEACHER_READ` permission.
  *     parameters:
  *       - $ref: '#/components/parameters/IdParam'
  *     responses:
  *       200:
- *         description: শিক্ষকের তথ্য
+ *         description: Teacher details
  *         content:
  *           application/json:
  *             schema:
@@ -86,15 +86,15 @@ router.get('/:id', rbacMiddleware('TEACHER_READ'), teacherController.getById);
  * /teachers/{id}/assignments:
  *   get:
  *     tags: [Teachers]
- *     summary: শিক্ষকের profile + তার subject assignment তালিকা
+ *     summary: Teacher profile + list of their subject assignments
  *     description: |
- *       শিক্ষকের profile-এর সাথে তার সব subject assignment একসাথে ফেরত দেয়।
- *       প্রয়োজনীয় permission — `TEACHER_READ`।
+ *       Returns the teacher's profile along with all of their subject assignments.
+ *       Requires the `TEACHER_READ` permission.
  *     parameters:
  *       - $ref: '#/components/parameters/IdParam'
  *     responses:
  *       200:
- *         description: শিক্ষকের তথ্য সহ assignments
+ *         description: Teacher details including assignments
  *         content:
  *           application/json:
  *             schema:
@@ -139,10 +139,10 @@ router.get(
  * /teachers:
  *   post:
  *     tags: [Teachers]
- *     summary: নতুন শিক্ষক তৈরি (user account + profile)
+ *     summary: Create a new teacher (user account + profile)
  *     description: |
- *       একসাথে user account ও teacher profile তৈরি করে।
- *       প্রয়োজনীয় permission — `TEACHER_CREATE`।
+ *       Creates a user account and teacher profile together.
+ *       Requires the `TEACHER_CREATE` permission.
  *     requestBody:
  *       required: true
  *       content:
@@ -161,7 +161,7 @@ router.get(
  *               joining_date: { type: string, format: date, example: '2020-01-15' }
  *     responses:
  *       201:
- *         description: শিক্ষক তৈরি হয়েছে
+ *         description: Teacher created
  *         content:
  *           application/json:
  *             schema:
@@ -186,10 +186,10 @@ router.post('/', rbacMiddleware('TEACHER_CREATE'), teacherController.create);
  * /teachers/{id}:
  *   patch:
  *     tags: [Teachers]
- *     summary: শিক্ষকের profile আপডেট
+ *     summary: Update a teacher profile
  *     description: |
- *       teacher profile-এর mutable ফিল্ডগুলো আপডেট করে (user account নয়)।
- *       প্রয়োজনীয় permission — `TEACHER_UPDATE`।
+ *       Updates the mutable fields of the teacher profile (not the user account).
+ *       Requires the `TEACHER_UPDATE` permission.
  *     parameters:
  *       - $ref: '#/components/parameters/IdParam'
  *     requestBody:
@@ -205,7 +205,7 @@ router.post('/', rbacMiddleware('TEACHER_CREATE'), teacherController.create);
  *               joining_date: { type: string, format: date, example: '2020-01-15' }
  *     responses:
  *       200:
- *         description: আপডেট সফল
+ *         description: Update successful
  *         content:
  *           application/json:
  *             schema:
@@ -230,20 +230,20 @@ router.patch('/:id', rbacMiddleware('TEACHER_UPDATE'), teacherController.update)
  * /teachers/{id}:
  *   delete:
  *     tags: [Teachers]
- *     summary: শিক্ষক মুছে ফেলা (soft delete)
+ *     summary: Delete a teacher (soft delete)
  *     description: |
- *       শিক্ষককে soft-delete করে। active subject assignment থাকলে মুছা যাবে না (400)।
- *       প্রয়োজনীয় permission — `TEACHER_DELETE`।
+ *       Soft-deletes the teacher. Cannot be deleted if active subject assignments exist (400).
+ *       Requires the `TEACHER_DELETE` permission.
  *     parameters:
  *       - $ref: '#/components/parameters/IdParam'
  *     responses:
  *       200:
- *         description: শিক্ষক মুছে ফেলা হয়েছে
+ *         description: Teacher deleted
  *         content:
  *           application/json:
  *             schema: { $ref: '#/components/schemas/SuccessResponse' }
  *       400:
- *         description: active assignment থাকায় মুছা যায়নি
+ *         description: Could not delete because active assignments exist
  *         content:
  *           application/json:
  *             schema: { $ref: '#/components/schemas/ErrorResponse' }

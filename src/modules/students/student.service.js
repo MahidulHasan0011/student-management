@@ -8,7 +8,7 @@ import { withTransaction, query } from '../../config/db.js';
 import { env } from '../../config/env.js';
 import { assertString, assertEnum, assertDate, GENDERS } from '../../utils/validators.js';
 
-// student_code ফরম্যাট: STU-2026-001 (বছর + ক্রমিক নম্বর)
+// student_code format: STU-2026-001 (year + sequential number)
 const generateStudentCode = async (client) => {
   const year = new Date().getFullYear();
   const { rows } = await client.query(`SELECT COUNT(*) FROM students WHERE student_code LIKE $1`, [
@@ -19,7 +19,7 @@ const generateStudentCode = async (client) => {
 };
 
 export const studentService = {
-  // user account + student profile একসাথে তৈরি — একটা fail করলে rollback (teacher.service.js-এর মতোই pattern)
+  // Create user account + student profile together — rollback if either fails (same pattern as teacher.service.js)
   async create({
     full_name,
     email,
@@ -90,7 +90,7 @@ export const studentService = {
     return student;
   },
 
-  // profile + current session-এর enrollment (class/section/roll) একসাথে
+  // profile + current session enrollment (class/section/roll) together
   async getByIdWithEnrollment(id) {
     const student = await this.getById(id);
     const enrollment = await studentRepository.findCurrentEnrollment(id);

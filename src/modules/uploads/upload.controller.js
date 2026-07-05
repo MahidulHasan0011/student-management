@@ -2,11 +2,11 @@ import { uploadService } from './upload.service.js';
 import { uploadValidation } from './upload.validation.js';
 import { successResponse } from '../../utils/response.js';
 
-// req থেকে actor (কে) + ctx (কোথা থেকে) বের করি — service-এ ownership check ও audit-এ লাগে
+// extract actor (who) + ctx (from where) from req — needed for the ownership check and audit in the service
 const getActor = (req) => ({
   userId: req.user.userId,
   roleId: req.user.roleId,
-  permissions: req.permissions, // rbacMiddleware সেট করে
+  permissions: req.permissions, // set by rbacMiddleware
 });
 const getCtx = (req) => ({ ip: req.ip, userAgent: req.headers['user-agent'] });
 
@@ -41,7 +41,7 @@ export const uploadController = {
   async getAll(req, res, next) {
     try {
       const filters = uploadValidation.listQuery(req.query);
-      // pagination/sort param গুলো query থেকে সরাসরি service-এ যায়
+      // pagination/sort params go straight from the query to the service
       const merged = { ...req.query, ...filters };
       const { data, meta } = await uploadService.list(merged, getActor(req));
       return successResponse(res, { message: 'Files fetched', data, meta });

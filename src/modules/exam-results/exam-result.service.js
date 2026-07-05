@@ -18,7 +18,7 @@ export const examResultService = {
     const exam = await examRepository.findById(exam_id);
     if (!exam) throw new AppError('Exam not found', 404);
 
-    // ── Publish হয়ে গেলে সরাসরি create/update বন্ধ — correction আলাদা workflow-এ হবে (পরে) ──
+    // ── Once published, direct create/update is blocked — correction happens in a separate workflow (later) ──
     if (exam.status === 'PUBLISHED') {
       throw new AppError('This exam is published — unpublish it first to modify results', 400);
     }
@@ -45,7 +45,7 @@ export const examResultService = {
     return examResultRepository.create({ exam_id, student_id, subject_id, marks, grade });
   },
 
-  // একসাথে অনেক ছাত্রের marks entry — teacher সাধারণত এভাবেই কাজ করেন (একটা exam, একটা subject, ক্লাসের সবাই)
+  // Enter marks for many students at once — teachers usually work this way (one exam, one subject, the whole class)
   // entries = [{ student_id, subject_id, marks }, ...]
   async bulkCreate(examId, entries) {
     examId = assertUuid(examId, 'examId');
@@ -96,7 +96,7 @@ export const examResultService = {
     return examResultRepository.findByExamId(examId);
   },
 
-  // মার্কশিট — একটা ছাত্রের একটা exam-এর সব subject-এর নম্বর + grade
+  // Marksheet — marks + grade for all subjects of a single exam for a single student
   async getMarksheet(examId, studentId) {
     const exam = await examRepository.findById(examId);
     if (!exam) throw new AppError('Exam not found', 404);
@@ -139,10 +139,10 @@ export const examResultService = {
     return deleted;
   },
 
-  // ── Auto-trigger hook-এর জন্য মূল entry point ──
-  // result entry/bulk-entry শেষে controller এটা কল করবে — শুধু "সব ঢোকানো শেষ কিনা" জানিয়ে দেয়,
-  // আসল queue trigger করার সিদ্ধান্ত controller/ranking module নেবে (এই service শুধু তথ্য দেয়,
-  // কোনো queue/job নিজে থেকে import করে না — core/ranking/auto-trigger ফাইলগুলো রিস্টোর হলে এখানে hook বসবে)
+  // ── The core entry point for the auto-trigger hook ──
+  // The controller calls this after result entry/bulk-entry — it only reports "whether everything has been entered",
+  // the actual decision to trigger the queue is made by the controller/ranking module (this service only provides info,
+  // it does not import any queue/job itself — the hook will be placed here once the core/ranking/auto-trigger files are restored)
   async checkAndReportCompletion(examId) {
     const exam = await examRepository.findById(examId);
     if (!exam) throw new AppError('Exam not found', 404);

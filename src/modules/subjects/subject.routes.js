@@ -11,17 +11,17 @@ router.use(authMiddleware);
  * /subjects:
  *   get:
  *     tags: [Subjects]
- *     summary: সকল বিষয়ের তালিকা (পেজিনেটেড)
- *     description: '`SUBJECT_READ` permission লাগে। `name`/`code`-এ search এবং `sortBy` (name|code|created_at), `sortOrder` সাপোর্ট করে।'
+ *     summary: List all subjects (paginated)
+ *     description: 'Requires the `SUBJECT_READ` permission. Supports search on `name`/`code` and `sortBy` (name|code|created_at), `sortOrder`.'
  *     parameters:
  *       - $ref: '#/components/parameters/PageQuery'
  *       - $ref: '#/components/parameters/LimitQuery'
- *       - { name: search, in: query, required: false, schema: { type: string }, description: 'name বা code-এ খোঁজে' }
+ *       - { name: search, in: query, required: false, schema: { type: string }, description: 'searches on name or code' }
  *       - { name: sortBy, in: query, required: false, schema: { type: string, enum: [name, code, created_at] } }
  *       - { name: sortOrder, in: query, required: false, schema: { type: string, enum: [asc, desc] } }
  *     responses:
  *       200:
- *         description: বিষয়ের তালিকা
+ *         description: List of subjects
  *         content:
  *           application/json:
  *             schema:
@@ -42,13 +42,13 @@ router.get('/', rbacMiddleware('SUBJECT_READ'), subjectController.getAll);
  * /subjects/{id}:
  *   get:
  *     tags: [Subjects]
- *     summary: একটি বিষয়ের বিস্তারিত
- *     description: '`SUBJECT_READ` permission লাগে।'
+ *     summary: Get a single subject
+ *     description: 'Requires the `SUBJECT_READ` permission.'
  *     parameters:
  *       - $ref: '#/components/parameters/IdParam'
  *     responses:
  *       200:
- *         description: বিষয়ের তথ্য
+ *         description: Subject details
  *         content:
  *           application/json:
  *             schema:
@@ -70,8 +70,8 @@ router.get('/:id', rbacMiddleware('SUBJECT_READ'), subjectController.getById);
  * /subjects:
  *   post:
  *     tags: [Subjects]
- *     summary: নতুন বিষয় তৈরি
- *     description: '`SUBJECT_CREATE` permission লাগে। `code` ঐচ্ছিক, দিলে uppercase করে সংরক্ষণ হয়। name/code ইউনিক।'
+ *     summary: Create a new subject
+ *     description: 'Requires the `SUBJECT_CREATE` permission. `code` is optional; if provided it is stored in uppercase. name/code are unique.'
  *     requestBody:
  *       required: true
  *       content:
@@ -84,7 +84,7 @@ router.get('/:id', rbacMiddleware('SUBJECT_READ'), subjectController.getById);
  *               code: { type: string, maxLength: 20, example: 'MATH' }
  *     responses:
  *       201:
- *         description: বিষয় তৈরি হয়েছে
+ *         description: Subject created
  *         content:
  *           application/json:
  *             schema:
@@ -108,8 +108,8 @@ router.post('/', rbacMiddleware('SUBJECT_CREATE'), subjectController.create);
  * /subjects/{id}:
  *   patch:
  *     tags: [Subjects]
- *     summary: বিষয় আপডেট
- *     description: '`SUBJECT_UPDATE` permission লাগে। সব ফিল্ড ঐচ্ছিক — যেগুলো পাঠানো হবে শুধু সেগুলোই বদলায়।'
+ *     summary: Update a subject
+ *     description: 'Requires the `SUBJECT_UPDATE` permission. All fields are optional — only the fields sent are changed.'
  *     parameters:
  *       - $ref: '#/components/parameters/IdParam'
  *     requestBody:
@@ -123,7 +123,7 @@ router.post('/', rbacMiddleware('SUBJECT_CREATE'), subjectController.create);
  *               code: { type: string, maxLength: 20, example: 'MATH' }
  *     responses:
  *       200:
- *         description: বিষয় আপডেট হয়েছে
+ *         description: Subject updated
  *         content:
  *           application/json:
  *             schema:
@@ -149,13 +149,13 @@ router.patch('/:id', rbacMiddleware('SUBJECT_UPDATE'), subjectController.update)
  * /subjects/{id}:
  *   delete:
  *     tags: [Subjects]
- *     summary: বিষয় মুছে ফেলা (soft delete)
- *     description: '`SUBJECT_DELETE` permission লাগে। কোনো শিক্ষকের সাথে assigned থাকলে মুছা যাবে না।'
+ *     summary: Delete a subject (soft delete)
+ *     description: 'Requires the `SUBJECT_DELETE` permission. It cannot be deleted while assigned to any teacher.'
  *     parameters:
  *       - $ref: '#/components/parameters/IdParam'
  *     responses:
  *       200:
- *         description: বিষয় মুছে ফেলা হয়েছে
+ *         description: Subject deleted
  *         content:
  *           application/json:
  *             schema: { $ref: '#/components/schemas/SuccessResponse' }

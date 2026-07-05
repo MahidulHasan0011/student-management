@@ -11,17 +11,17 @@ router.use(authMiddleware);
  * /students:
  *   get:
  *     tags: [Students]
- *     summary: সব ছাত্রের তালিকা (pagination + search)
+ *     summary: List all students (pagination + search)
  *     description: |
- *       ছাত্রদের পেজিনেটেড তালিকা ফেরত দেয়। প্রয়োজনীয় permission — `STUDENT_READ`।
- *       `search` দিয়ে full_name, email, student_code ও guardian_name-এ খোঁজা যায়।
+ *       Returns a paginated list of students. Requires the `STUDENT_READ` permission.
+ *       `search` matches against full_name, email, student_code, and guardian_name.
  *     parameters:
  *       - $ref: '#/components/parameters/PageQuery'
  *       - $ref: '#/components/parameters/LimitQuery'
  *       - name: search
  *         in: query
  *         required: false
- *         description: full_name / email / student_code / guardian_name-এ keyword search
+ *         description: keyword search across full_name / email / student_code / guardian_name
  *         schema: { type: string }
  *       - name: sortBy
  *         in: query
@@ -33,7 +33,7 @@ router.use(authMiddleware);
  *         schema: { type: string, enum: [asc, desc] }
  *     responses:
  *       200:
- *         description: ছাত্রদের তালিকা
+ *         description: List of students
  *         content:
  *           application/json:
  *             schema:
@@ -57,13 +57,13 @@ router.get('/', rbacMiddleware('STUDENT_READ'), studentController.getAll);
  * /students/{id}:
  *   get:
  *     tags: [Students]
- *     summary: একজন ছাত্রের বিস্তারিত (ID দিয়ে)
- *     description: নির্দিষ্ট ছাত্রের profile ফেরত দেয়। প্রয়োজনীয় permission — `STUDENT_READ`।
+ *     summary: Get a single student by ID
+ *     description: Returns the profile of the specified student. Requires the `STUDENT_READ` permission.
  *     parameters:
  *       - $ref: '#/components/parameters/IdParam'
  *     responses:
  *       200:
- *         description: ছাত্রের তথ্য
+ *         description: Student details
  *         content:
  *           application/json:
  *             schema:
@@ -86,15 +86,15 @@ router.get('/:id', rbacMiddleware('STUDENT_READ'), studentController.getById);
  * /students/{id}/enrollment:
  *   get:
  *     tags: [Students]
- *     summary: ছাত্রের profile + চলতি সেশনের enrollment
+ *     summary: Student profile + current session enrollment
  *     description: |
- *       ছাত্রের profile-এর সাথে active academic session-এর current enrollment
- *       (class, section, roll_number) ফেরত দেয়। প্রয়োজনীয় permission — `STUDENT_READ`।
+ *       Returns the student's profile along with the current enrollment
+ *       (class, section, roll_number) for the active academic session. Requires the `STUDENT_READ` permission.
  *     parameters:
  *       - $ref: '#/components/parameters/IdParam'
  *     responses:
  *       200:
- *         description: ছাত্রের তথ্য সহ current_enrollment
+ *         description: Student details including current_enrollment
  *         content:
  *           application/json:
  *             schema:
@@ -133,10 +133,10 @@ router.get('/:id/enrollment', rbacMiddleware('STUDENT_READ'), studentController.
  * /students:
  *   post:
  *     tags: [Students]
- *     summary: নতুন ছাত্র তৈরি (user account + profile)
+ *     summary: Create a new student (user account + profile)
  *     description: |
- *       একসাথে user account ও student profile তৈরি করে; student_code (STU-YYYY-NNN)
- *       স্বয়ংক্রিয়ভাবে generate হয়। প্রয়োজনীয় permission — `STUDENT_CREATE`।
+ *       Creates a user account and student profile together; student_code (STU-YYYY-NNN)
+ *       is generated automatically. Requires the `STUDENT_CREATE` permission.
  *     requestBody:
  *       required: true
  *       content:
@@ -155,7 +155,7 @@ router.get('/:id/enrollment', rbacMiddleware('STUDENT_READ'), studentController.
  *               address: { type: string, example: 'Dhaka, Bangladesh' }
  *     responses:
  *       201:
- *         description: ছাত্র তৈরি হয়েছে
+ *         description: Student created
  *         content:
  *           application/json:
  *             schema:
@@ -180,10 +180,10 @@ router.post('/', rbacMiddleware('STUDENT_CREATE'), studentController.create);
  * /students/{id}:
  *   patch:
  *     tags: [Students]
- *     summary: ছাত্রের profile আপডেট
+ *     summary: Update a student profile
  *     description: |
- *       student profile-এর mutable ফিল্ডগুলো আপডেট করে (user account নয়)।
- *       প্রয়োজনীয় permission — `STUDENT_UPDATE`।
+ *       Updates the mutable fields of the student profile (not the user account).
+ *       Requires the `STUDENT_UPDATE` permission.
  *     parameters:
  *       - $ref: '#/components/parameters/IdParam'
  *     requestBody:
@@ -199,7 +199,7 @@ router.post('/', rbacMiddleware('STUDENT_CREATE'), studentController.create);
  *               address: { type: string, example: 'Dhaka, Bangladesh' }
  *     responses:
  *       200:
- *         description: আপডেট সফল
+ *         description: Update successful
  *         content:
  *           application/json:
  *             schema:
@@ -224,20 +224,20 @@ router.patch('/:id', rbacMiddleware('STUDENT_UPDATE'), studentController.update)
  * /students/{id}:
  *   delete:
  *     tags: [Students]
- *     summary: ছাত্র মুছে ফেলা (soft delete)
+ *     summary: Delete a student (soft delete)
  *     description: |
- *       ছাত্রকে soft-delete করে। enrollment record থাকলে মুছা যাবে না (400)।
- *       প্রয়োজনীয় permission — `STUDENT_DELETE`।
+ *       Soft-deletes the student. Cannot be deleted if enrollment records exist (400).
+ *       Requires the `STUDENT_DELETE` permission.
  *     parameters:
  *       - $ref: '#/components/parameters/IdParam'
  *     responses:
  *       200:
- *         description: ছাত্র মুছে ফেলা হয়েছে
+ *         description: Student deleted
  *         content:
  *           application/json:
  *             schema: { $ref: '#/components/schemas/SuccessResponse' }
  *       400:
- *         description: enrollment record থাকায় মুছা যায়নি
+ *         description: Could not delete because enrollment records exist
  *         content:
  *           application/json:
  *             schema: { $ref: '#/components/schemas/ErrorResponse' }

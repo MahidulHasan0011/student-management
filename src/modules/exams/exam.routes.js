@@ -11,15 +11,15 @@ router.use(authMiddleware);
  * /exams:
  *   get:
  *     tags: [Exams]
- *     summary: পরীক্ষার তালিকা (paginated, filter ও search সহ)
+ *     summary: List exams (paginated, with filter and search)
  *     description: >-
- *       `EXAM_READ` permission লাগে। `class_id`, `academic_session_id`, `exam_type` দিয়ে filter,
- *       `search` দিয়ে নাম খোঁজা, এবং `sortBy`/`sortOrder` দিয়ে সাজানো যায়।
- *       প্রতিটি exam-এর সাথে class_name ও session_name যুক্ত থাকে।
+ *       Requires `EXAM_READ` permission. Filter by `class_id`, `academic_session_id`, `exam_type`,
+ *       search by name with `search`, and sort with `sortBy`/`sortOrder`.
+ *       Each exam includes class_name and session_name.
  *     parameters:
  *       - $ref: '#/components/parameters/PageQuery'
  *       - $ref: '#/components/parameters/LimitQuery'
- *       - { name: search, in: query, required: false, schema: { type: string }, description: 'exam নাম দিয়ে খোঁজা' }
+ *       - { name: search, in: query, required: false, schema: { type: string }, description: 'search by exam name' }
  *       - { name: class_id, in: query, required: false, schema: { type: string, format: uuid } }
  *       - { name: academic_session_id, in: query, required: false, schema: { type: string, format: uuid } }
  *       - { name: exam_type, in: query, required: false, schema: { type: string, enum: [ADMISSION, MIDTERM, FINAL, UNIT_TEST] } }
@@ -27,7 +27,7 @@ router.use(authMiddleware);
  *       - { name: sortOrder, in: query, required: false, schema: { type: string, enum: [asc, desc] } }
  *     responses:
  *       200:
- *         description: পরীক্ষার তালিকা
+ *         description: List of exams
  *         content:
  *           application/json:
  *             schema:
@@ -49,13 +49,13 @@ router.get('/', rbacMiddleware('EXAM_READ'), examController.getAll);
  * /exams/{id}:
  *   get:
  *     tags: [Exams]
- *     summary: একটি পরীক্ষার বিস্তারিত
- *     description: '`EXAM_READ` permission লাগে। class_name ও session_name সহ exam ফেরত দেয়।'
+ *     summary: Get a single exam's details
+ *     description: 'Requires `EXAM_READ` permission. Returns the exam with class_name and session_name.'
  *     parameters:
  *       - $ref: '#/components/parameters/IdParam'
  *     responses:
  *       200:
- *         description: পরীক্ষার তথ্য
+ *         description: Exam details
  *         content:
  *           application/json:
  *             schema:
@@ -78,10 +78,10 @@ router.get('/:id', rbacMiddleware('EXAM_READ'), examController.getById);
  * /exams:
  *   post:
  *     tags: [Exams]
- *     summary: নতুন পরীক্ষা তৈরি
+ *     summary: Create a new exam
  *     description: >-
- *       `EXAM_CREATE` permission লাগে। শুধু `name` বাধ্যতামূলক; অন্যগুলো optional।
- *       `exam_type` না দিলে ডিফল্ট `ADMISSION` হয়। নতুন exam সবসময় `DRAFT` status-এ তৈরি হয়।
+ *       Requires `EXAM_CREATE` permission. Only `name` is required; the rest are optional.
+ *       If `exam_type` is not provided it defaults to `ADMISSION`. A new exam is always created in `DRAFT` status.
  *     requestBody:
  *       required: true
  *       content:
@@ -97,7 +97,7 @@ router.get('/:id', rbacMiddleware('EXAM_READ'), examController.getById);
  *               exam_type: { type: string, enum: [ADMISSION, MIDTERM, FINAL, UNIT_TEST], default: ADMISSION }
  *     responses:
  *       201:
- *         description: পরীক্ষা তৈরি হয়েছে
+ *         description: Exam created
  *         content:
  *           application/json:
  *             schema:
@@ -122,8 +122,8 @@ router.post('/', rbacMiddleware('EXAM_CREATE'), examController.create);
  * /exams/{id}:
  *   patch:
  *     tags: [Exams]
- *     summary: পরীক্ষার তথ্য আপডেট
- *     description: '`EXAM_UPDATE` permission লাগে। যেসব field পাঠানো হবে কেবল সেগুলোই আপডেট হয় (partial)।'
+ *     summary: Update exam details
+ *     description: 'Requires `EXAM_UPDATE` permission. Only the fields sent are updated (partial).'
  *     parameters:
  *       - $ref: '#/components/parameters/IdParam'
  *     requestBody:
@@ -140,7 +140,7 @@ router.post('/', rbacMiddleware('EXAM_CREATE'), examController.create);
  *               exam_type: { type: string, enum: [ADMISSION, MIDTERM, FINAL, UNIT_TEST] }
  *     responses:
  *       200:
- *         description: আপডেট সফল
+ *         description: Update successful
  *         content:
  *           application/json:
  *             schema:
@@ -165,14 +165,14 @@ router.patch('/:id', rbacMiddleware('EXAM_UPDATE'), examController.update);
  * /exams/{id}:
  *   delete:
  *     tags: [Exams]
- *     summary: পরীক্ষা মুছে ফেলা (soft delete)
+ *     summary: Delete an exam (soft delete)
  *     description: >-
- *       `EXAM_DELETE` permission লাগে। ইতিমধ্যে result থাকলে মুছা যায় না (আগে result মুছতে হবে) — তখন 400।
+ *       Requires `EXAM_DELETE` permission. Cannot delete if results already exist (delete results first) — returns 400.
  *     parameters:
  *       - $ref: '#/components/parameters/IdParam'
  *     responses:
  *       200:
- *         description: মুছে ফেলা হয়েছে
+ *         description: Deleted
  *         content:
  *           application/json:
  *             schema: { $ref: '#/components/schemas/SuccessResponse' }
@@ -187,22 +187,22 @@ router.patch('/:id', rbacMiddleware('EXAM_UPDATE'), examController.update);
  */
 router.delete('/:id', rbacMiddleware('EXAM_DELETE'), examController.delete);
 
-// Publish/unpublish — শুধু এই দুটো কাজের জন্য EXAM_UPDATE permission যথেষ্ট
+// Publish/unpublish — EXAM_UPDATE permission is sufficient for just these two actions
 /**
  * @openapi
  * /exams/{id}/publish:
  *   patch:
  *     tags: [Exams]
- *     summary: পরীক্ষা প্রকাশ করা (DRAFT → PUBLISHED)
+ *     summary: Publish an exam (DRAFT → PUBLISHED)
  *     description: >-
- *       `EXAM_UPDATE` permission লাগে। publish করতে exam-এ class ও academic session থাকতে হবে এবং
- *       অন্তত একটি result entry থাকতে হবে — নাহলে 400। ইতিমধ্যে PUBLISHED হলে 400।
- *       FINAL বা ADMISSION publish হলে শর্ত মিললে ranking auto-trigger হয়।
+ *       Requires `EXAM_UPDATE` permission. To publish, the exam must have a class and academic session and
+ *       at least one result entry — otherwise 400. Returns 400 if already PUBLISHED.
+ *       When a FINAL or ADMISSION exam is published, ranking is auto-triggered if the conditions are met.
  *     parameters:
  *       - $ref: '#/components/parameters/IdParam'
  *     responses:
  *       200:
- *         description: প্রকাশিত exam
+ *         description: Published exam
  *         content:
  *           application/json:
  *             schema:
@@ -227,13 +227,13 @@ router.patch('/:id/publish', rbacMiddleware('EXAM_UPDATE'), examController.publi
  * /exams/{id}/unpublish:
  *   patch:
  *     tags: [Exams]
- *     summary: প্রকাশ বাতিল করে খসড়ায় ফেরানো (PUBLISHED → DRAFT)
- *     description: '`EXAM_UPDATE` permission লাগে। ইতিমধ্যে DRAFT হলে 400।'
+ *     summary: Unpublish and revert to draft (PUBLISHED → DRAFT)
+ *     description: 'Requires `EXAM_UPDATE` permission. Returns 400 if already DRAFT.'
  *     parameters:
  *       - $ref: '#/components/parameters/IdParam'
  *     responses:
  *       200:
- *         description: খসড়ায় ফেরানো হয়েছে
+ *         description: Reverted to draft
  *         content:
  *           application/json:
  *             schema:

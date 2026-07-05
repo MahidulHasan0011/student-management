@@ -2,7 +2,7 @@ import { query, withTransaction } from '../../config/db.js';
 import { buildWhereClause } from '../../utils/queryBuilder.js';
 import { buildOrder } from '../../utils/order.js';
 
-// JOIN আছে তাই alias "r" — buildWhereClause-এ baseAlias="r" পাঠাতে হবে
+// There is a JOIN, so alias "r" — must pass baseAlias="r" to buildWhereClause
 const SORTABLE_FIELDS = {
   name: 'r.name',
   created_at: 'r.created_at',

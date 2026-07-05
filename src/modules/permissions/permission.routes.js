@@ -11,17 +11,17 @@ router.use(authMiddleware);
  * /permissions:
  *   get:
  *     tags: [Permissions]
- *     summary: permission-এর তালিকা (pagination + search)
- *     description: '`PERMISSION_READ` permission লাগে। name-এ search করা যায়।'
+ *     summary: List permissions (pagination + search)
+ *     description: 'Requires `PERMISSION_READ` permission. Supports search by name.'
  *     parameters:
  *       - { $ref: '#/components/parameters/PageQuery' }
  *       - { $ref: '#/components/parameters/LimitQuery' }
- *       - { name: search, in: query, required: false, schema: { type: string }, description: 'permission name-এ খোঁজা' }
+ *       - { name: search, in: query, required: false, schema: { type: string }, description: 'Search by permission name' }
  *       - { name: sortBy, in: query, required: false, schema: { type: string, enum: [name, created_at], default: created_at } }
  *       - { name: sortOrder, in: query, required: false, schema: { type: string, enum: [asc, desc] } }
  *     responses:
  *       200:
- *         description: permission তালিকা
+ *         description: Permission list
  *         content:
  *           application/json:
  *             schema:
@@ -43,12 +43,12 @@ router.get('/', rbacMiddleware('PERMISSION_READ'), permissionController.getAll);
  * /permissions/{id}:
  *   get:
  *     tags: [Permissions]
- *     summary: একক permission-এর বিস্তারিত
- *     description: '`PERMISSION_READ` permission লাগে।'
+ *     summary: Get a single permission's details
+ *     description: 'Requires `PERMISSION_READ` permission.'
  *     parameters: [{ $ref: '#/components/parameters/IdParam' }]
  *     responses:
  *       200:
- *         description: permission-এর তথ্য
+ *         description: Permission details
  *         content:
  *           application/json:
  *             schema:
@@ -68,8 +68,8 @@ router.get('/:id', rbacMiddleware('PERMISSION_READ'), permissionController.getBy
  * /permissions:
  *   post:
  *     tags: [Permissions]
- *     summary: নতুন permission তৈরি
- *     description: '`PERMISSION_CREATE` permission লাগে। name uppercase-এ সংরক্ষিত হয় ও ইউনিক হতে হবে।'
+ *     summary: Create a new permission
+ *     description: 'Requires `PERMISSION_CREATE` permission. name is stored in uppercase and must be unique.'
  *     requestBody:
  *       required: true
  *       content:
@@ -81,7 +81,7 @@ router.get('/:id', rbacMiddleware('PERMISSION_READ'), permissionController.getBy
  *               name: { type: string, maxLength: 100, example: STUDENT_CREATE }
  *     responses:
  *       201:
- *         description: permission তৈরি হয়েছে
+ *         description: Permission created
  *         content:
  *           application/json:
  *             schema:
@@ -102,8 +102,8 @@ router.post('/', rbacMiddleware('PERMISSION_CREATE'), permissionController.creat
  * /permissions/{id}:
  *   patch:
  *     tags: [Permissions]
- *     summary: permission আপডেট
- *     description: '`PERMISSION_UPDATE` permission লাগে। name হলো একমাত্র updatable ফিল্ড — তাই required।'
+ *     summary: Update a permission
+ *     description: 'Requires `PERMISSION_UPDATE` permission. name is the only updatable field, so it is required.'
  *     parameters: [{ $ref: '#/components/parameters/IdParam' }]
  *     requestBody:
  *       required: true
@@ -116,7 +116,7 @@ router.post('/', rbacMiddleware('PERMISSION_CREATE'), permissionController.creat
  *               name: { type: string, maxLength: 100 }
  *     responses:
  *       200:
- *         description: আপডেট সফল
+ *         description: Update successful
  *         content:
  *           application/json:
  *             schema:
@@ -138,12 +138,12 @@ router.patch('/:id', rbacMiddleware('PERMISSION_UPDATE'), permissionController.u
  * /permissions/{id}:
  *   delete:
  *     tags: [Permissions]
- *     summary: permission মুছে ফেলা
- *     description: '`PERMISSION_DELETE` permission লাগে।'
+ *     summary: Delete a permission
+ *     description: 'Requires `PERMISSION_DELETE` permission.'
  *     parameters: [{ $ref: '#/components/parameters/IdParam' }]
  *     responses:
  *       200:
- *         description: permission মুছে ফেলা হয়েছে
+ *         description: Permission deleted
  *         content:
  *           application/json:
  *             schema: { $ref: '#/components/schemas/SuccessResponse' }

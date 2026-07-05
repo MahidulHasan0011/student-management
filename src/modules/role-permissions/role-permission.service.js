@@ -6,7 +6,7 @@ import { permissionEngine } from '../../core/permission.engine.js';
 import { assertUuid, assertArray } from '../../utils/validators.js';
 
 export const rolePermissionService = {
-  // role-এর সব permission লিস্ট দেখাও
+  // List all permissions of a role
   async getByRole(roleId) {
     roleId = assertUuid(roleId, 'roleId');
     const role = await roleRepository.findById(roleId);
@@ -14,7 +14,7 @@ export const rolePermissionService = {
     return rolePermissionRepository.findByRoleId(roleId);
   },
 
-  // একটা permission কোন কোন role-এ আছে দেখাও
+  // Show which roles a permission belongs to
   async getByPermission(permissionId) {
     permissionId = assertUuid(permissionId, 'permissionId');
     const permission = await permissionRepository.findById(permissionId);
@@ -22,7 +22,7 @@ export const rolePermissionService = {
     return rolePermissionRepository.findByPermissionId(permissionId);
   },
 
-  // ── একটা মাত্র permission একটা role-এ assign করা ──
+  // ── Assign a single permission to a role ──
   async assign(roleId, permissionId) {
     roleId = assertUuid(roleId, 'roleId');
     permissionId = assertUuid(permissionId, 'permissionId');
@@ -36,19 +36,19 @@ export const rolePermissionService = {
     const active = await rolePermissionRepository.exists(roleId, permissionId);
     if (active) throw new AppError('This permission is already assigned to the role', 409);
 
-    // soft-deleted আগের row থাকলে restore করো, না থাকলে নতুন বানাও — duplicate row এড়াতে
+    // If a soft-deleted row exists, restore it; otherwise create a new one — to avoid duplicate rows
     const existingAny = await rolePermissionRepository.findAny(roleId, permissionId);
     const result = existingAny
       ? await rolePermissionRepository.restore(existingAny.id)
       : await rolePermissionRepository.create(roleId, permissionId);
 
-    // এই role-ধারী সবার cached permission stale হয়ে গেলো — clear করো
+    // The cached permissions of everyone holding this role are now stale — clear them
     await permissionEngine.invalidate(roleId);
 
     return result;
   },
 
-  // ── একটা মাত্র permission একটা role থেকে সরিয়ে দেওয়া ──
+  // ── Remove a single permission from a role ──
   async revoke(roleId, permissionId) {
     roleId = assertUuid(roleId, 'roleId');
     permissionId = assertUuid(permissionId, 'permissionId');
@@ -63,8 +63,8 @@ export const rolePermissionService = {
     return removed;
   },
 
-  // একসাথে একাধিক permission assign — bulk হলে loop-এ assign() কল করি
-  // (duplicate বা invalid id থাকলেও বাকিগুলো চলতে থাকবে, ব্যর্থ হওয়াগুলো রিপোর্ট হবে)
+  // Assign multiple permissions at once — for bulk, call assign() in a loop
+  // (even if there are duplicate or invalid ids, the rest keep going and failures are reported)
   async assignBulk(roleId, permissionIds) {
     roleId = assertUuid(roleId, 'roleId');
     permissionIds = assertArray(permissionIds, 'permissionIds');

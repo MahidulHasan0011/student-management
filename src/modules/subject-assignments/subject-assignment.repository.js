@@ -100,7 +100,7 @@ export const subjectAssignmentRepository = {
     return rows[0] || null;
   },
 
-  // ৫টা field মিলিয়ে duplicate চেক — DB unique constraint-এর সাথেই মেলে
+  // duplicate check across the 5 fields — matches the DB unique constraint
   // (subject_assignments_teacher_id_class_id_section_id_subject__key)
   async findExact({ teacher_id, class_id, section_id, subject_id, academic_session_id }) {
     const { rows } = await query(
@@ -114,9 +114,9 @@ export const subjectAssignmentRepository = {
     return rows[0] || null;
   },
 
-  // একই class+section+subject+session-এ অন্য কোনো teacher আগে থেকেই assigned আছে কিনা —
-  // (একই বিষয় একই সেকশনে দুইজন শিক্ষক একসাথে পড়াবে কিনা সেটা business rule-এর প্রশ্ন,
-  // এই method শুধু তথ্য দেয়, block করার সিদ্ধান্ত service-এ)
+  // whether another teacher is already assigned to the same class+section+subject+session —
+  // (whether two teachers may teach the same subject in the same section is a business-rule question;
+  // this method only returns info, the decision to block lives in the service)
   async findOtherTeacherForSlot(
     { class_id, section_id, subject_id, academic_session_id },
     excludeTeacherId = null,
@@ -172,8 +172,8 @@ export const subjectAssignmentRepository = {
     return rows[0] || null;
   },
 
-  // teacher-এর সব assignment (active session-এর) — teacher.controller.js-এর getWithAssignments-এও
-  // আগে এই ধরনের query ব্যবহার হয়েছিল, এখানে module-নিজস্ব ভার্সন
+  // all of a teacher's assignments (for the active session) — a similar query was previously
+  // used in getWithAssignments in teacher.controller.js; this is the module's own version
   async findByTeacherId(teacherId) {
     const { rows } = await query(
       `SELECT

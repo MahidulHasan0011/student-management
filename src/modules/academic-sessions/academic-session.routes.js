@@ -6,17 +6,17 @@ import { rbacMiddleware } from '../../middlewares/rbac.middleware.js';
 const router = Router();
 router.use(authMiddleware);
 
-// নির্দিষ্ট /active route অবশ্যই /:id-এর আগে থাকতে হবে — নাহলে "active"-কে id ভাবে নিবে
+// the /active route must come before /:id — otherwise "active" would be treated as an id
 /**
  * @openapi
  * /academic-sessions/active:
  *   get:
  *     tags: [Academic-Sessions]
- *     summary: বর্তমান সক্রিয় সেশন
- *     description: '`SESSION_READ` permission লাগে। কোনো সক্রিয় সেশন না থাকলে 404।'
+ *     summary: Current active session
+ *     description: 'Requires the `SESSION_READ` permission. Returns 404 if there is no active session.'
  *     responses:
  *       200:
- *         description: সক্রিয় সেশনের তথ্য
+ *         description: Active session details
  *         content:
  *           application/json:
  *             schema:
@@ -38,14 +38,14 @@ router.get('/active', rbacMiddleware('SESSION_READ'), academicSessionController.
  * /academic-sessions:
  *   get:
  *     tags: [Academic-Sessions]
- *     summary: সকল একাডেমিক সেশনের তালিকা (পেজিনেটেড)
- *     description: '`SESSION_READ` permission লাগে।'
+ *     summary: List all academic sessions (paginated)
+ *     description: 'Requires the `SESSION_READ` permission.'
  *     parameters:
  *       - $ref: '#/components/parameters/PageQuery'
  *       - $ref: '#/components/parameters/LimitQuery'
  *     responses:
  *       200:
- *         description: সেশনের তালিকা
+ *         description: List of sessions
  *         content:
  *           application/json:
  *             schema:
@@ -66,13 +66,13 @@ router.get('/', rbacMiddleware('SESSION_READ'), academicSessionController.getAll
  * /academic-sessions/{id}:
  *   get:
  *     tags: [Academic-Sessions]
- *     summary: একটি সেশনের বিস্তারিত
- *     description: '`SESSION_READ` permission লাগে।'
+ *     summary: Get a single session
+ *     description: 'Requires the `SESSION_READ` permission.'
  *     parameters:
  *       - $ref: '#/components/parameters/IdParam'
  *     responses:
  *       200:
- *         description: সেশনের তথ্য
+ *         description: Session details
  *         content:
  *           application/json:
  *             schema:
@@ -94,8 +94,8 @@ router.get('/:id', rbacMiddleware('SESSION_READ'), academicSessionController.get
  * /academic-sessions:
  *   post:
  *     tags: [Academic-Sessions]
- *     summary: নতুন একাডেমিক সেশন তৈরি
- *     description: '`SESSION_CREATE` permission লাগে। `name` ইউনিক; `start_date` ≤ `end_date` হতে হবে।'
+ *     summary: Create a new academic session
+ *     description: 'Requires the `SESSION_CREATE` permission. `name` is unique; `start_date` must be ≤ `end_date`.'
  *     requestBody:
  *       required: true
  *       content:
@@ -110,7 +110,7 @@ router.get('/:id', rbacMiddleware('SESSION_READ'), academicSessionController.get
  *               admission_test_enabled: { type: boolean, example: false }
  *     responses:
  *       201:
- *         description: সেশন তৈরি হয়েছে
+ *         description: Session created
  *         content:
  *           application/json:
  *             schema:
@@ -134,8 +134,8 @@ router.post('/', rbacMiddleware('SESSION_CREATE'), academicSessionController.cre
  * /academic-sessions/{id}:
  *   patch:
  *     tags: [Academic-Sessions]
- *     summary: সেশন আপডেট
- *     description: '`SESSION_UPDATE` permission লাগে। সব ফিল্ড ঐচ্ছিক। `is_active` এখানে বদলানো যায় না — activate/deactivate route ব্যবহার করুন।'
+ *     summary: Update a session
+ *     description: 'Requires the `SESSION_UPDATE` permission. All fields are optional. `is_active` cannot be changed here — use the activate/deactivate route.'
  *     parameters:
  *       - $ref: '#/components/parameters/IdParam'
  *     requestBody:
@@ -150,7 +150,7 @@ router.post('/', rbacMiddleware('SESSION_CREATE'), academicSessionController.cre
  *               end_date: { type: string, format: date }
  *     responses:
  *       200:
- *         description: সেশন আপডেট হয়েছে
+ *         description: Session updated
  *         content:
  *           application/json:
  *             schema:
@@ -176,13 +176,13 @@ router.patch('/:id', rbacMiddleware('SESSION_UPDATE'), academicSessionController
  * /academic-sessions/{id}:
  *   delete:
  *     tags: [Academic-Sessions]
- *     summary: সেশন মুছে ফেলা (soft delete)
- *     description: '`SESSION_DELETE` permission লাগে। সক্রিয় সেশন মুছা যাবে না — আগে deactivate করতে হবে।'
+ *     summary: Delete a session (soft delete)
+ *     description: 'Requires the `SESSION_DELETE` permission. An active session cannot be deleted — deactivate it first.'
  *     parameters:
  *       - $ref: '#/components/parameters/IdParam'
  *     responses:
  *       200:
- *         description: সেশন মুছে ফেলা হয়েছে
+ *         description: Session deleted
  *         content:
  *           application/json:
  *             schema: { $ref: '#/components/schemas/SuccessResponse' }
@@ -201,13 +201,13 @@ router.delete('/:id', rbacMiddleware('SESSION_DELETE'), academicSessionControlle
  * /academic-sessions/{id}/activate:
  *   patch:
  *     tags: [Academic-Sessions]
- *     summary: সেশন সক্রিয় করা
- *     description: '`SESSION_UPDATE` permission লাগে। একসাথে শুধু একটিই সেশন সক্রিয় থাকে — এটি সক্রিয় করলে বাকিগুলো নিষ্ক্রিয় হয় (atomic)।'
+ *     summary: Activate a session
+ *     description: 'Requires the `SESSION_UPDATE` permission. Only one session is active at a time — activating this one deactivates the rest (atomic).'
  *     parameters:
  *       - $ref: '#/components/parameters/IdParam'
  *     responses:
  *       200:
- *         description: সেশন সক্রিয় হয়েছে
+ *         description: Session activated
  *         content:
  *           application/json:
  *             schema:
@@ -229,13 +229,13 @@ router.patch('/:id/activate', rbacMiddleware('SESSION_UPDATE'), academicSessionC
  * /academic-sessions/{id}/deactivate:
  *   patch:
  *     tags: [Academic-Sessions]
- *     summary: সেশন নিষ্ক্রিয় করা
- *     description: '`SESSION_UPDATE` permission লাগে। ইতিমধ্যে নিষ্ক্রিয় হলে অপরিবর্তিত সেশন ফেরত দেয়।'
+ *     summary: Deactivate a session
+ *     description: 'Requires the `SESSION_UPDATE` permission. If already inactive, returns the session unchanged.'
  *     parameters:
  *       - $ref: '#/components/parameters/IdParam'
  *     responses:
  *       200:
- *         description: সেশন নিষ্ক্রিয় হয়েছে
+ *         description: Session deactivated
  *         content:
  *           application/json:
  *             schema:
@@ -261,8 +261,8 @@ router.patch(
  * /academic-sessions/{id}/admission-test:
  *   patch:
  *     tags: [Academic-Sessions]
- *     summary: সেশনের admission test on/off করা
- *     description: '`SESSION_UPDATE` permission লাগে। `admission_test_enabled` (boolean) আবশ্যক।'
+ *     summary: Turn a session's admission test on/off
+ *     description: 'Requires the `SESSION_UPDATE` permission. `admission_test_enabled` (boolean) is required.'
  *     parameters:
  *       - $ref: '#/components/parameters/IdParam'
  *     requestBody:
@@ -276,7 +276,7 @@ router.patch(
  *               admission_test_enabled: { type: boolean, example: true }
  *     responses:
  *       200:
- *         description: admission test অবস্থা আপডেট হয়েছে
+ *         description: Admission test status updated
  *         content:
  *           application/json:
  *             schema:
