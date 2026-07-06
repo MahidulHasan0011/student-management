@@ -17,6 +17,9 @@ export const env = {
   BCRYPT_ROUNDS: parseInt(process.env.BCRYPT_ROUNDS) || 12,
   // DB connection pool size — kept small when many workers run at once during tests (DB_POOL_MAX)
   DB_POOL_MAX: parseInt(process.env.DB_POOL_MAX) || 20,
+  // ── BullMQ retry backoff (exponential + jitter) ──
+  QUEUE_BACKOFF_BASE_MS: parseInt(process.env.QUEUE_BACKOFF_BASE_MS) || 2000, // first retry ~2s
+  QUEUE_BACKOFF_CAP_MS: parseInt(process.env.QUEUE_BACKOFF_CAP_MS) || 30000, // max wait between retries
 
   // ── Object storage (S3-compatible: AWS S3 / Cloudflare R2 / MinIO) ───────
   // R2   : STORAGE_ENDPOINT = https://<account_id>.r2.cloudflarestorage.com, REGION = 'auto'

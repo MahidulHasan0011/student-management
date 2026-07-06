@@ -420,3 +420,186 @@ addJob-এর পর কোড থেমে যায়। পরে, সম্
 এই কারণেই এটাকে বলে asynchronous / decoupled — চিঠি লেখা আর চিঠি পড়া সম্পূর্ণ আলাদা সময়ে, আলাদা জায়গায় ঘটে। এমনকি তুমি চাইলে পিয়নকে (worker) আলাদা কম্পিউটারেও রাখতে পারো — node src/jobs/index.js আলাদা চালিয়ে! 🚀
 
 আর কোনো অংশ ঘোলাটে লাগছে?
+
+
+
+
+
+
+
+
+
+
+Exponential Backoff with Jitter। 🚀
+
+শুধু Exponential Backoff হলে
+
+সবাই একই নিয়ম মানে:
+
+১ম বার চেষ্টা → Fail
+১ সেকেন্ড অপেক্ষা
+
+২য় বার চেষ্টা → Fail
+২ সেকেন্ড অপেক্ষা
+
+৩য় বার চেষ্টা → Fail
+৪ সেকেন্ড অপেক্ষা
+
+সমস্যা হলো, সবাই একই সময়ে আবার চেষ্টা করবে।
+
+১ সেকেন্ড পরে:
+👦👦👦👦👦👦👦👦👦👦
+
+২ সেকেন্ড পরে:
+👦👦👦👦👦👦👦👦👦👦
+
+৪ সেকেন্ড পরে:
+👦👦👦👦👦👦👦👦👦👦
+
+দোকানদারের উপর আবার একসাথে অনেক চাপ পড়ে।
+
+API Server-এর ক্ষেত্রেও একই ঘটনা ঘটে।
+
+Jitter কী?
+
+Jitter = একটু Randomness (এলোমেলো সময়) যোগ করা।
+
+অর্থাৎ সবাই ৪ সেকেন্ড অপেক্ষা করবে না।
+
+বরং:
+
+রাহিম → ৩.৫ সেকেন্ড
+করিম → ৪.২ সেকেন্ড
+জামাল → ৪.৮ সেকেন্ড
+রুবেল → ৩.১ সেকেন্ড
+সুমন → ৪.৫ সেকেন্ড
+
+এখন সবাই একসাথে আসছে না।
+
+৩.১s → রুবেল
+৩.৫s → রাহিম
+৪.২s → করিম
+৪.৫s → সুমন
+৪.৮s → জামাল
+
+দোকানদারের জন্য কাজ করা অনেক সহজ হয়ে গেল। ✅
+
+API-এর বাস্তব উদাহরণ
+
+ধরো তোমার Shopify App API Call করছে।
+
+প্রথম Request:
+
+GET /products
+
+Server বলল:
+
+{
+  "error": "Too Many Requests"
+}
+Jitter ছাড়া
+Try 1 → Wait 1s
+Try 2 → Wait 2s
+Try 3 → Wait 4s
+Try 4 → Wait 8s
+
+১০০০ জন User একই Pattern Follow করলে:
+
+১ সেকেন্ডে ১০০০ Request
+২ সেকেন্ডে ১০০০ Request
+৪ সেকেন্ডে ১০০০ Request
+
+Server আবার চাপের মধ্যে পড়ে যায়।
+
+Jitter সহ
+
+Base Delay:
+
+1s
+2s
+4s
+8s
+
+কিন্তু Random Time যোগ করা হলো:
+
+1.3s
+2.7s
+4.5s
+8.2s
+
+অন্য User-এর জন্য:
+
+1.8s
+2.1s
+5.0s
+7.6s
+
+এখন Request গুলো ছড়িয়ে-ছিটিয়ে আসবে।
+
+Server একসাথে হাজার Request পাবে না। ✅
+
+JavaScript Example
+const baseDelay = 1000;
+
+for (let attempt = 1; attempt <= 5; attempt++) {
+  const exponentialDelay = baseDelay * Math.pow(2, attempt - 1);
+
+  const jitter = Math.random() * 1000;
+
+  const waitTime = exponentialDelay + jitter;
+
+  console.log(
+    `Attempt ${attempt}: ${Math.round(waitTime)}ms`
+  );
+}
+
+Output এমন হতে পারে:
+
+Attempt 1: 1450ms
+Attempt 2: 2780ms
+Attempt 3: 4320ms
+Attempt 4: 8950ms
+Attempt 5: 16340ms
+
+প্রতিবার Output আলাদা হবে কারণ Math.random() নতুন Random Value দেয়।
+
+Full Jitter (সবচেয়ে জনপ্রিয়)
+
+AWS-এর মতো বড় কোম্পানিগুলো প্রায়ই এই Strategy ব্যবহার করে।
+
+Formula:
+
+waitTime = Math.random() * exponentialDelay;
+
+ধরো:
+
+Exponential Delay = 8000ms
+
+তাহলে Wait Time হতে পারে:
+
+523ms
+2345ms
+4567ms
+7899ms
+
+অর্থাৎ 0 থেকে 8000ms-এর মধ্যে যেকোনো Random Value।
+
+এতে হাজার হাজার Client-এর Retry Time আলাদা হয়ে যায়।
+
+সহজে মনে রাখার উপায়
+
+Exponential Backoff:
+
+"প্রতি Fail-এর পর অপেক্ষার সময় দ্বিগুণ করো।"
+
+Jitter:
+
+"অপেক্ষার সময়ের মধ্যে একটু Randomness যোগ করো।"
+
+Exponential Backoff + Jitter:
+
+"প্রতি Fail-এর পর বেশি সময় অপেক্ষা করো, কিন্তু সবাই যেন একই সময়ে Retry না করে।"
+
+এ কারণেই Production System-এ সাধারণত "Exponential Backoff with Jitter" ব্যবহার করা হয়, শুধু Exponential Backoff নয়।
+
+bullmq 5.79 — modern version, তাই custom backoff strategy সরাসরি supported
